@@ -27,6 +27,7 @@ import { getSourceType, getSourcePropagandaRisk } from '@/config/feeds';
 import { tokenize } from '@/utils/analysis-constants';
 import { getRuntimeConfigSnapshot } from '@/services/runtime-config';
 import { generateSummary } from '@/services/summarization';
+import { analyzeTalkingPoints, type TalkingPointAnalysis, type TitleForAnalysis } from '@/utils/talking-points';
 
 type SourceClass = 'mainstream' | 'independent' | 'state' | 'gov' | 'local';
 
@@ -43,6 +44,7 @@ interface ComparedCluster {
   consensusTerms: string[];
   flags: string[];
   groups: Record<SourceClass, ComparedItem[]>;
+  tp: TalkingPointAnalysis;
 }
 
 const CLASS_LABELS: Record<SourceClass, string> = {
@@ -90,7 +92,21 @@ function compareCluster(cluster: ClusteredEvent): ComparedCluster {
   };
   for (const c of compared) groups[c.cls].push(c);
 
+  // Talking-point / synchronized-phrasing analysis.
+  const tpTitles: TitleForAnalysis[] = compared.map(c => ({
+    source: c.item.source,
+    title: c.item.title,
+    isWire: getSourceType(c.item.source) === 'wire',
+    isState: c.cls === 'state',
+  }));
+  const tp = analyzeTalkingPoints(tpTitles);
+
   const flags: string[] = [];
+  if (tp.talkingPointAlert) flags.push('⚠ TALKING POINT — synchronized phrasing');
+  const coordinated = tp.phrases.filter(p => p.kind === 'coordinated');
+  if (!tp.talkingPointAlert && coordinated.length > 0) flags.push('Shared phrasing (non-wire)');
+  if (tp.phrases.some(p => p.kind === 'syndication')) flags.push('Wire copy detected');
+  if (tp.loadedTerms.length > 0) flags.push(`Loaded language (${tp.loadedTerms.length})`);
   if (groups.local.length > 0) flags.push(`Local coverage (${groups.local.length})`);
   if (groups.state.length > 0 && groups.mainstream.length > 0) flags.push('State vs mainstream framing');
   if (groups.state.length > 0 && groups.mainstream.length === 0 && groups.independent.length === 0) {
@@ -108,6 +124,7 @@ function compareCluster(cluster: ClusteredEvent): ComparedCluster {
     consensusTerms: [...consensus].filter(t => t.length > 3).slice(0, 8),
     flags,
     groups,
+    tp,
   };
 }
 
@@ -116,13 +133,25 @@ function buildComparePrompt(cc: ComparedCluster): string {
     `Story: ${cc.cluster.primaryTitle}`,
     '',
     'Below are headlines about the same story from different types of news sources.',
-    'Compare the coverage. Answer concisely in markdown with these sections:',
-    '1. **Agreement** — facts all source groups report the same way.',
-    '2. **Differences** — where framing, emphasis, or claimed facts differ between groups (mainstream vs independent vs state vs local).',
-    '3. **Unique claims** — anything only one outlet reports (flag as unverified).',
-    '4. **Bias flags** — likely framing/propaganda signals and whose interest they serve.',
+    'Your job is to filter signal from spin. Answer concisely in markdown with these sections:',
+    '1. **Verifiable core** — facts all source groups report the same way (the part most likely true).',
+    '2. **Talking points** — repeated phrasing/framing that reads like a distributed message rather than independent reporting. Distinguish wire-service copy (normal) from suspicious synchronization. Say who benefits from each talking point.',
+    '3. **Differences** — where framing, emphasis, or claimed facts differ between groups (mainstream vs independent vs state vs local).',
+    '4. **Unique claims** — anything only one outlet reports (flag as unverified).',
+    '5. **BS meter** — a 1–10 rating of how much of this coverage is spin vs substance, with one sentence of justification.',
     '',
   ];
+  if (cc.tp.phrases.length > 0) {
+    lines.push('Automated phrase analysis already detected these shared phrases (verify and interpret them):');
+    for (const p of cc.tp.phrases.slice(0, 6)) {
+      lines.push(`- "${p.phrase}" used by ${p.sources.join(', ')} (${p.kind}${p.loaded ? ', loaded language' : ''})`);
+    }
+    lines.push('');
+  }
+  if (cc.tp.loadedTerms.length > 0) {
+    lines.push(`Loaded terms detected: ${cc.tp.loadedTerms.slice(0, 8).map(l => `"${l.term}" (${l.sources.join(', ')})`).join('; ')}`);
+    lines.push('');
+  }
   for (const cls of CLASS_ORDER) {
     const group = cc.groups[cls];
     if (!group.length) continue;
@@ -174,7 +203,7 @@ export class CoverageComparePanel extends Panel {
     super({
       id: 'coverage-compare',
       title: 'Coverage Compare',
-      infoTooltip: 'Compares how mainstream, independent, state, and local sources cover the same story — highlighting agreements, differences, unique claims, and bias flags. AI Compare uses your local Ollama when configured.',
+      infoTooltip: 'Filters spin from signal: clusters the same story across mainstream, independent, state, and local sources; detects synchronized talking points (identical phrasing across outlets), separates normal wire-copy from coordinated messaging, flags loaded language, and scores narrative sync. AI Compare uses your local Ollama when configured.',
     });
     this.getLatestNews = getLatestNews;
 
@@ -214,8 +243,16 @@ export class CoverageComparePanel extends Panel {
         return;
       }
 
-      const compared = clusters.map(compareCluster);
-      this.statusEl.textContent = `${compared.length} multi-source stories · ${news.length} headlines analyzed`;
+      const compared = clusters.map(compareCluster)
+        // Talking-point alerts first, then by sync score, then by source spread.
+        .sort((a, b) =>
+          Number(b.tp.talkingPointAlert) - Number(a.tp.talkingPointAlert)
+          || b.tp.syncScore - a.tp.syncScore
+          || b.cluster.sourceCount - a.cluster.sourceCount);
+      const alerts = compared.filter(c => c.tp.talkingPointAlert).length;
+      this.statusEl.textContent =
+        `${compared.length} multi-source stories · ${news.length} headlines analyzed`
+        + (alerts ? ` · ⚠ ${alerts} talking-point alert${alerts > 1 ? 's' : ''}` : ' · no synchronized talking points detected');
       replaceChildren(this.listEl, ...compared.map(cc => this.renderCluster(cc)));
     } finally {
       this.analyzing = false;
@@ -224,9 +261,36 @@ export class CoverageComparePanel extends Panel {
 
   private renderCluster(cc: ComparedCluster): HTMLElement {
     const flagEls = cc.flags.map(f => {
-      const warn = f.includes('State') || f.includes('No independent') || f.includes('divergent');
-      return h('span', { className: `cc-flag${warn ? ' cc-flag-warn' : ''}` }, f);
+      const alert = f.includes('TALKING POINT');
+      const warn = !alert && (f.includes('State') || f.includes('No independent') || f.includes('divergent') || f.includes('Loaded'));
+      return h('span', { className: `cc-flag${alert ? ' cc-flag-alert' : warn ? ' cc-flag-warn' : ''}` }, f);
     });
+
+    // Narrative sync meter.
+    const sync = cc.tp.syncScore;
+    const syncClass = sync >= 60 ? 'cc-sync-high' : sync >= 30 ? 'cc-sync-mid' : 'cc-sync-low';
+    const syncMeter = h('span', {
+      className: `cc-sync ${syncClass}`,
+      title: 'Narrative sync: how much of this coverage shares identical phrasing across distinct outlets. High + non-wire = likely talking point.',
+    }, `sync ${sync}%`);
+    flagEls.unshift(syncMeter);
+
+    // Shared-phrase evidence chips.
+    const phraseEls = cc.tp.phrases.slice(0, 4).map(p =>
+      h('div', { className: `cc-phrase${p.kind === 'coordinated' ? ' cc-phrase-coord' : ''}` },
+        h('span', { className: 'cc-phrase-kind' }, p.kind === 'coordinated' ? '⚠ coordinated' : 'wire copy'),
+        h('span', { className: 'cc-phrase-text' }, `“${p.phrase}”`),
+        h('span', { className: 'cc-phrase-sources' }, p.sources.join(' · ')),
+        ...(p.loaded ? [h('span', { className: 'cc-flag cc-flag-warn' }, 'loaded')] : []),
+      ));
+
+    const loadedEl = cc.tp.loadedTerms.length
+      ? h('div', { className: 'cc-loaded' },
+          'Loaded language: ',
+          ...cc.tp.loadedTerms.slice(0, 6).map(l =>
+            h('span', { className: 'cc-loaded-term', title: `Used by: ${l.sources.join(', ')}` }, `${l.term} (${l.sources.length})`)),
+        )
+      : null;
 
     const groupEls: HTMLElement[] = [];
     for (const cls of CLASS_ORDER) {
@@ -279,17 +343,20 @@ export class CoverageComparePanel extends Panel {
       ? h('div', { className: 'cc-consensus' }, `Shared across sources: ${cc.consensusTerms.join(', ')}`)
       : null;
 
-    const details = h('details', { className: 'cc-details' },
+    const details = h('details', { className: `cc-details${cc.tp.talkingPointAlert ? ' cc-details-alert' : ''}` },
       h('summary', { className: 'cc-summary' },
         h('span', { className: 'cc-count' }, `${cc.cluster.sourceCount}×`),
         h('span', { className: 'cc-title' }, cc.cluster.primaryTitle),
         ...flagEls,
       ),
+      ...phraseEls,
+      ...(loadedEl ? [loadedEl] : []),
       ...(consensus ? [consensus] : []),
       ...groupEls,
       h('div', { className: 'cc-ai-row' }, aiBtn),
       aiResult,
     );
+    if (cc.tp.talkingPointAlert) (details as HTMLDetailsElement).open = true;
     return details as HTMLElement;
   }
 }

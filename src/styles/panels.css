@@ -3265,3 +3265,26 @@ a.hub-top-story {
 .cc-ai-result { font-size: 11px; margin-top: 6px; line-height: 1.45; }
 .cc-ai-result h3 { font-size: 12px; margin: 8px 0 3px; }
 .cc-ai-via { font-size: 9px; color: var(--text-dim, #888); text-transform: uppercase; margin-bottom: 4px; }
+
+/* Coverage Compare — talking-point detection */
+.cc-flag-alert { background: rgba(231,76,60,0.2); color: #e74c3c; font-weight: 700; }
+.cc-details-alert { border-color: rgba(231,76,60,0.5); }
+.cc-sync { font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 700; white-space: nowrap; }
+.cc-sync-low { background: rgba(46,204,113,0.15); color: #2ecc71; }
+.cc-sync-mid { background: rgba(241,196,15,0.15); color: #f1c40f; }
+.cc-sync-high { background: rgba(231,76,60,0.2); color: #e74c3c; }
+.cc-phrase {
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  font-size: 11px; margin-top: 6px; padding: 4px 6px; border-radius: 4px;
+  background: rgba(255,255,255,0.03); border-left: 2px solid var(--border, #444);
+}
+.cc-phrase-coord { border-left-color: #e74c3c; background: rgba(231,76,60,0.06); }
+.cc-phrase-kind { font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim, #999); white-space: nowrap; }
+.cc-phrase-coord .cc-phrase-kind { color: #e74c3c; font-weight: 700; }
+.cc-phrase-text { font-style: italic; }
+.cc-phrase-sources { font-size: 10px; color: var(--text-dim, #888); }
+.cc-loaded { font-size: 10px; margin-top: 6px; color: var(--text-dim, #999); }
+.cc-loaded-term {
+  display: inline-block; margin: 0 3px; padding: 0 5px; border-radius: 3px;
+  background: rgba(255,159,67,0.12); color: #ff9f43; cursor: help;
+}
