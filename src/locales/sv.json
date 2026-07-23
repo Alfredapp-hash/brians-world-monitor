@@ -589,7 +589,8 @@
         "speciesRecovery": "Artåterhämtning",
         "renewableInstallations": "Ren energi",
         "radiationSpike": "Strålningsökning",
-        "radiationElevated": "Förhöjd strålning"
+        "radiationElevated": "Förhöjd strålning",
+        "alprCameras": "ALPR-kameror"
       },
       "layersTitle": "Lager",
       "layerSearch": "Sök lager...",

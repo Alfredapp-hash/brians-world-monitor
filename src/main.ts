@@ -1,7 +1,4 @@
 import './styles/base-layer.css';
-// Brian's fork identity theme — unlayered so it wins the cascade over
-// @layer base (same mechanism as variant themes; see base-layer.css).
-import './styles/brians-theme.css';
 import './bootstrap/zod-csp';
 import { SITE_VARIANT } from '@/config/variant';
 import { installLcpAttributionDebug } from '@/bootstrap/lcp-attribution';

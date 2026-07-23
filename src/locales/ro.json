@@ -1149,7 +1149,8 @@
         "speciesRecovery": "Recuperarea speciilor",
         "renewableInstallations": "Energie curată",
         "radiationSpike": "Vârf de radiații",
-        "radiationElevated": "Radiații ridicate"
+        "radiationElevated": "Radiații ridicate",
+        "alprCameras": "ALPR Cameras"
       },
       "tooltip": {
         "earthquake": "Cutremur",

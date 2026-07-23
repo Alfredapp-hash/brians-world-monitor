@@ -589,7 +589,8 @@
         "speciesRecovery": "Recuperação de espécies",
         "renewableInstallations": "Energia limpa",
         "radiationSpike": "Pico de radiação",
-        "radiationElevated": "Radiação elevada"
+        "radiationElevated": "Radiação elevada",
+        "alprCameras": "Câmeras ALPR"
       },
       "layersTitle": "Camadas",
       "layerSearch": "Pesquisar camadas...",

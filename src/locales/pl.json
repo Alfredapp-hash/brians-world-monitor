@@ -967,7 +967,8 @@
         "speciesRecovery": "Ochrona gatunków",
         "renewableInstallations": "Czysta energia",
         "radiationSpike": "Skok radioaktywności",
-        "radiationElevated": "Podwyższona radioaktywność"
+        "radiationElevated": "Podwyższona radioaktywność",
+        "alprCameras": "Kamery ALPR"
       },
       "layersTitle": "Warstwy",
       "layerSearch": "Szukaj warstw...",

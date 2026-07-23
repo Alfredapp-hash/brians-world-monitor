@@ -1106,7 +1106,8 @@
         "speciesRecovery": "Rétablissement des espèces",
         "renewableInstallations": "Énergie propre",
         "radiationSpike": "Pic de radiation",
-        "radiationElevated": "Radiation élevée"
+        "radiationElevated": "Radiation élevée",
+        "alprCameras": "Caméras ALPR"
       },
       "tooltip": {
         "earthquake": "Tremblement de terre",

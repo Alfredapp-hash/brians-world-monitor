@@ -1414,7 +1414,8 @@
         "kindness": "Čini Ljubaznosti",
         "happiness": "Svjetsko Blagostanje",
         "speciesRecovery": "Oporavak vrsta",
-        "renewableInstallations": "Čista energija"
+        "renewableInstallations": "Čista energija",
+        "alprCameras": "ALPR kamere"
       },
       "tooltip": {
         "earthquake": "Zemljotres",

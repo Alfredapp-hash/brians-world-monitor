@@ -1139,7 +1139,8 @@
         "speciesRecovery": "Obnova druhů",
         "renewableInstallations": "Čistá energie",
         "radiationSpike": "Skokový nárůst radiace",
-        "radiationElevated": "Zvýšená radiace"
+        "radiationElevated": "Zvýšená radiace",
+        "alprCameras": "ALPR kamery"
       },
       "tooltip": {
         "earthquake": "Zemětřesení",

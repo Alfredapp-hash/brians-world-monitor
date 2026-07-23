@@ -172,7 +172,7 @@ describe('homepage WebMCP registration — runtime behaviour', () => {
     return { registered, provided, get navigatedTo() { return navigatedTo; }, domHandler, navigator };
   }
   const collectRegister = (registered) => ({ registerTool: (t) => registered.push(t) });
-  const collectProvide = (registered, provided) => ({ provideContext: (ctx) => provided.push(ctx) });
+  const collectProvide = (_registered, provided) => ({ provideContext: (ctx) => provided.push(ctx) });
 
   it('the inline IIFE is extractable and executable', () => {
     assert.ok(runInline, 'could not extract the WebMCP IIFE from welcome.html');

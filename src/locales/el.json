@@ -1147,7 +1147,8 @@
         "speciesRecovery": "Ανάκαμψη ειδών",
         "renewableInstallations": "Καθαρή ενέργεια",
         "radiationSpike": "Αιχμή ραδιενέργειας",
-        "radiationElevated": "Αυξημένη ραδιενέργεια"
+        "radiationElevated": "Αυξημένη ραδιενέργεια",
+        "alprCameras": "Κάμερες ALPR"
       },
       "tooltip": {
         "earthquake": "Σεισμός",

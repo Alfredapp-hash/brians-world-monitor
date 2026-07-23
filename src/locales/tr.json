@@ -1147,7 +1147,8 @@
         "speciesRecovery": "Tür Kurtarma",
         "renewableInstallations": "Temiz Enerji",
         "radiationSpike": "Radyasyon artışı",
-        "radiationElevated": "Yükseltilmiş radyasyon"
+        "radiationElevated": "Yükseltilmiş radyasyon",
+        "alprCameras": "ALPR Kameraları"
       },
       "tooltip": {
         "earthquake": "Deprem",

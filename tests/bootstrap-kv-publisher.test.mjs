@@ -102,7 +102,7 @@ describe('putKvJsonValue', () => {
   });
 
   it('aborts a KV write that exceeds its deadline', async () => {
-    const fetchFn = async (_url, { signal }) => new Promise((resolve, reject) => {
+    const fetchFn = async (_url, { signal }) => new Promise((_resolve, reject) => {
       signal.addEventListener('abort', () => reject(signal.reason), { once: true });
     });
     await assert.rejects(

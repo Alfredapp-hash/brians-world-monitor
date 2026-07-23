@@ -1147,7 +1147,8 @@
         "speciesRecovery": "การฟื้นตัวของสายพันธุ์",
         "renewableInstallations": "พลังงานสะอาด",
         "radiationSpike": "การเพิ่มขึ้นของรังสี",
-        "radiationElevated": "รังสีสูงขึ้น"
+        "radiationElevated": "รังสีสูงขึ้น",
+        "alprCameras": "กล้อง ALPR"
       },
       "tooltip": {
         "earthquake": "แผ่นดินไหว",

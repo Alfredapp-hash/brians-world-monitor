@@ -1151,7 +1151,8 @@
         "speciesRecovery": "Восстановление видов",
         "renewableInstallations": "Чистая энергия",
         "radiationSpike": "Всплеск радиации",
-        "radiationElevated": "Повышенный уровень радиации"
+        "radiationElevated": "Повышенный уровень радиации",
+        "alprCameras": "Камеры ALPR"
       },
       "tooltip": {
         "earthquake": "Землетрясение",

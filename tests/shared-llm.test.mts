@@ -84,7 +84,7 @@ describe('callLlm', () => {
     delete process.env.LLM_API_KEY;
 
     const bodies: Array<Record<string, unknown>> = [];
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
       if ((init?.method || 'GET') === 'GET') return new Response('', { status: 200 });
       bodies.push(JSON.parse(String(init?.body || '{}')) as Record<string, unknown>);
       return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }], usage: { total_tokens: 5 } }), { status: 200 });
@@ -269,7 +269,7 @@ describe('callLlm', () => {
 
     const postBodies: Array<Record<string, unknown>> = [];
 
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
       if ((init?.method || 'GET') === 'GET') {
         return new Response('', { status: 200 });
       }
@@ -302,7 +302,7 @@ describe('callLlm', () => {
     delete process.env.LLM_API_KEY;
 
     const bodies: Array<Record<string, unknown>> = [];
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
       if ((init?.method || 'GET') === 'GET') return new Response('', { status: 200 });
       bodies.push(JSON.parse(String(init?.body || '{}')) as Record<string, unknown>);
       return new Response(JSON.stringify({
@@ -341,7 +341,7 @@ describe('callLlm', () => {
     delete process.env.LLM_API_URL;
     delete process.env.LLM_API_KEY;
 
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
       if ((init?.method || 'GET') === 'GET') {
         return new Response('', { status: 200 });
       }

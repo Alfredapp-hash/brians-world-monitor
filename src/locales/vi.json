@@ -1147,7 +1147,8 @@
         "speciesRecovery": "Phục hồi loài",
         "renewableInstallations": "Năng lượng sạch",
         "radiationSpike": "Đột tăng bức xạ",
-        "radiationElevated": "Bức xạ tăng cao"
+        "radiationElevated": "Bức xạ tăng cao",
+        "alprCameras": "Camera ALPR"
       },
       "tooltip": {
         "earthquake": "Động đất",

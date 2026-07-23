@@ -1239,7 +1239,7 @@ describe('readDigestAccumulatorArchive', () => {
     process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
     const deadline = T0 + 10 * DAY_MS;
     const nowMs = deadline + DAY_MS;
-    globalThis.fetch = async (url, init) => {
+    globalThis.fetch = async (url, _init) => {
       if (String(url).endsWith('/pipeline')) {
         return {
           ok: true,

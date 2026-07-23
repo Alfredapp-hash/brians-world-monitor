@@ -994,7 +994,8 @@
         "speciesRecovery": "Artenerholung",
         "renewableInstallations": "Saubere Energie",
         "radiationSpike": "Strahlungsspitze",
-        "radiationElevated": "Erhöhte Strahlung"
+        "radiationElevated": "Erhöhte Strahlung",
+        "alprCameras": "ALPR-Kameras"
       },
       "layersTitle": "Schichten",
       "layerSearch": "Schichten suchen...",

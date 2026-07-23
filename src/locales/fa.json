@@ -1288,7 +1288,8 @@
         "kindness": "Acts of Kindness",
         "happiness": "World Happiness",
         "speciesRecovery": "Species Recovery",
-        "renewableInstallations": "Clean Energy"
+        "renewableInstallations": "Clean Energy",
+        "alprCameras": "ALPR Cameras"
       },
       "tooltip": {
         "earthquake": "Earthquake",

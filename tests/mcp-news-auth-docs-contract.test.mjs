@@ -23,7 +23,6 @@ function rpcTool(name) {
 
 async function captureRpcFetches(toolName, params, opts = {}) {
   const calls = [];
-  let result;
   globalThis.fetch = async (input, init = {}) => {
     const url = String(input);
     calls.push({ url, init });
@@ -85,7 +84,7 @@ async function captureRpcFetches(toolName, params, opts = {}) {
     throw new Error(`Unexpected fetch in ${toolName}: ${url}`);
   };
 
-  result = await rpcTool(toolName)._execute(params, 'https://worldmonitor.app', {
+  const result = await rpcTool(toolName)._execute(params, 'https://worldmonitor.app', {
     kind: 'env_key',
     apiKey: 'wm_test_key_mcp_news_contract',
   });

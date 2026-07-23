@@ -1288,7 +1288,8 @@
         "kindness": "Kedvességi cselekmények",
         "happiness": "Világboldogság",
         "speciesRecovery": "Fajmegmentés",
-        "renewableInstallations": "Tiszta energia"
+        "renewableInstallations": "Tiszta energia",
+        "alprCameras": "ALPR kamerák"
       },
       "tooltip": {
         "earthquake": "Földrengés",

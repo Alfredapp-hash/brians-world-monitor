@@ -10,3 +10,8 @@
 @import url('./country-deep-dive.css') layer(base);
 @import url('./map-context-menu.css') layer(base);
 @import url('./supply-chain-panel.css') layer(base);
+
+/* JSA's Monitor identity theme — imported UNLAYERED (no layer(base)) so it
+ * wins the cascade over everything above, and rides the same deferred
+ * dashboard stylesheet rather than adding a second render-blocking link. */
+@import url('./brians-theme.css');

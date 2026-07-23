@@ -1147,7 +1147,8 @@
         "speciesRecovery": "物种恢复",
         "renewableInstallations": "清洁能源",
         "radiationSpike": "辐射峰值",
-        "radiationElevated": "辐射升高"
+        "radiationElevated": "辐射升高",
+        "alprCameras": "车牌识别摄像头"
       },
       "tooltip": {
         "earthquake": "地震",

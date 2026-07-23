@@ -589,7 +589,8 @@
         "speciesRecovery": "Soortenherstel",
         "renewableInstallations": "Schone energie",
         "radiationSpike": "Stralingspiek",
-        "radiationElevated": "Verhoogde straling"
+        "radiationElevated": "Verhoogde straling",
+        "alprCameras": "ALPR-camera’s"
       },
       "layersTitle": "Lagen",
       "layerSearch": "Lagen zoeken...",
