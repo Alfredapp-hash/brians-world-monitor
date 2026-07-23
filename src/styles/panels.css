@@ -3366,3 +3366,12 @@ a.hub-top-story {
 .cc-nci-score { border: none; cursor: pointer; font-family: inherit; padding: 0 4px; }
 .cc-nci-score:hover { outline: 1px solid rgba(255,255,255,0.25); }
 .cc-nci-src-manual { color: #2ecc71; background: rgba(46,204,113,0.12); font-weight: 700; }
+
+/* Coverage Compare — sprint: AI status, 7-tile stats */
+.cc-toolbar { align-items: center; justify-content: space-between; }
+.cc-ai-status { font-size: 10px; letter-spacing: 0.02em; }
+.cc-ai-status-ok { color: #2ecc71; }
+.cc-ai-status-down { color: #e74c3c; }
+.cc-ai-status-none { color: var(--text-dim, #888); }
+.cc-stats { grid-template-columns: repeat(7, 1fr); }
+@media (max-width: 760px) { .cc-stats { grid-template-columns: repeat(4, 1fr); } }

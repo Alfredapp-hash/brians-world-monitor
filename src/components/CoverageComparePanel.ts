@@ -34,6 +34,7 @@ import {
   NCI_INDICATORS, type NciResult, type IndicatorScore,
 } from '@/utils/nci-score';
 import { rssProxyUrl } from '@/utils';
+import { trackNarratives, localStorageNarrativeStore, type NarrativeStatus } from '@/utils/narrative-tracker';
 
 type SourceClass = 'mainstream' | 'independent' | 'state' | 'gov' | 'local';
 
@@ -52,6 +53,10 @@ interface ComparedCluster {
   groups: Record<SourceClass, ComparedItem[]>;
   tp: TalkingPointAnalysis;
   nci: NciResult;
+  /** Narrative persistence status per coordinated phrase (filled in analyze()). */
+  narratives?: Map<string, NarrativeStatus>;
+  /** Coverage asymmetry: 'mainstream-silent' | 'no-independent' | null. */
+  asymmetry?: string | null;
 }
 
 const CLASS_LABELS: Record<SourceClass, string> = {
@@ -252,6 +257,7 @@ export class CoverageComparePanel extends Panel {
   private listEl: HTMLElement;
   private statusEl: HTMLElement;
   private statsEl: HTMLElement;
+  private aiStatusEl: HTMLElement;
   private analyzing = false;
   private static readonly AUTO_REFRESH_MS = 10 * 60 * 1000;
 
@@ -270,12 +276,15 @@ export class CoverageComparePanel extends Panel {
     this.statsEl = h('div', { className: 'cc-stats' });
     this.listEl = h('div', { className: 'cc-list' });
 
+    this.aiStatusEl = h('span', { className: 'cc-ai-status cc-ai-status-none' }, '● Local AI: checking…');
+
     replaceChildren(this.content, h('div', { className: 'cc-content' },
-      h('div', { className: 'cc-toolbar' }, refreshBtn),
+      h('div', { className: 'cc-toolbar' }, refreshBtn, this.aiStatusEl),
       this.statsEl,
       this.statusEl,
       this.listEl,
     ));
+    void this.updateAiStatus();
 
     // Auto-run once news is likely loaded, then keep fresh in the background.
     setTimeout(() => { if (!this.analyzing && this.listEl.childElementCount === 0) void this.analyze(); }, 12_000);
@@ -284,7 +293,7 @@ export class CoverageComparePanel extends Panel {
     }, CoverageComparePanel.AUTO_REFRESH_MS);
   }
 
-  private renderStats(stories: number, alerts: number, avgNci: number, maxNci: number): void {
+  private renderStats(stories: number, alerts: number, avgNci: number, maxNci: number, asymmetries = 0, recurring = 0): void {
     const stat = (label: string, value: string, cls = '') =>
       h('div', { className: `cc-stat ${cls}` },
         h('div', { className: 'cc-stat-value' }, value),
@@ -293,10 +302,38 @@ export class CoverageComparePanel extends Panel {
     replaceChildren(this.statsEl,
       stat('Stories', String(stories)),
       stat('TP alerts', String(alerts), alerts > 0 ? 'cc-stat-alert' : ''),
+      stat('Recurring', String(recurring), recurring > 0 ? 'cc-stat-alert' : ''),
+      stat('Asymmetry', String(asymmetries), asymmetries > 0 ? 'cc-stat-warn' : ''),
       stat('Avg NCI', String(avgNci), avgNci >= 41 ? 'cc-stat-warn' : ''),
       stat('Peak NCI', String(maxNci), maxNci >= 41 ? 'cc-stat-warn' : ''),
       stat('Updated', time),
     );
+  }
+
+  /** Ping the configured Ollama endpoint and reflect reachability in the toolbar. */
+  private async updateAiStatus(): Promise<void> {
+    const el = this.aiStatusEl;
+    const baseUrl = getRuntimeConfigSnapshot().secrets.OLLAMA_API_URL?.value?.trim();
+    if (!baseUrl) {
+      el.className = 'cc-ai-status cc-ai-status-none';
+      el.textContent = '● Local AI: not configured';
+      el.title = 'Set OLLAMA_API_URL in Settings → Ollama local summarization to enable AI Compare and Full NCI scoring.';
+      return;
+    }
+    try {
+      const res = await fetch(new URL('/api/tags', baseUrl).toString(), { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        el.className = 'cc-ai-status cc-ai-status-ok';
+        el.textContent = '● Local AI: ready';
+        el.title = `Ollama reachable at ${baseUrl}`;
+        return;
+      }
+      throw new Error(String(res.status));
+    } catch {
+      el.className = 'cc-ai-status cc-ai-status-down';
+      el.textContent = '● Local AI: offline';
+      el.title = `Ollama not reachable at ${baseUrl}. Is it running? Is OLLAMA_ORIGINS set to allow this site?`;
+    }
   }
 
   private async analyze(): Promise<void> {
@@ -319,6 +356,9 @@ export class CoverageComparePanel extends Panel {
         return;
       }
 
+      // Narrative persistence: track coordinated phrases across analysis runs.
+      const narrativeStore = localStorageNarrativeStore();
+
       const compared = clusters.map(compareCluster)
         // Talking-point alerts first, then by NCI score, then sync, then spread.
         .sort((a, b) =>
@@ -326,10 +366,34 @@ export class CoverageComparePanel extends Panel {
           || b.nci.normalized - a.nci.normalized
           || b.tp.syncScore - a.tp.syncScore
           || b.cluster.sourceCount - a.cluster.sourceCount);
+      // Coverage asymmetry + narrative tracking per cluster.
+      let asymmetries = 0;
+      let recurringCount = 0;
+      for (const cc of compared) {
+        const { mainstream, independent, local, state } = cc.groups;
+        if (mainstream.length === 0 && independent.length >= 2) {
+          cc.asymmetry = 'mainstream-silent';
+          asymmetries++;
+        } else if (independent.length === 0 && local.length === 0 && mainstream.length + state.length >= 4) {
+          cc.asymmetry = 'no-independent';
+          asymmetries++;
+        } else {
+          cc.asymmetry = null;
+        }
+        const coordinated = cc.tp.phrases
+          .filter(p => p.kind === 'coordinated')
+          .map(p => ({ phrase: p.phrase, sources: p.sources }));
+        if (coordinated.length > 0) {
+          cc.narratives = trackNarratives(coordinated, narrativeStore);
+          if ([...cc.narratives.values()].some(n => n.recurring)) recurringCount++;
+        }
+      }
+
       const alerts = compared.filter(c => c.tp.talkingPointAlert).length;
       const maxNci = compared.reduce((m, c) => Math.max(m, c.nci.normalized), 0);
       const avgNci = Math.round(compared.reduce((s, c) => s + c.nci.normalized, 0) / compared.length);
-      this.renderStats(compared.length, alerts, avgNci, maxNci);
+      this.renderStats(compared.length, alerts, avgNci, maxNci, asymmetries, recurringCount);
+      void this.updateAiStatus();
       this.statusEl.textContent =
         `${news.length} headlines analyzed`
         + (alerts ? ` · ⚠ ${alerts} talking-point alert${alerts > 1 ? 's' : ''}` : ' · no synchronized talking points detected');
@@ -345,6 +409,28 @@ export class CoverageComparePanel extends Panel {
       const warn = !alert && (f.includes('State') || f.includes('No independent') || f.includes('divergent') || f.includes('Loaded'));
       return h('span', { className: `cc-flag${alert ? ' cc-flag-alert' : warn ? ' cc-flag-warn' : ''}` }, f);
     });
+
+    // Coverage asymmetry flags (blackout detection).
+    if (cc.asymmetry === 'mainstream-silent') {
+      flagEls.push(h('span', {
+        className: 'cc-flag cc-flag-warn',
+        title: 'Independent outlets are covering this story but no mainstream outlet in the pool is — possible under-reporting or an unverified story gaining traction.',
+      }, 'Mainstream silent'));
+    } else if (cc.asymmetry === 'no-independent') {
+      flagEls.push(h('span', {
+        className: 'cc-flag cc-flag-warn',
+        title: 'Broad mainstream/state coverage with zero independent or local corroboration in the pool.',
+      }, 'No independent corroboration'));
+    }
+
+    // Recurring narrative flags (phrases pushed across hours/days).
+    const recurring = cc.narratives ? [...cc.narratives.values()].filter(n => n.recurring) : [];
+    for (const n of recurring.slice(0, 2)) {
+      flagEls.push(h('span', {
+        className: 'cc-flag cc-flag-alert',
+        title: `"${n.phrase}" observed in ${n.record.runs} analysis runs over ${n.age} by: ${n.record.sources.join(', ')}. Persistent synchronized phrasing is the signature of a pushed narrative.`,
+      }, `↻ RECURRING ${n.age}`));
+    }
 
     // Narrative sync meter.
     const sync = cc.tp.syncScore;
