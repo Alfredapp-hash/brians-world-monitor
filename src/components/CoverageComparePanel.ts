@@ -28,6 +28,10 @@ import { tokenize } from '@/utils/analysis-constants';
 import { getRuntimeConfigSnapshot } from '@/services/runtime-config';
 import { generateSummary } from '@/services/summarization';
 import { analyzeTalkingPoints, type TalkingPointAnalysis, type TitleForAnalysis } from '@/utils/talking-points';
+import {
+  heuristicNciScore, buildNciPrompt, parseAiNciResponse, mergeNci,
+  NCI_INDICATORS, type NciResult,
+} from '@/utils/nci-score';
 
 type SourceClass = 'mainstream' | 'independent' | 'state' | 'gov' | 'local';
 
@@ -45,6 +49,7 @@ interface ComparedCluster {
   flags: string[];
   groups: Record<SourceClass, ComparedItem[]>;
   tp: TalkingPointAnalysis;
+  nci: NciResult;
 }
 
 const CLASS_LABELS: Record<SourceClass, string> = {
@@ -118,6 +123,12 @@ function compareCluster(cluster: ClusteredEvent): ComparedCluster {
   const divergentCount = compared.filter(c => c.divergent).length;
   if (divergentCount > 0) flags.push(`${divergentCount} divergent framing${divergentCount > 1 ? 's' : ''}`);
 
+  // NCI Engineered Reality heuristic scoring.
+  const nci = heuristicNciScore({
+    titles: items.map(i => ({ source: i.source, title: i.title, pubDate: i.pubDate })),
+    tp,
+  });
+
   return {
     cluster,
     items: compared,
@@ -125,6 +136,7 @@ function compareCluster(cluster: ClusteredEvent): ComparedCluster {
     flags,
     groups,
     tp,
+    nci,
   };
 }
 
@@ -244,14 +256,17 @@ export class CoverageComparePanel extends Panel {
       }
 
       const compared = clusters.map(compareCluster)
-        // Talking-point alerts first, then by sync score, then by source spread.
+        // Talking-point alerts first, then by NCI score, then sync, then spread.
         .sort((a, b) =>
           Number(b.tp.talkingPointAlert) - Number(a.tp.talkingPointAlert)
+          || b.nci.normalized - a.nci.normalized
           || b.tp.syncScore - a.tp.syncScore
           || b.cluster.sourceCount - a.cluster.sourceCount);
       const alerts = compared.filter(c => c.tp.talkingPointAlert).length;
+      const maxNci = compared.reduce((m, c) => Math.max(m, c.nci.normalized), 0);
       this.statusEl.textContent =
         `${compared.length} multi-source stories · ${news.length} headlines analyzed`
+        + ` · peak NCI ${maxNci}/100`
         + (alerts ? ` · ⚠ ${alerts} talking-point alert${alerts > 1 ? 's' : ''}` : ' · no synchronized talking points detected');
       replaceChildren(this.listEl, ...compared.map(cc => this.renderCluster(cc)));
     } finally {
@@ -312,6 +327,78 @@ export class CoverageComparePanel extends Panel {
       ));
     }
 
+    // ── NCI Engineered Reality Score ──
+    const nciBadge = h('span', {
+      className: `cc-nci-badge cc-nci-l${cc.nci.tier.level}`,
+      title: `NCI Engineered Reality Score: ${cc.nci.normalized}/100 — ${cc.nci.tier.label}. Measures manipulation indicators, not proof of a psyop.`,
+    }, `NCI ${cc.nci.normalized}`);
+    flagEls.splice(1, 0, nciBadge);
+
+    const nciBody = h('div', { className: 'cc-nci-body' });
+    const renderNciBreakdown = (result: NciResult, aiSummary?: string) => {
+      const rows = NCI_INDICATORS.map(ind => {
+        const s = result.scores.get(ind.id)!;
+        return h('div', { className: 'cc-nci-row' },
+          h('span', { className: 'cc-nci-num' }, String(ind.id)),
+          h('span', { className: 'cc-nci-label', title: ind.hint }, ind.label),
+          h('span', { className: `cc-nci-score cc-nci-s${s.score}` }, String(s.score)),
+          h('span', { className: `cc-nci-src cc-nci-src-${s.source}` }, s.source === 'ai' ? 'AI' : s.source === 'auto' ? 'auto' : '—'),
+          h('span', { className: 'cc-nci-evidence' }, s.evidence),
+        );
+      });
+      replaceChildren(nciBody,
+        h('div', { className: 'cc-nci-verdict' },
+          h('span', { className: `cc-nci-badge cc-nci-l${result.tier.level}` }, `${result.normalized}/100`),
+          h('span', { className: 'cc-nci-tier' }, result.tier.label),
+        ),
+        ...(aiSummary ? [h('div', { className: 'cc-nci-summary' }, aiSummary)] : []),
+        h('div', { className: 'cc-nci-table' }, ...rows),
+        h('div', { className: 'cc-nci-disclaimer' },
+          'The NCI scale measures indicators of coordinated manipulation — it does not by itself prove an influence campaign exists.'),
+      );
+    };
+
+    const nciAiBtn = h('button', { className: 'cc-ai-btn cc-nci-ai-btn', type: 'button' }, 'Full NCI Score (AI)') as HTMLButtonElement;
+    nciAiBtn.addEventListener('click', async () => {
+      nciAiBtn.disabled = true;
+      nciAiBtn.textContent = 'Scoring…';
+      try {
+        const headlineLines = cc.items.slice(0, 20).map(c => {
+          const langTag = c.item.lang && c.item.lang !== 'en' ? ` [${c.item.lang}]` : '';
+          return `- ${c.item.source}${langTag} (${CLASS_LABELS[c.cls]}): "${c.item.title}"`;
+        });
+        const prompt = buildNciPrompt(cc.cluster.primaryTitle, headlineLines, cc.nci);
+        const text = await ollamaCompare(prompt);
+        const parsed = text ? parseAiNciResponse(text) : null;
+        if (parsed) {
+          const merged = mergeNci(cc.nci, parsed);
+          cc.nci = merged;
+          renderNciBreakdown(merged, parsed.summary || undefined);
+          nciBadge.textContent = `NCI ${merged.normalized}`;
+          nciBadge.className = `cc-nci-badge cc-nci-l${merged.tier.level}`;
+        } else {
+          renderNciBreakdown(cc.nci);
+          nciBody.append(h('div', { className: 'cc-nci-error' },
+            text
+              ? 'AI response could not be parsed as rubric JSON — showing heuristic scores.'
+              : 'Local AI unavailable — configure Ollama in Settings (Ollama local summarization) to run the full 20-indicator assessment.'));
+        }
+      } finally {
+        nciAiBtn.disabled = false;
+        nciAiBtn.textContent = 'Full NCI Score (AI)';
+      }
+    });
+
+    const nciDetails = h('details', { className: 'cc-nci' },
+      h('summary', { className: 'cc-nci-toggle' },
+        `NCI Engineered Reality breakdown — ${cc.nci.normalized}/100 (${cc.nci.tier.label})`),
+      nciBody,
+      h('div', { className: 'cc-ai-row' }, nciAiBtn),
+    );
+    (nciDetails as HTMLDetailsElement).addEventListener('toggle', () => {
+      if ((nciDetails as HTMLDetailsElement).open && nciBody.childElementCount === 0) renderNciBreakdown(cc.nci);
+    });
+
     const aiBtn = h('button', { className: 'cc-ai-btn', type: 'button' }, 'AI Compare') as HTMLButtonElement;
     const aiResult = h('div', { className: 'cc-ai-result' });
     aiBtn.addEventListener('click', async () => {
@@ -352,6 +439,7 @@ export class CoverageComparePanel extends Panel {
       ...phraseEls,
       ...(loadedEl ? [loadedEl] : []),
       ...(consensus ? [consensus] : []),
+      nciDetails,
       ...groupEls,
       h('div', { className: 'cc-ai-row' }, aiBtn),
       aiResult,
