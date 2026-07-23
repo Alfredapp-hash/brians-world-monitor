@@ -1163,6 +1163,8 @@ export const DEFAULT_ENABLED_SOURCES: Record<string, string[]> = {
   thinktanks: ['Foreign Policy', 'Atlantic Council', 'Foreign Affairs', 'CSIS', 'RAND', 'Brookings', 'Carnegie', 'War on the Rocks'],
   crisis: ['CrisisWatch', 'IAEA', 'WHO', 'UNHCR'],
   energy: ['Oil & Gas', 'Nuclear Energy', 'Reuters Energy', 'Mining & Resources'],
+  science: ['ScienceDaily', 'Phys.org', 'Nature News', 'Science (AAAS)', 'New Scientist', 'Live Science', 'Scientific American', 'NASA', 'Space.com', 'Quanta Magazine', 'Science Discoveries'],
+  archaeology: ['Archaeology Magazine', 'HeritageDaily', 'Ancient Origins', 'Sci.News Archaeology', 'Smithsonian Archaeology', 'The Past', 'Phys.org Archaeology', 'Archaeology News'],
 };
 
 export const DEFAULT_ENABLED_INTEL: string[] = [
