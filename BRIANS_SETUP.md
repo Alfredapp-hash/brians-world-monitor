@@ -45,3 +45,35 @@ NASA FIRMS (fires), etc.
 ```bash
 npx tsx --test tests/talking-points.test.mts tests/nci-score.test.mts
 ```
+
+## Lighting up every section (audit 2026-07-23)
+
+Browser-audited every panel. Three groups:
+
+**Live now (25 sections, no setup):** all news sections (World, US, Europe,
+Middle East, Africa, LatAm, Asia, Energy, Gov, Think Tanks, Science,
+Archaeology, Finance, Tech, AI, Layoffs), Coverage Compare, AI Insights,
+Threat Timeline, Country Instability, Strategic Risk, Intel Feed,
+Infrastructure Cascade, Displacement, Airline Intel.
+
+**Live once deployed on Vercel (no keys):** Markets, Crypto, Stablecoins,
+Earthquakes/Natural events, Predictions (Polymarket), World Clock, Weather,
+Sanctions, National Debt, Disease Outbreaks — these call the repo's own
+serverless functions, which exist only in production (the dev server has no
+function runtime).
+
+**Live with free API keys (add in Vercel → Project → Settings → Environment
+Variables):**
+- `FINNHUB_API_KEY` (finnhub.io) → richer Markets/Heatmap/Breadth
+- `FRED_API_KEY` (fred.stlouisfed.org) → Macro Stress, Yield Curve
+- `EIA_API_KEY` (eia.gov/opendata) → Oil Inventories, Energy Complex
+- `NASA_FIRMS_API_KEY` (firms.modaps.eosdis.nasa.gov) → Fires, Thermal Escalation
+- `AISSTREAM_API_KEY` (aisstream.io) → Ship tracking, Hormuz Tracker
+- `GROQ_API_KEY` (console.groq.com) → cloud AI fallback when Ollama is off
+- `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (upstash.com, free
+  tier) → cross-visitor caching + unlocks the seeded panels (Radiation
+  Watch, Pipeline Status, Storage Atlas, Fuel Shortages, Energy Disruptions,
+  Security Advisories) after running `./scripts/run-seeders.sh`
+
+`scripts/panel-audit.mjs` re-runs the audit against any URL
+(`SMOKE_URL=https://your-app.vercel.app node scripts/panel-audit.mjs`).
