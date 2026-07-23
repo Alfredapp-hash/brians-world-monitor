@@ -8,11 +8,15 @@ import { chromium } from 'playwright-core';
 
 const browser = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  args: ['--no-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors'],
+  // Sandbox egress requires the proxy for external hosts; localhost bypasses it.
+  ...(process.env.https_proxy && process.env.SMOKE_URL
+    ? { proxy: { server: process.env.https_proxy } }
+    : {}),
 });
 const page = await browser.newPage({ viewport: { width: 1720, height: 1100 } });
 page.on('console', () => {});
-await page.goto('http://localhost:3000/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+await page.goto(process.env.SMOKE_URL || 'http://localhost:3000/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
 console.log('Initial feed load wait…');
 await page.waitForTimeout(45_000);
 
