@@ -259,6 +259,7 @@ export class CoverageComparePanel extends Panel {
   private statsEl: HTMLElement;
   private aiStatusEl: HTMLElement;
   private analyzing = false;
+  private live = false;
   private static readonly AUTO_REFRESH_MS = 10 * 60 * 1000;
 
   constructor(getLatestNews: () => NewsItem[]) {
@@ -336,17 +337,28 @@ export class CoverageComparePanel extends Panel {
     }
   }
 
-  private async analyze(): Promise<void> {
+  /**
+   * Live-pipeline entry point: data-loader pushes freshly ML-clustered
+   * stories here on every feed refresh (same push path as AI Insights),
+   * so the comparison tracks the live news feed without re-clustering.
+   */
+  updateClusters(clusters: ClusteredEvent[]): void {
+    if (this.analyzing || !clusters?.length) return;
+    void this.analyze(clusters);
+  }
+
+  private async analyze(preClustered?: ClusteredEvent[]): Promise<void> {
     if (this.analyzing) return;
     this.analyzing = true;
+    this.live = Boolean(preClustered);
     this.statusEl.textContent = 'Clustering stories across sources…';
     try {
       const news = this.getLatestNews();
-      if (!news || news.length < 10) {
+      if (!preClustered && (!news || news.length < 10)) {
         this.statusEl.textContent = 'Not enough headlines loaded yet — try again in a moment.';
         return;
       }
-      const clusters = clusterNews(news)
+      const clusters = (preClustered ?? clusterNews(news))
         .filter(c => new Set((c.allItems as NewsItem[]).map(i => i.source)).size >= 2)
         .sort((a, b) => b.sourceCount - a.sourceCount)
         .slice(0, 12);
@@ -395,7 +407,8 @@ export class CoverageComparePanel extends Panel {
       this.renderStats(compared.length, alerts, avgNci, maxNci, asymmetries, recurringCount);
       void this.updateAiStatus();
       this.statusEl.textContent =
-        `${news.length} headlines analyzed`
+        (this.live ? '⦿ LIVE — synced with news feed refresh · ' : '')
+        + `${news.length} headlines analyzed`
         + (alerts ? ` · ⚠ ${alerts} talking-point alert${alerts > 1 ? 's' : ''}` : ' · no synchronized talking points detected');
       replaceChildren(this.listEl, ...compared.map(cc => this.renderCluster(cc)));
     } finally {
@@ -430,6 +443,12 @@ export class CoverageComparePanel extends Panel {
         className: 'cc-flag cc-flag-alert',
         title: `"${n.phrase}" observed in ${n.record.runs} analysis runs over ${n.age} by: ${n.record.sources.join(', ')}. Persistent synchronized phrasing is the signature of a pushed narrative.`,
       }, `↻ RECURRING ${n.age}`));
+    }
+
+    // Freshness: any item published in the last 30 minutes → LIVE chip.
+    const now = Date.now();
+    if (cc.items.some(i => i.item.pubDate && now - i.item.pubDate.getTime() < 30 * 60_000)) {
+      flagEls.unshift(h('span', { className: 'cc-flag cc-flag-live', title: 'New reporting within the last 30 minutes' }, '⦿ LIVE'));
     }
 
     // Narrative sync meter.

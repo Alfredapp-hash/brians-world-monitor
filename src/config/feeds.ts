@@ -473,7 +473,8 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     { name: 'Phys.org', url: rss('https://phys.org/rss-feed/') },
     { name: 'Nature News', url: rss('https://www.nature.com/nature.rss') },
     { name: 'Science (AAAS)', url: rss('https://www.science.org/rss/news_current.xml') },
-    { name: 'New Scientist', url: rss('https://www.newscientist.com/feed/home/') },
+    // New Scientist blocks non-browser clients (406) — Google News fallback
+    { name: 'New Scientist', url: rss('https://news.google.com/rss/search?q=site:newscientist.com+when:2d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Live Science', url: rss('https://www.livescience.com/feeds.xml') },
     { name: 'Scientific American', url: rss('https://news.google.com/rss/search?q=site:scientificamerican.com+when:2d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'NASA', url: rss('https://www.nasa.gov/rss/dyn/breaking_news.rss') },
@@ -841,7 +842,8 @@ const HAPPY_FEEDS: Record<string, Feed[]> = {
     { name: 'ScienceDaily', url: rss('https://www.sciencedaily.com/rss/all.xml') },
     { name: 'Nature News', url: rss('https://www.nature.com/nature.rss') },
     { name: 'Live Science', url: rss('https://www.livescience.com/feeds.xml') },
-    { name: 'New Scientist', url: rss('https://www.newscientist.com/feed/home/') },
+    // New Scientist blocks non-browser clients (406) — Google News fallback
+    { name: 'New Scientist', url: rss('https://news.google.com/rss/search?q=site:newscientist.com+when:2d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Singularity Hub', url: rss('https://singularityhub.com/feed/') },
     { name: 'Human Progress', url: rss('https://humanprogress.org/feed/') },
     { name: 'Greater Good (Berkeley)', url: rss('https://greatergood.berkeley.edu/site/rss/articles') },

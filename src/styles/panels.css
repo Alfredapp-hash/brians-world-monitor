@@ -3375,3 +3375,7 @@ a.hub-top-story {
 .cc-ai-status-none { color: var(--text-dim, #888); }
 .cc-stats { grid-template-columns: repeat(7, 1fr); }
 @media (max-width: 760px) { .cc-stats { grid-template-columns: repeat(4, 1fr); } }
+
+/* Coverage Compare — live pipeline */
+.cc-flag-live { background: rgba(46,204,113,0.15); color: #2ecc71; font-weight: 700; animation: cc-live-pulse 2s ease-in-out infinite; }
+@keyframes cc-live-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }

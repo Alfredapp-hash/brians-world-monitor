@@ -6,7 +6,7 @@ import { runHydrationTier, type HydrationTask } from '@/app/hydration-scheduler'
 import { yieldToMain } from '@/utils/after-paint';
 import { getSignalAggregator, type SignalAggregator } from '@/app/lazy-services';
 import { getMilitaryVesselsModule, isVesselRuntimeStoppedError } from '@/services/military-vessels-lazy';
-import type { NewsItem, MapLayers, SocialUnrestEvent, MilitaryFlight } from '@/types';
+import type { NewsItem, MapLayers, SocialUnrestEvent, MilitaryFlight, ClusteredEvent } from '@/types';
 import type { MarketData } from '@/types';
 import type { TimeRange } from '@/components/MapContainer';
 import {
@@ -1567,6 +1567,10 @@ export class DataLoaderManager implements AppModule {
 
       const insightsPanel = this.ctx.panels['insights'] as InsightsPanel | undefined;
       insightsPanel?.updateInsights(this.ctx.latestClusters);
+      // Coverage Compare rides the same live cluster pipeline (duck-typed to
+      // keep the lazily-loaded panel chunk out of the eager import graph).
+      (this.ctx.panels['coverage-compare'] as { updateClusters?: (c: ClusteredEvent[]) => void } | undefined)
+        ?.updateClusters?.(this.ctx.latestClusters);
       if (isPanelInVariantDefaults('threat-timeline')) {
         const threatTimelinePanel = this.ctx.panels['threat-timeline'] as ThreatTimelinePanel | undefined;
         void threatTimelinePanel?.refresh(this.ctx.latestClusters);
