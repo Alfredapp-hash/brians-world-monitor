@@ -104,6 +104,7 @@ import {
   PROCESSING_PLANTS,
   COMMODITY_PORTS as COMMODITY_GEO_PORTS,
 } from '@/config';
+import { loadAlprCameras, getLoadedAlprCameras, ALPR_MANUFACTURERS, type AlprCamera } from '@/services/alpr-cameras';
 // Tech-geo + ai-datacenters + geo-map tables imported directly so their chunks stay
 // off the eager @/config barrel and load only with this lazy renderer (#4404).
 import { STARTUP_HUBS, ACCELERATORS, TECH_HQS, CLOUD_REGIONS } from '@/config/tech-geo';
@@ -250,6 +251,7 @@ const LAYER_ZOOM_THRESHOLDS: Partial<Record<keyof MapLayers, { minZoom: number; 
   natural: { minZoom: 1, showLabels: 2 },
   datacenters: { minZoom: 5 },
   irradiators: { minZoom: 4 },
+  alprCameras: { minZoom: 4 },
   spaceports: { minZoom: 3 },
   gulfInvestments: { minZoom: 2, showLabels: 5 },
 };
@@ -1906,6 +1908,13 @@ export class DeckGLMap {
       layers.push(this.createIrradiatorsLayer());
     }
 
+    // ALPR surveillance cameras (DeFlock/OSM dataset) — hidden at low zoom.
+    // Data lazy-loads on first enable; layer re-renders when the fetch lands.
+    if (mapLayers.alprCameras && this.isLayerVisible('alprCameras')) {
+      const alprLayer = this.createAlprCamerasLayer();
+      if (alprLayer) layers.push(alprLayer);
+    }
+
     // Spaceports layer — hidden at low zoom
     if (mapLayers.spaceports && this.isLayerVisible('spaceports')) {
       layers.push(this.createSpaceportsLayer());
@@ -2954,6 +2963,34 @@ export class DeckGLMap {
       getFillColor: [255, 100, 255, 180] as [number, number, number, number], // Magenta
       radiusMinPixels: 4,
       radiusMaxPixels: 10,
+      pickable: true,
+    });
+  }
+
+  private alprLoadKicked = false;
+
+  private createAlprCamerasLayer(): ScatterplotLayer | null {
+    const cameras = getLoadedAlprCameras();
+    if (cameras.length === 0) {
+      if (!this.alprLoadKicked) {
+        this.alprLoadKicked = true;
+        void loadAlprCameras().then((loaded) => {
+          if (loaded.length > 0) this.updateLayers();
+        });
+      }
+      return null;
+    }
+    return new ScatterplotLayer({
+      id: 'alpr-cameras-layer',
+      data: cameras,
+      getPosition: (d) => [d.lon, d.lat],
+      getRadius: 400,
+      // Flock Safety cameras amber, others cool gray-blue.
+      getFillColor: (d) => (d.mfr === 1
+        ? [240, 168, 50, 210] as [number, number, number, number]
+        : [150, 170, 200, 190] as [number, number, number, number]),
+      radiusMinPixels: 2,
+      radiusMaxPixels: 7,
       pickable: true,
     });
   }
@@ -4791,6 +4828,8 @@ export class DeckGLMap {
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.title)}</strong><br/>${text(obj.location)}</div>` };
       case 'irradiators-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name)}</strong><br/>${text(obj.type || t('components.deckgl.layers.gammaIrradiators'))}</div>` };
+      case 'alpr-cameras-layer':
+        return { html: `<div class="deckgl-tooltip"><strong>ALPR Camera</strong><br/>${text(ALPR_MANUFACTURERS[(obj as AlprCamera).mfr] || 'Unknown operator')}<br/><span style="opacity:0.7">Source: OpenStreetMap (DeFlock dataset)</span></div>` };
       case 'disease-outbreaks-layer': {
         const item = (obj as { item: DiseaseOutbreakItem }).item;
         if (!item) return null;

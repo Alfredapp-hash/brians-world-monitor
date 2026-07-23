@@ -62,6 +62,7 @@ export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
   nuclear:                  def('nuclear',                  '&#9762;',   'nuclearSites',             'Nuclear Sites'),
   irradiators:              def('irradiators',              '&#9888;',   'gammaIrradiators',         'Gamma Irradiators'),
   radiationWatch:           def('radiationWatch',           '&#9762;',   'radiationWatch',           'Radiation Watch'),
+  alprCameras:              def('alprCameras',              '&#128247;', 'alprCameras',              'ALPR Cameras', ['flat']),
   spaceports:               def('spaceports',               '&#128640;', 'spaceports',               'Spaceports'),
   satellites:               def('satellites',               '&#128752;', 'satellites',               'Orbital Surveillance', ['flat', 'globe']),
 
@@ -292,7 +293,7 @@ export const LAYER_EXPLANATIONS: Partial<Record<keyof MapLayers, LayerExplanatio
 const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
   full: [
     'iranAttacks', 'hotspots', 'conflicts',
-    'bases', 'nuclear', 'irradiators', 'radiationWatch', 'spaceports',
+    'bases', 'nuclear', 'irradiators', 'radiationWatch', 'alprCameras', 'spaceports',
     'cables', 'pipelines', 'storageFacilities', 'fuelShortages', 'datacenters', 'military',
     'ais', 'tradeRoutes', 'flights', 'protests',
     'ucdpEvents', 'displacement', 'climate', 'weather',

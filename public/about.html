@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brian's World Monitor — See the news. And see through it.</title>
+<meta name="description" content="A personal real-time intelligence dashboard: world geopolitics, finance, science, and archaeology from hundreds of sources — with a built-in spin filter, talking-point detection, and NCI Engineered Reality scoring powered by local AI." />
+<style>
+  :root {
+    --bg: #0a0c10; --surface: #12161e; --border: #262c38;
+    --text: #e9e6df; --dim: #9a958a; --accent: #f0a832; --accent-dim: #b57d16;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+  header {
+    padding: 96px 0 64px; text-align: center;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% -10%, rgba(240,168,50,0.14), transparent),
+      linear-gradient(180deg, #0d1017, var(--bg));
+    border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    font-size: 13px; letter-spacing: 0.35em; color: var(--accent);
+    text-transform: uppercase; font-weight: 700; margin-bottom: 20px;
+  }
+  h1 { font-size: clamp(30px, 5vw, 52px); font-weight: 800; letter-spacing: -0.01em; }
+  h1 em { color: var(--accent); font-style: normal; }
+  .tagline { color: var(--dim); font-size: clamp(15px, 2vw, 19px); margin: 18px auto 36px; max-width: 640px; }
+  .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 13px 30px; border-radius: 8px;
+    text-decoration: none; font-weight: 700; font-size: 15px;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary { background: var(--accent); color: #14100a; box-shadow: 0 6px 24px rgba(240,168,50,0.25); }
+  .btn-ghost { border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+  h2 { font-size: 26px; margin-bottom: 12px; }
+  h2 .k { color: var(--accent); }
+  .lede { color: var(--dim); max-width: 700px; margin-bottom: 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 18px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 24px;
+  }
+  .card h3 { font-size: 16px; margin-bottom: 8px; color: var(--accent); }
+  .card p { font-size: 14px; color: var(--dim); }
+  .scale { display: flex; border-radius: 8px; overflow: hidden; margin: 28px 0 10px; border: 1px solid var(--border); }
+  .scale div { flex: 1; padding: 10px 6px; text-align: center; font-size: 11px; font-weight: 700; }
+  .s0 { background: rgba(46,204,113,0.16); color: #2ecc71; }
+  .s1 { background: rgba(241,196,15,0.14); color: #f1c40f; }
+  .s2 { background: rgba(230,126,34,0.15); color: #e67e22; }
+  .s3 { background: rgba(231,76,60,0.16); color: #e74c3c; }
+  .s4 { background: rgba(155,29,29,0.32); color: #ff6b6b; }
+  .fine { font-size: 12px; color: var(--dim); font-style: italic; }
+  footer { padding: 48px 0; text-align: center; color: var(--dim); font-size: 13px; }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer nav { margin-bottom: 14px; display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">Brian's World Monitor</div>
+    <h1>See the news.<br /><em>And see through it.</em></h1>
+    <p class="tagline">
+      A real-time intelligence dashboard for world geopolitics, markets, scientific
+      discovery, and archaeology — with a built-in spin filter that flags synchronized
+      talking points, scores manipulation indicators, and runs its AI entirely on your own hardware.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/">Open the Dashboard</a>
+      <a class="btn btn-ghost" href="https://discord.gg/YOUR-INVITE-CODE" target="_blank" rel="noopener">Join the Discord</a>
+      <a class="btn btn-ghost" href="https://github.com/Alfredapp-hash/brians-world-monitor" target="_blank" rel="noopener">Source Code</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>The <span class="k">Coverage Compare</span> engine</h2>
+    <p class="lede">
+      Every story is clustered across mainstream wires, independent outlets, state-affiliated
+      media, and local press — then compared, phrase by phrase.
+    </p>
+    <div class="grid">
+      <div class="card">
+        <h3>Talking-point detection</h3>
+        <p>When multiple outlets use the same distinctive phrasing, that's either wire copy
+        (labeled, benign) or coordinated messaging (flagged in red). The exact repeated phrase
+        is shown with every outlet using it.</p>
+      </div>
+      <div class="card">
+        <h3>Recurring-narrative tracking</h3>
+        <p>One synchronized burst can be coincidence. The same phrase pushed for days across
+        outlets is a campaign — recurring narratives get flagged with their age and full
+        source list.</p>
+      </div>
+      <div class="card">
+        <h3>Blackout detection</h3>
+        <p>Stories independent media covers that mainstream ignores — and stories with
+        wall-to-wall mainstream coverage but zero independent corroboration — are surfaced
+        as coverage asymmetries.</p>
+      </div>
+      <div class="card">
+        <h3>Local press, bridged</h3>
+        <p>Cross-language entity matching pulls Russian, Arabic, Spanish, and other local
+        coverage into the same story cluster, so you see what the press on the ground says —
+        not just what's written about them.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The <span class="k">NCI Engineered Reality</span> score</h2>
+    <p class="lede">
+      Every story is scored against a 20-indicator manipulation rubric — suspicious timing,
+      scripted messaging, emotional manipulation, manufactured outrage, false dilemmas,
+      suppression of dissent, and more. Roughly half auto-score from live data; your local AI
+      scores the rest on demand, and you can override any indicator with your own judgment.
+    </p>
+    <div class="scale">
+      <div class="s0">0–20 Low</div>
+      <div class="s1">21–40 Some techniques</div>
+      <div class="s2">41–60 Significant</div>
+      <div class="s3">61–80 Organized campaign</div>
+      <div class="s4">81–100 Engineered reality</div>
+    </div>
+    <p class="fine">The scale measures indicators of coordinated manipulation — it does not by itself prove a psyop exists.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Your machine. <span class="k">Your AI.</span> Your feeds.</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Local AI via Ollama</h3>
+        <p>Story comparison and NCI scoring run against the model on your own PC.
+        No cloud keys required, nothing leaves your machine.</p>
+      </div>
+      <div class="card">
+        <h3>Hundreds of sources</h3>
+        <p>Geopolitics, finance, science discoveries, and archaeology — mainstream, independent,
+        state, and local feeds side by side, never filtered down to one voice.</p>
+      </div>
+      <div class="card">
+        <h3>Full situational map</h3>
+        <p>3D globe and WebGL map with dozens of layers: conflicts, earthquakes, shipping,
+        military flights, infrastructure — and ALPR surveillance camera positions.</p>
+      </div>
+      <div class="card">
+        <h3>Open source</h3>
+        <p>AGPL-3.0, forked from the excellent <a style="color:var(--accent);text-decoration:none" href="https://github.com/koala73/worldmonitor">World Monitor</a> project.
+        Read the code, run it yourself, make it yours.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <nav>
+    <a href="/">Dashboard</a>
+    <a href="https://discord.gg/YOUR-INVITE-CODE" target="_blank" rel="noopener">Discord</a>
+    <a href="https://github.com/Alfredapp-hash/brians-world-monitor" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/koala73/worldmonitor" target="_blank" rel="noopener">Based on World Monitor</a>
+  </nav>
+  <div>&copy; 2026 Brian's World Monitor · AGPL-3.0</div>
+</footer>
+
+</body>
+</html>

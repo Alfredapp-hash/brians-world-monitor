@@ -638,6 +638,7 @@ export interface MapLayers {
   ais: boolean;
   nuclear: boolean;
   irradiators: boolean;
+  alprCameras?: boolean;
   radiationWatch?: boolean;
   sanctions: boolean;
   weather: boolean;

@@ -1,0 +1,86 @@
+/**
+ * Brian's World Monitor — visual identity.
+ *
+ * Diverges the fork from upstream's white-on-black / blue-accent look:
+ * deep blue-charcoal surfaces with an amber signal accent. Loaded after
+ * main.css so these variable overrides win everywhere they're consumed.
+ */
+:root {
+  /* Backgrounds: charcoal with a cold blue undertone */
+  --bg: #0a0c10;
+  --bg-secondary: #0f1218;
+  --surface: #12161e;
+  --surface-hover: #1a2029;
+  --surface-active: #1d2430;
+
+  /* Borders */
+  --border: #262c38;
+  --border-strong: #3a4354;
+  --border-subtle: #1a1f28;
+
+  /* Text */
+  --text: #e9e6df;
+  --text-secondary: #c9c5bb;
+
+  /* Signal amber accent */
+  --accent: #f0a832;
+
+  /* Overlays tinted warm */
+  --overlay-subtle: rgba(240, 168, 50, 0.04);
+  --overlay-light: rgba(240, 168, 50, 0.07);
+}
+
+/* Header & footer carry the identity strongest */
+.site-footer-name,
+.mobile-menu-title {
+  color: #f0a832;
+  letter-spacing: 0.14em;
+}
+
+.panel-header {
+  border-bottom: 1px solid #262c38;
+  background: linear-gradient(180deg, rgba(240, 168, 50, 0.05), transparent);
+}
+
+.panel-title {
+  letter-spacing: 0.06em;
+}
+
+.panel {
+  border-radius: 8px;
+}
+
+/* Amber focus ring for interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(240, 168, 50, 0.65);
+  outline-offset: 1px;
+}
+
+/* Scrollbars pick up the tint */
+::-webkit-scrollbar-thumb {
+  background: #2c3442;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #f0a83266;
+}
+
+/* Coverage Compare buttons adopt the identity accent */
+.cc-refresh-btn,
+.cc-ai-btn {
+  background: #b57d16;
+}
+.cc-nci-ai-btn {
+  background: #8a5cf5;
+}
+.cc-local-btn,
+.cc-copy-btn {
+  color: #f0a832;
+  border-color: #f0a832;
+}
+.cc-local-btn:hover,
+.cc-copy-btn:hover {
+  background: rgba(240, 168, 50, 0.1);
+}
