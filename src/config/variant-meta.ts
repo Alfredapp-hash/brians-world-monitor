@@ -13,12 +13,12 @@ export interface VariantMeta {
 
 export const VARIANT_META: { full: VariantMeta; [k: string]: VariantMeta } = {
   full: {
-    title: "Brian's World Monitor - Geopolitics, Finance, Science & Archaeology",
+    title: "JSA's Monitor - Geopolitics, Finance, Science & Archaeology",
     description: 'Personal real-time intelligence dashboard tracking world geopolitics, financial markets, scientific discoveries, and archaeology news from hundreds of sources — with local AI analysis.',
     keywords: 'global intelligence, geopolitical dashboard, world news, market data, financial markets, science discoveries, archaeology news, real-time monitoring, situation awareness, OSINT, local AI, Ollama',
     url: 'https://www.worldmonitor.app/dashboard',
-    siteName: "Brian's World Monitor",
-    shortName: 'BWM',
+    siteName: "JSA's Monitor",
+    shortName: 'JSAM',
     subject: 'Geopolitics, Finance, Science, and Archaeology Intelligence',
     classification: 'AI Intelligence Dashboard, OSINT Tool, News Aggregator',
     categories: ['news', 'productivity'],

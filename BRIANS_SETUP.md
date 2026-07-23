@@ -1,10 +1,10 @@
-# Brian's World Monitor — Setup Notes
+# JSA's Monitor — Setup Notes
 
 Customized fork of [worldmonitor](https://github.com/koala73/worldmonitor) (AGPL-3.0).
 
 ## What's different from upstream
 
-- **Rebranded** as Brian's World Monitor (title, meta, header/footer, PWA).
+- **Rebranded** as JSA's Monitor (title, meta, header/footer, PWA).
 - **Science Discoveries panel** — 11 sources (ScienceDaily, Nature, Science/AAAS, Phys.org, New Scientist, Live Science, Scientific American, NASA, Space.com, Quanta, plus a discovery sweep).
 - **Archaeology panel** — 8 sources (Archaeology Magazine, HeritageDaily, Ancient Origins, Sci.News, Smithsonian, The Past, Phys.org Archaeology, plus a news sweep).
 - **Coverage Compare panel** (`src/components/CoverageComparePanel.ts`) — the spin filter:

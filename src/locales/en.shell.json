@@ -1,9 +1,9 @@
 {
   "shell": {
-    "documentTitle": "Brian's World Monitor — Geopolitics, Finance, Science & Archaeology",
+    "documentTitle": "JSA's Monitor — Geopolitics, Finance, Science & Archaeology",
     "metaDescription": "Brian's personal real-time intelligence dashboard: world geopolitics, financial markets, scientific discoveries, and archaeology news with local AI analysis.",
     "offlineTitle": "You're Offline",
-    "offlineMessage": "Brian's World Monitor requires an internet connection for real-time intelligence data.",
+    "offlineMessage": "JSA's Monitor requires an internet connection for real-time intelligence data.",
     "offlineRetry": "Retry"
   },
   "header": {
@@ -761,7 +761,7 @@
       "shellCancel": "Cancel",
       "shellSaveClose": "Save & Close",
       "shellSearchPlaceholder": "Search settings...",
-      "shellTitle": "Brian's World Monitor Settings",
+      "shellTitle": "JSA's Monitor Settings",
       "sidecarError": "Could not reach sidecar to toggle verbose mode",
       "sidecarUnreachable": "Sidecar not reachable.",
       "table": {

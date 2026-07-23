@@ -116,13 +116,13 @@ export function buildAlertPayload(story: AlertStory): object {
   }
 
   return {
-    username: "Brian's World Monitor",
+    username: "JSA's Monitor",
     embeds: [{
       title: kind,
       description: `**${story.title}**`.slice(0, 2000),
       color: TIER_COLORS[story.tierLevel] ?? TIER_COLORS[2],
       fields,
-      footer: { text: 'NCI measures indicators, not proof · Brian\'s World Monitor' },
+      footer: { text: 'NCI measures indicators, not proof · JSA\'s Monitor' },
       timestamp: new Date().toISOString(),
     }],
   };
@@ -180,7 +180,7 @@ export async function sendTestAlert(webhookUrl: string): Promise<boolean> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: "Brian's World Monitor",
+        username: "JSA's Monitor",
         embeds: [{
           title: '✅ Webhook connected',
           description: 'Coverage Compare alerts will post here: talking-point detections, recurring narratives, and high-NCI stories.',

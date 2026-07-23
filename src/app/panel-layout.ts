@@ -832,7 +832,7 @@ export class PanelLayoutManager implements AppModule {
       <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
       <nav class="mobile-menu" id="mobileMenu">
         <div class="mobile-menu-header">
-          <span class="mobile-menu-title">BRIAN&#39;S WORLD MONITOR</span>
+          <span class="mobile-menu-title">JSA&#39;S MONITOR</span>
           <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -944,7 +944,7 @@ export class PanelLayoutManager implements AppModule {
         <div class="site-footer-brand">
           <img src="/favico/android-chrome-96x96.png" alt="" width="28" height="28" loading="lazy" decoding="async" class="site-footer-icon" />
           <div class="site-footer-brand-text">
-            <span class="site-footer-name">BRIAN&#39;S WORLD MONITOR</span>
+            <span class="site-footer-name">JSA&#39;S MONITOR</span>
             <span class="site-footer-sub">v${__APP_VERSION__} &middot; <a href="https://x.com/eliehabib" target="_blank" rel="noopener" class="site-footer-credit">@eliehabib</a></span>
           </div>
         </div>
@@ -952,6 +952,7 @@ export class PanelLayoutManager implements AppModule {
           <a href="${BRAND.about}" target="_blank" rel="noopener">About</a>
           <a href="${BRAND.github}" target="_blank" rel="noopener">GitHub</a>
           <a href="${BRAND.discordInvite}" target="_blank" rel="noopener">Discord</a>
+          <a href="${BRAND.x}" target="_blank" rel="noopener">X</a>
         </nav>
         <span class="site-footer-copy">&copy; ${new Date().getFullYear()} ${BRAND.name}</span>
       </footer>
