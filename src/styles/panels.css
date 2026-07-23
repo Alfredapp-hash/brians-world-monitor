@@ -3379,3 +3379,26 @@ a.hub-top-story {
 /* Coverage Compare — live pipeline */
 .cc-flag-live { background: rgba(46,204,113,0.15); color: #2ecc71; font-weight: 700; animation: cc-live-pulse 2s ease-in-out infinite; }
 @keyframes cc-live-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+/* Coverage Compare — Discord alerts + sparkline */
+.cc-toolbar-right { display: flex; align-items: center; gap: 10px; }
+.cc-alerts-btn {
+  background: transparent; border: 1px solid var(--border, #2a2a2a); border-radius: 4px;
+  padding: 3px 8px; cursor: pointer; font-size: 12px;
+}
+.cc-alerts-btn:hover { border-color: var(--accent, #f0a832); }
+.cc-alerts-config {
+  border: 1px solid var(--border, #2a2a2a); border-radius: 6px; padding: 10px;
+  display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.015);
+}
+.cc-alerts-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cc-alerts-label { font-size: 11px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.cc-alerts-input {
+  flex: 1; min-width: 220px; background: var(--bg, #0a0a0a); color: var(--text, #ddd);
+  border: 1px solid var(--border, #333); border-radius: 4px; padding: 6px 8px; font-size: 11px;
+  font-family: inherit;
+}
+.cc-alerts-status { font-size: 10.5px; color: var(--text-dim, #888); }
+.cc-alerts-ok { color: #2ecc71; }
+.cc-alerts-err { color: #e74c3c; }
+.cc-nci-spark { display: inline-flex; align-items: center; }
