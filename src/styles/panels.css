@@ -3440,3 +3440,12 @@ a.hub-top-story {
   border-radius: 4px; padding: 0 6px; cursor: pointer; font-size: 11px; margin-left: auto;
 }
 .cc-expand-btn:hover { border-color: var(--accent, #f0a832); color: var(--accent, #f0a832); }
+
+/* Coverage Compare — X share button */
+.cc-share-btn {
+  background: transparent; border: 1px solid var(--border, #333); color: var(--text-dim, #999);
+  border-radius: 4px; padding: 0 7px; cursor: pointer; font-size: 11px; line-height: 1.6;
+}
+.cc-summary .cc-share-btn { margin-left: 4px; }
+.cc-share-btn:hover { border-color: var(--accent, #f0a832); color: var(--accent, #f0a832); }
+.cc-modal-header .cc-share-btn { padding: 4px 10px; font-size: 12px; }

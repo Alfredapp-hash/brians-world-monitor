@@ -62,7 +62,7 @@ export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
   nuclear:                  def('nuclear',                  '&#9762;',   'nuclearSites',             'Nuclear Sites'),
   irradiators:              def('irradiators',              '&#9888;',   'gammaIrradiators',         'Gamma Irradiators'),
   radiationWatch:           def('radiationWatch',           '&#9762;',   'radiationWatch',           'Radiation Watch'),
-  alprCameras:              def('alprCameras',              '&#128247;', 'alprCameras',              'ALPR Cameras', ['flat']),
+  alprCameras:              def('alprCameras',              '&#128247;', 'alprCameras',              'ALPR Cameras', ['flat', 'globe']),
   spaceports:               def('spaceports',               '&#128640;', 'spaceports',               'Spaceports'),
   satellites:               def('satellites',               '&#128752;', 'satellites',               'Orbital Surveillance', ['flat', 'globe']),
 

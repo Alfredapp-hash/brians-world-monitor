@@ -37,6 +37,7 @@ import { guardOrbitControlsPointerTracking } from '@/utils/orbit-controls-pointe
 import { getSecretState } from '@/services/runtime-config';
 import { resolveTradeRouteSegments, type TradeRouteSegment } from '@/config/trade-routes';
 import { GAMMA_IRRADIATORS } from '@/config/irradiators';
+import { loadAlprCameras, getLoadedAlprCameras, type AlprCamera } from '@/services/alpr-cameras';
 import { AI_DATA_CENTERS } from '@/config/ai-datacenters';
 import { getCountryBbox, getCountriesGeoJson, getCountryAtCoordinates, getCountryNameByCode } from '@/services/country-geometry';
 import { escapeHtml } from '@/utils/sanitize';
@@ -795,6 +796,17 @@ export class GlobeMap {
         return 0.003;
       })
       .htmlElement((d: object) => this.buildMarkerElement(d as GlobeMarker));
+
+    // WebGL points layer for ALPR cameras — 100k+ points merged into a single
+    // geometry (HTML markers would be one DOM node each and crash the globe).
+    (globe as any)
+      .pointsData([])
+      .pointLat((d: object) => (d as AlprCamera).lat)
+      .pointLng((d: object) => (d as AlprCamera).lon)
+      .pointColor((d: object) => ((d as AlprCamera).mfr === 1 ? '#f0a832' : '#96aac8'))
+      .pointAltitude(0.001)
+      .pointRadius(0.06)
+      .pointsMerge(true);
 
     // Arc accessors — set once, only data changes on flush
 
@@ -2156,6 +2168,26 @@ export class GlobeMap {
     try {
       this.globe.htmlElementsData(markers);
     } catch (err) { if (import.meta.env.DEV) console.warn('[GlobeMap] flush error', err); }
+
+    this.flushAlprPoints();
+  }
+
+  private alprLoadKicked = false;
+
+  private flushAlprPoints(): void {
+    if (!this.globe || !this.initialized || this.destroyed || this.webglLost) return;
+    const on = Boolean((this.layers as { alprCameras?: boolean }).alprCameras);
+    if (!on) {
+      (this.globe as unknown as { pointsData: (d: unknown[]) => void }).pointsData([]);
+      return;
+    }
+    const cams = getLoadedAlprCameras();
+    if (cams.length === 0 && !this.alprLoadKicked) {
+      this.alprLoadKicked = true;
+      void loadAlprCameras().then(() => this.flushAlprPoints());
+      return;
+    }
+    (this.globe as unknown as { pointsData: (d: unknown[]) => void }).pointsData(cams);
   }
 
   private flushArcs(): void {
