@@ -29,9 +29,11 @@ import { getRuntimeConfigSnapshot } from '@/services/runtime-config';
 import { generateSummary } from '@/services/summarization';
 import { analyzeTalkingPoints, type TalkingPointAnalysis, type TitleForAnalysis } from '@/utils/talking-points';
 import {
-  heuristicNciScore, buildNciPrompt, parseAiNciResponse, mergeNci,
-  NCI_INDICATORS, type NciResult,
+  heuristicNciScore, buildNciPrompt, parseAiNciResponse, mergeNci, finalizeNci,
+  applyManualScores, saveManualScore, buildNciReport,
+  NCI_INDICATORS, type NciResult, type IndicatorScore,
 } from '@/utils/nci-score';
+import { rssProxyUrl } from '@/utils';
 
 type SourceClass = 'mainstream' | 'independent' | 'state' | 'gov' | 'local';
 
@@ -123,11 +125,14 @@ function compareCluster(cluster: ClusteredEvent): ComparedCluster {
   const divergentCount = compared.filter(c => c.divergent).length;
   if (divergentCount > 0) flags.push(`${divergentCount} divergent framing${divergentCount > 1 ? 's' : ''}`);
 
-  // NCI Engineered Reality heuristic scoring.
-  const nci = heuristicNciScore({
-    titles: items.map(i => ({ source: i.source, title: i.title, pubDate: i.pubDate })),
-    tp,
-  });
+  // NCI Engineered Reality heuristic scoring, with any saved manual overrides.
+  const nci = applyManualScores(
+    heuristicNciScore({
+      titles: items.map(i => ({ source: i.source, title: i.title, pubDate: i.pubDate })),
+      tp,
+    }),
+    cluster.id,
+  );
 
   return {
     cluster,
@@ -177,6 +182,43 @@ function buildComparePrompt(cc: ComparedCluster): string {
   return lines.join('\n');
 }
 
+const QUERY_STOPWORDS = new Set(['after', 'amid', 'over', 'says', 'said', 'with', 'from', 'that', 'this', 'will', 'have', 'been', 'more', 'than', 'into', 'about', 'their', 'when', 'what', 'were', 'against']);
+
+/**
+ * Find local/regional coverage of a story: query Google News with the story's
+ * key terms plus its location, and return outlets not already in the cluster.
+ */
+async function findLocalCoverage(cc: ComparedCluster): Promise<Array<{ source: string; title: string; link: string }>> {
+  const words = cc.cluster.primaryTitle
+    .toLowerCase().replace(/[^a-z0-9\s-]/g, '').split(/\s+/)
+    .filter(w => w.length >= 4 && !QUERY_STOPWORDS.has(w));
+  const keywords = [...new Set(words)].slice(0, 4);
+  const location = (cc.cluster as { locationName?: string }).locationName
+    || cc.items.find(i => i.item.locationName)?.item.locationName || '';
+  const q = [...keywords, location].filter(Boolean).join(' ');
+  if (!q) return [];
+  const url = rssProxyUrl(`https://news.google.com/rss/search?q=${encodeURIComponent(`${q} when:3d`)}&hl=en-US&gl=US&ceid=US:en`);
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) return [];
+    const xml = new DOMParser().parseFromString(await res.text(), 'text/xml');
+    const existing = new Set(cc.items.map(i => i.item.source.toLowerCase()));
+    const out: Array<{ source: string; title: string; link: string }> = [];
+    for (const item of xml.querySelectorAll('item')) {
+      const title = item.querySelector('title')?.textContent?.trim() || '';
+      const link = item.querySelector('link')?.textContent?.trim() || '';
+      const source = item.querySelector('source')?.textContent?.trim() || 'Unknown';
+      if (!title || !link) continue;
+      if (existing.has(source.toLowerCase())) continue;
+      out.push({ source, title: title.replace(new RegExp(`\\s+-\\s+${source}$`), ''), link });
+      if (out.length >= 10) break;
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 async function ollamaCompare(prompt: string): Promise<string | null> {
   const secrets = getRuntimeConfigSnapshot().secrets;
   const baseUrl = secrets.OLLAMA_API_URL?.value?.trim();
@@ -209,7 +251,9 @@ export class CoverageComparePanel extends Panel {
   private getLatestNews: () => NewsItem[];
   private listEl: HTMLElement;
   private statusEl: HTMLElement;
+  private statsEl: HTMLElement;
   private analyzing = false;
+  private static readonly AUTO_REFRESH_MS = 10 * 60 * 1000;
 
   constructor(getLatestNews: () => NewsItem[]) {
     super({
@@ -223,16 +267,36 @@ export class CoverageComparePanel extends Panel {
     refreshBtn.addEventListener('click', () => void this.analyze());
 
     this.statusEl = h('div', { className: 'cc-status' }, 'Click "Analyze coverage" to cluster current headlines across sources.');
+    this.statsEl = h('div', { className: 'cc-stats' });
     this.listEl = h('div', { className: 'cc-list' });
 
     replaceChildren(this.content, h('div', { className: 'cc-content' },
       h('div', { className: 'cc-toolbar' }, refreshBtn),
+      this.statsEl,
       this.statusEl,
       this.listEl,
     ));
 
-    // Auto-run once news is likely loaded.
+    // Auto-run once news is likely loaded, then keep fresh in the background.
     setTimeout(() => { if (!this.analyzing && this.listEl.childElementCount === 0) void this.analyze(); }, 12_000);
+    setInterval(() => {
+      if (!document.hidden && !this.analyzing && this.element.isConnected) void this.analyze();
+    }, CoverageComparePanel.AUTO_REFRESH_MS);
+  }
+
+  private renderStats(stories: number, alerts: number, avgNci: number, maxNci: number): void {
+    const stat = (label: string, value: string, cls = '') =>
+      h('div', { className: `cc-stat ${cls}` },
+        h('div', { className: 'cc-stat-value' }, value),
+        h('div', { className: 'cc-stat-label' }, label));
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    replaceChildren(this.statsEl,
+      stat('Stories', String(stories)),
+      stat('TP alerts', String(alerts), alerts > 0 ? 'cc-stat-alert' : ''),
+      stat('Avg NCI', String(avgNci), avgNci >= 41 ? 'cc-stat-warn' : ''),
+      stat('Peak NCI', String(maxNci), maxNci >= 41 ? 'cc-stat-warn' : ''),
+      stat('Updated', time),
+    );
   }
 
   private async analyze(): Promise<void> {
@@ -264,9 +328,10 @@ export class CoverageComparePanel extends Panel {
           || b.cluster.sourceCount - a.cluster.sourceCount);
       const alerts = compared.filter(c => c.tp.talkingPointAlert).length;
       const maxNci = compared.reduce((m, c) => Math.max(m, c.nci.normalized), 0);
+      const avgNci = Math.round(compared.reduce((s, c) => s + c.nci.normalized, 0) / compared.length);
+      this.renderStats(compared.length, alerts, avgNci, maxNci);
       this.statusEl.textContent =
-        `${compared.length} multi-source stories · ${news.length} headlines analyzed`
-        + ` · peak NCI ${maxNci}/100`
+        `${news.length} headlines analyzed`
         + (alerts ? ` · ⚠ ${alerts} talking-point alert${alerts > 1 ? 's' : ''}` : ' · no synchronized talking points detected');
       replaceChildren(this.listEl, ...compared.map(cc => this.renderCluster(cc)));
     } finally {
@@ -335,26 +400,57 @@ export class CoverageComparePanel extends Panel {
     flagEls.splice(1, 0, nciBadge);
 
     const nciBody = h('div', { className: 'cc-nci-body' });
+    let lastAiSummary: string | undefined;
     const renderNciBreakdown = (result: NciResult, aiSummary?: string) => {
+      if (aiSummary !== undefined) lastAiSummary = aiSummary;
       const rows = NCI_INDICATORS.map(ind => {
         const s = result.scores.get(ind.id)!;
+        const scoreBtn = h('button', {
+          className: `cc-nci-score cc-nci-s${s.score}`,
+          type: 'button',
+          title: 'Click to score this indicator yourself (cycles 1→5)',
+        }, String(s.score)) as HTMLButtonElement;
+        scoreBtn.addEventListener('click', () => {
+          const next = (s.score % 5) + 1 as 1 | 2 | 3 | 4 | 5;
+          const merged = new Map<number, IndicatorScore>(cc.nci.scores);
+          merged.set(ind.id, { score: next, evidence: 'Manually scored', source: 'manual' });
+          cc.nci = finalizeNci(merged);
+          saveManualScore(cc.cluster.id, ind.id, next);
+          renderNciBreakdown(cc.nci);
+          nciBadge.textContent = `NCI ${cc.nci.normalized}`;
+          nciBadge.className = `cc-nci-badge cc-nci-l${cc.nci.tier.level}`;
+        });
         return h('div', { className: 'cc-nci-row' },
           h('span', { className: 'cc-nci-num' }, String(ind.id)),
           h('span', { className: 'cc-nci-label', title: ind.hint }, ind.label),
-          h('span', { className: `cc-nci-score cc-nci-s${s.score}` }, String(s.score)),
-          h('span', { className: `cc-nci-src cc-nci-src-${s.source}` }, s.source === 'ai' ? 'AI' : s.source === 'auto' ? 'auto' : '—'),
+          scoreBtn,
+          h('span', { className: `cc-nci-src cc-nci-src-${s.source}` },
+            s.source === 'ai' ? 'AI' : s.source === 'auto' ? 'auto' : s.source === 'manual' ? 'you' : '—'),
           h('span', { className: 'cc-nci-evidence' }, s.evidence),
         );
+      });
+      const copyBtn = h('button', { className: 'cc-copy-btn', type: 'button' }, 'Copy report') as HTMLButtonElement;
+      copyBtn.addEventListener('click', () => {
+        const report = buildNciReport(cc.cluster.primaryTitle, result, {
+          sources: [...new Set(cc.items.map(i => i.item.source))],
+          phrases: cc.tp.phrases.map(p => ({ phrase: p.phrase, kind: p.kind, sources: p.sources })),
+          aiSummary: lastAiSummary,
+        });
+        void navigator.clipboard?.writeText(report).then(() => {
+          copyBtn.textContent = 'Copied ✓';
+          setTimeout(() => { copyBtn.textContent = 'Copy report'; }, 2000);
+        });
       });
       replaceChildren(nciBody,
         h('div', { className: 'cc-nci-verdict' },
           h('span', { className: `cc-nci-badge cc-nci-l${result.tier.level}` }, `${result.normalized}/100`),
           h('span', { className: 'cc-nci-tier' }, result.tier.label),
+          copyBtn,
         ),
-        ...(aiSummary ? [h('div', { className: 'cc-nci-summary' }, aiSummary)] : []),
+        ...(lastAiSummary ? [h('div', { className: 'cc-nci-summary' }, lastAiSummary)] : []),
         h('div', { className: 'cc-nci-table' }, ...rows),
         h('div', { className: 'cc-nci-disclaimer' },
-          'The NCI scale measures indicators of coordinated manipulation — it does not by itself prove an influence campaign exists.'),
+          'The NCI scale measures indicators of coordinated manipulation — it does not by itself prove an influence campaign exists. Click any score to override it with your own judgment (saved locally).'),
       );
     };
 
@@ -399,6 +495,32 @@ export class CoverageComparePanel extends Panel {
       if ((nciDetails as HTMLDetailsElement).open && nciBody.childElementCount === 0) renderNciBreakdown(cc.nci);
     });
 
+    // ── Local coverage finder ──
+    const localBtn = h('button', { className: 'cc-local-btn', type: 'button' }, 'Find local coverage') as HTMLButtonElement;
+    const localResult = h('div', { className: 'cc-local-result' });
+    localBtn.addEventListener('click', async () => {
+      localBtn.disabled = true;
+      localBtn.textContent = 'Searching…';
+      try {
+        const finds = await findLocalCoverage(cc);
+        if (finds.length === 0) {
+          replaceChildren(localResult, h('div', { className: 'cc-status' }, 'No additional regional coverage found for this story.'));
+        } else {
+          replaceChildren(localResult,
+            h('div', { className: 'cc-group' },
+              h('div', { className: 'cc-group-label cc-group-local' }, `Additional local & regional coverage (${finds.length})`),
+              ...finds.map(f => h('div', { className: 'cc-item' },
+                h('span', { className: 'cc-source' }, f.source),
+                h('a', { className: 'cc-headline', href: f.link, target: '_blank', rel: 'noopener noreferrer' }, f.title),
+              )),
+            ));
+        }
+      } finally {
+        localBtn.disabled = false;
+        localBtn.textContent = 'Find local coverage';
+      }
+    });
+
     const aiBtn = h('button', { className: 'cc-ai-btn', type: 'button' }, 'AI Compare') as HTMLButtonElement;
     const aiResult = h('div', { className: 'cc-ai-result' });
     aiBtn.addEventListener('click', async () => {
@@ -441,7 +563,8 @@ export class CoverageComparePanel extends Panel {
       ...(consensus ? [consensus] : []),
       nciDetails,
       ...groupEls,
-      h('div', { className: 'cc-ai-row' }, aiBtn),
+      localResult,
+      h('div', { className: 'cc-ai-row' }, aiBtn, localBtn),
       aiResult,
     );
     if (cc.tp.talkingPointAlert) (details as HTMLDetailsElement).open = true;

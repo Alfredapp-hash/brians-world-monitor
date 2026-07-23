@@ -18,7 +18,7 @@
  */
 import { normalizeTitle, LOADED_TERMS, type TalkingPointAnalysis } from './talking-points';
 
-export type IndicatorSource = 'auto' | 'ai' | 'default';
+export type IndicatorSource = 'auto' | 'ai' | 'default' | 'manual';
 
 export interface NciIndicator {
   id: number;
@@ -352,4 +352,95 @@ export function mergeNci(heuristic: NciResult, ai: AiNciParse): NciResult {
   const merged = new Map(heuristic.scores);
   for (const [id, s] of ai.scores) merged.set(id, s);
   return finalizeNci(merged);
+}
+
+// ── Manual score persistence (localStorage) ──
+
+const MANUAL_STORE_KEY = 'bwm-nci-manual-scores';
+const MANUAL_STORE_MAX_CLUSTERS = 300;
+
+type ManualStore = Record<string, { t: number; scores: Record<string, number> }>;
+
+function readManualStore(): ManualStore {
+  try {
+    return JSON.parse(localStorage.getItem(MANUAL_STORE_KEY) || '{}') as ManualStore;
+  } catch {
+    return {};
+  }
+}
+
+export function saveManualScore(clusterId: string, indicatorId: number, score: number): void {
+  try {
+    const store = readManualStore();
+    const entry = store[clusterId] ?? { t: 0, scores: {} };
+    entry.t = Date.now();
+    entry.scores[String(indicatorId)] = score;
+    store[clusterId] = entry;
+    // Evict oldest clusters beyond cap.
+    const keys = Object.keys(store);
+    if (keys.length > MANUAL_STORE_MAX_CLUSTERS) {
+      keys.sort((a, b) => (store[a]?.t ?? 0) - (store[b]?.t ?? 0));
+      for (const k of keys.slice(0, keys.length - MANUAL_STORE_MAX_CLUSTERS)) delete store[k];
+    }
+    localStorage.setItem(MANUAL_STORE_KEY, JSON.stringify(store));
+  } catch { /* storage unavailable */ }
+}
+
+export function loadManualScores(clusterId: string): Map<number, 1 | 2 | 3 | 4 | 5> {
+  const out = new Map<number, 1 | 2 | 3 | 4 | 5>();
+  try {
+    const entry = readManualStore()[clusterId];
+    if (!entry) return out;
+    for (const [id, sc] of Object.entries(entry.scores)) {
+      const n = Math.max(1, Math.min(5, Math.round(Number(sc))));
+      const iid = Number(id);
+      if (Number.isFinite(iid) && NCI_INDICATORS.some(i => i.id === iid)) {
+        out.set(iid, n as 1 | 2 | 3 | 4 | 5);
+      }
+    }
+  } catch { /* storage unavailable */ }
+  return out;
+}
+
+/** Apply saved manual overrides to a result. */
+export function applyManualScores(result: NciResult, clusterId: string): NciResult {
+  const manual = loadManualScores(clusterId);
+  if (manual.size === 0) return result;
+  const merged = new Map(result.scores);
+  for (const [id, score] of manual) {
+    merged.set(id, { score, evidence: 'Manually scored', source: 'manual' });
+  }
+  return finalizeNci(merged);
+}
+
+// ── Report export ──
+
+export function buildNciReport(storyTitle: string, result: NciResult, extra: {
+  sources: string[];
+  phrases?: Array<{ phrase: string; kind: string; sources: string[] }>;
+  aiSummary?: string;
+}): string {
+  const lines = [
+    `# NCI Engineered Reality Assessment`,
+    ``,
+    `**Story:** ${storyTitle}`,
+    `**Score:** ${result.normalized}/100 — ${result.tier.label}`,
+    `**Sources analyzed:** ${extra.sources.join(', ')}`,
+    ``,
+  ];
+  if (extra.aiSummary) lines.push(`**AI assessment:** ${extra.aiSummary}`, '');
+  if (extra.phrases?.length) {
+    lines.push(`## Synchronized phrasing`, '');
+    for (const p of extra.phrases) lines.push(`- "${p.phrase}" (${p.kind}) — ${p.sources.join(', ')}`);
+    lines.push('');
+  }
+  lines.push(`## Indicators (1 = not present, 5 = strongly present)`, '');
+  lines.push(`| # | Indicator | Score | Basis | Evidence |`);
+  lines.push(`|---|-----------|-------|-------|----------|`);
+  for (const ind of NCI_INDICATORS) {
+    const s = result.scores.get(ind.id)!;
+    lines.push(`| ${ind.id} | ${ind.label} | ${s.score} | ${s.source} | ${s.evidence.replace(/\|/g, '/')} |`);
+  }
+  lines.push('', `> The NCI scale measures indicators of coordinated manipulation — it does not by itself prove an influence campaign exists.`);
+  return lines.join('\n');
 }

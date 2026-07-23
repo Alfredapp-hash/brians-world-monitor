@@ -3343,3 +3343,26 @@ a.hub-top-story {
   .cc-nci-row { grid-template-columns: 16px 1fr 20px 30px; }
   .cc-nci-evidence { grid-column: 2 / -1; }
 }
+
+/* Coverage Compare — improvement pass */
+.cc-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.cc-stat {
+  border: 1px solid var(--border, #2a2a2a); border-radius: 6px; padding: 6px 4px;
+  text-align: center; background: rgba(255,255,255,0.015);
+}
+.cc-stat-value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cc-stat-label { font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-dim, #888); margin-top: 2px; }
+.cc-stat-alert .cc-stat-value { color: #e74c3c; }
+.cc-stat-warn .cc-stat-value { color: #e67e22; }
+.cc-local-btn, .cc-copy-btn {
+  background: transparent; color: var(--accent, #4a9eff);
+  border: 1px solid var(--accent, #4a9eff); border-radius: 4px;
+  padding: 4px 12px; font-size: 11px; cursor: pointer; font-family: inherit;
+}
+.cc-local-btn:hover, .cc-copy-btn:hover { background: rgba(74,158,255,0.1); }
+.cc-local-btn:disabled { opacity: 0.5; cursor: wait; }
+.cc-copy-btn { font-size: 10px; padding: 2px 8px; margin-left: auto; }
+.cc-local-result { margin-top: 4px; }
+.cc-nci-score { border: none; cursor: pointer; font-family: inherit; padding: 0 4px; }
+.cc-nci-score:hover { outline: 1px solid rgba(255,255,255,0.25); }
+.cc-nci-src-manual { color: #2ecc71; background: rgba(46,204,113,0.12); font-weight: 700; }
