@@ -413,6 +413,68 @@ export function applyManualScores(result: NciResult, clusterId: string): NciResu
   return finalizeNci(merged);
 }
 
+// ── NCI trend history (localStorage) ──
+
+const TREND_STORE_KEY = 'bwm-nci-trend';
+const TREND_MAX_STORIES = 200;
+const TREND_MAX_POINTS = 20;
+const TREND_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
+interface TrendEntry { points: Array<{ t: number; v: number }> }
+
+export interface NciTrend {
+  /** Previous observed score (most recent before this one), or null. */
+  prev: number | null;
+  /** Delta vs previous observation (0 when no history). */
+  delta: number;
+  /** All observed points, oldest first. */
+  points: Array<{ t: number; v: number }>;
+}
+
+/**
+ * Record an observation of a story's NCI score and return its trend.
+ * Observations < 10 minutes apart collapse into the newest value.
+ */
+export function recordNciObservation(storyKey: string, normalized: number, now: number = Date.now()): NciTrend {
+  let store: Record<string, TrendEntry> = {};
+  try {
+    store = JSON.parse(localStorage.getItem(TREND_STORE_KEY) || '{}') as Record<string, TrendEntry>;
+  } catch { /* storage unavailable */ }
+
+  // Retention + cap.
+  for (const [k, e] of Object.entries(store)) {
+    const last = e?.points?.[e.points.length - 1]?.t ?? 0;
+    if (now - last > TREND_RETENTION_MS) delete store[k];
+  }
+  const keys = Object.keys(store);
+  if (keys.length > TREND_MAX_STORIES) {
+    keys.sort((a, b) =>
+      (store[a]?.points?.[store[a].points.length - 1]?.t ?? 0)
+      - (store[b]?.points?.[store[b].points.length - 1]?.t ?? 0));
+    for (const k of keys.slice(0, keys.length - TREND_MAX_STORIES)) delete store[k];
+  }
+
+  const entry = store[storyKey] ?? { points: [] };
+  const lastPoint = entry.points[entry.points.length - 1];
+  let prev: number | null = null;
+  if (lastPoint && now - lastPoint.t < 10 * 60_000) {
+    // Rapid re-analysis: update in place; prev is the point before it.
+    prev = entry.points.length >= 2 ? entry.points[entry.points.length - 2]!.v : null;
+    lastPoint.t = now;
+    lastPoint.v = normalized;
+  } else {
+    prev = lastPoint?.v ?? null;
+    entry.points.push({ t: now, v: normalized });
+    if (entry.points.length > TREND_MAX_POINTS) entry.points.splice(0, entry.points.length - TREND_MAX_POINTS);
+  }
+  store[storyKey] = entry;
+  try {
+    localStorage.setItem(TREND_STORE_KEY, JSON.stringify(store));
+  } catch { /* storage unavailable */ }
+
+  return { prev, delta: prev === null ? 0 : normalized - prev, points: entry.points };
+}
+
 // ── Report export ──
 
 export function buildNciReport(storyTitle: string, result: NciResult, extra: {
