@@ -952,7 +952,6 @@ export class PanelLayoutManager implements AppModule {
           <a href="${BRAND.about}" target="_blank" rel="noopener">About</a>
           <a href="${BRAND.github}" target="_blank" rel="noopener">GitHub</a>
           <a href="${BRAND.discordInvite}" target="_blank" rel="noopener">Discord</a>
-          <a href="${BRAND.upstream}" target="_blank" rel="noopener">Based on World Monitor</a>
         </nav>
         <span class="site-footer-copy">&copy; ${new Date().getFullYear()} ${BRAND.name}</span>
       </footer>
