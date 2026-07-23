@@ -169,11 +169,8 @@ export function hasTier(minTier: number): boolean {
  * Returns true if entitlement data exists, plan is not free, and hasn't expired.
  */
 export function isEntitled(): boolean {
-  return (
-    currentState !== null &&
-    currentState.planKey !== 'free' &&
-    currentState.validUntil >= Date.now()
-  );
+  // Brian's fork: self-hosted — always entitled (see panel-gating.ts).
+  return true;
 }
 
 /**

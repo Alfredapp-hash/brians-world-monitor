@@ -262,60 +262,10 @@ export async function checkEntitlementDetailed(
   corsHeaders: Record<string, string>,
   options: EntitlementCheckOptions = {},
 ): Promise<EntitlementCheckResult> {
-  const requiredTier = getRequiredTier(pathname);
-  if (requiredTier === null) {
-    // Unrestricted endpoint -- no check needed
-    return { response: null, entitlements: null };
-  }
-
-  if (!userId) {
-    return {
-      response: new Response(
-        JSON.stringify({ error: 'Authentication required', requiredTier }),
-        { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } },
-      ),
-      entitlements: null,
-    };
-  }
-
-  // Preserve the legacy Pro bearer contract for tier-1 gates. Complimentary,
-  // tester, and legacy Clerk-role grants can have no Convex entitlement row,
-  // while the frontend still unlocks Pro panels for role='pro'.
-  if (options.clerkRole === 'pro' && requiredTier <= 1) {
-    return { response: null, entitlements: null };
-  }
-
-  const ent = await getEntitlements(userId);
-  if (!ent) {
-    // Fail-closed: unable to verify entitlements -> block the request
-    return {
-      response: new Response(
-        JSON.stringify({ error: 'Unable to verify entitlements', requiredTier }),
-        { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } },
-      ),
-      entitlements: null,
-    };
-  }
-
-  if (ent.features.tier >= requiredTier) {
-    // User has sufficient tier -- allow
-    return { response: null, entitlements: ent };
-  }
-
-  // User lacks required tier -- return 403
-  return {
-    response: new Response(
-      JSON.stringify({
-        error: 'Upgrade required',
-        requiredTier,
-        currentTier: ent.features.tier,
-        planKey: ent.planKey,
-      }),
-      {
-        status: 403,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      },
-    ),
-    entitlements: ent,
-  };
+  // Brian's fork: self-hosted deployment serves a single owner — every
+  // endpoint is unrestricted. Upstream tier gating (userId auth, Redis/Convex
+  // entitlement rows, tier comparison) removed; see git history for the
+  // original implementation.
+  void userId; void pathname; void corsHeaders; void options;
+  return { response: null, entitlements: null };
 }
