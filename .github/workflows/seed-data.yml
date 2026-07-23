@@ -1,0 +1,86 @@
+name: Seed Data
+
+# JSA's Monitor: populates the Upstash Redis cache that the deployed Vercel
+# app reads from. Many panels (fires, oil inventories, economic calendar,
+# radiation, pipeline/storage registries, cross-source signals, etc.) render
+# from seeded Redis keys rather than live per-request fetches — this workflow
+# is what keeps them fresh on a self-hosted deployment (upstream runs the
+# same seeders from a Railway worker).
+#
+# Setup (one time):
+#   1. Create a free Upstash Redis DB (https://upstash.com) → copy its REST
+#      URL + REST TOKEN.
+#   2. Repo → Settings → Secrets and variables → Actions → New repository
+#      secret, add:
+#        UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN   (required)
+#        NASA_FIRMS_API_KEY, FRED_API_KEY, EIA_API_KEY,
+#        FINNHUB_API_KEY, GROQ_API_KEY, AISSTREAM_API_KEY,
+#        ACLED_ACCESS_TOKEN, AVIATIONSTACK_API                (optional —
+#        each unlocks the seeders that need it; absent ones skip silently)
+#   3. Add the SAME UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN to the
+#      Vercel project (Settings → Environment Variables) so the app reads the
+#      same cache this workflow writes.
+#
+# Triggers: every 30 min, on manual dispatch, and once on push of this file.
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/seed-data.yml'
+
+permissions:
+  contents: read
+
+# Never let two seed runs overlap (they write the same keys).
+concurrency:
+  group: seed-data
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci --ignore-scripts
+
+      - name: Fail fast when Redis is not configured
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: |
+          if [ -z "$UPSTASH_REDIS_REST_URL" ] || [ -z "$UPSTASH_REDIS_REST_TOKEN" ]; then
+            echo "::error title=Redis not configured::Add UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN as repository secrets (Settings → Secrets and variables → Actions). Nothing to seed without them."
+            exit 1
+          fi
+
+      - name: Run seeders
+        env:
+          # Redis (required) — the seeders talk directly to the Upstash REST API.
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          # Optional data-source keys — each seeder that needs one skips
+          # silently when its key is absent, so this list is safe to leave
+          # partially empty.
+          NASA_FIRMS_API_KEY: ${{ secrets.NASA_FIRMS_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
+          ACLED_ACCESS_TOKEN: ${{ secrets.ACLED_ACCESS_TOKEN }}
+          ACLED_EMAIL: ${{ secrets.ACLED_EMAIL }}
+          ACLED_PASSWORD: ${{ secrets.ACLED_PASSWORD }}
+          AVIATIONSTACK_API: ${{ secrets.AVIATIONSTACK_API }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # Per-seeder wall-clock cap (seconds); bundle seeders self-bound.
+          SEED_TIMEOUT: '600'
+        run: sh ./scripts/run-seeders.sh

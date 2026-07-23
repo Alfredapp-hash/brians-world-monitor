@@ -77,3 +77,43 @@ Variables):**
 
 `scripts/panel-audit.mjs` re-runs the audit against any URL
 (`SMOKE_URL=https://your-app.vercel.app node scripts/panel-audit.mjs`).
+
+## Seeded panels — Upstash Redis + scheduled seeders (full activation)
+
+Many panels render from a Redis cache that a background job fills. Two pieces:
+
+**1. Upstash Redis (free) — the cache.**
+- Sign up at https://upstash.com → Create Database → Redis → pick a region →
+  copy the **REST URL** and **REST TOKEN** (the "REST API" section, not the
+  redis:// URL).
+- Add BOTH to two places, same values:
+  - **Vercel** → project → Settings → Environment Variables:
+    `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (so the app reads cache)
+  - **GitHub** → repo → Settings → Secrets and variables → Actions → New
+    repository secret: same two names (so the seeder job writes cache)
+
+**2. Scheduled seeders — `.github/workflows/seed-data.yml`.**
+Runs every 30 min on GitHub Actions (free for this public repo), sweeps all
+`scripts/seed-*.mjs`, writes to your Upstash Redis. Trigger the first run
+manually: repo → Actions → "Seed Data" → Run workflow. Seeders whose API key
+is missing skip silently, so it works with just Redis and lights up more
+panels as you add keys.
+
+**Data-source keys** (add as GitHub Actions secrets for seeders; the two
+request-time ones — Finnhub, Groq — also go in Vercel env vars):
+
+| Secret | Free signup | Lights up |
+| --- | --- | --- |
+| `FINNHUB_API_KEY` | finnhub.io | Markets depth, Sector Heatmap, Breadth (also add to Vercel) |
+| `GROQ_API_KEY` | console.groq.com | Cloud AI fallback for summaries/NCI (also add to Vercel) |
+| `NASA_FIRMS_API_KEY` | firms.modaps.eosdis.nasa.gov | Fires, Thermal Escalation |
+| `FRED_API_KEY` | fred.stlouisfed.org/docs/api/api_key.html | Economic calendar, macro series |
+| `EIA_API_KEY` | eia.gov/opendata | Oil Inventories, Energy Complex, electricity prices |
+| `AISSTREAM_API_KEY` | aisstream.io | Ship tracking, Hormuz Tracker |
+| `ACLED_ACCESS_TOKEN` | acleddata.com (researcher signup) | Armed Conflict Events |
+| `AVIATIONSTACK_API` | aviationstack.com | Flight schedules |
+
+After adding Vercel env vars, redeploy (Vercel → Deployments → ⋯ → Redeploy)
+so functions pick them up. After adding GitHub secrets, re-run the Seed Data
+workflow. Then `SMOKE_URL=https://brians-world-monitor.vercel.app node
+scripts/panel-audit.mjs` re-checks which panels went live.
