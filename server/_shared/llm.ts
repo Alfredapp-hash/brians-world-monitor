@@ -41,6 +41,11 @@ export interface ProviderCredentialOverrides {
 
 const OLLAMA_HOST_ALLOWLIST = new Set([
   'localhost', '127.0.0.1', '::1', '[::1]', 'host.docker.internal',
+  // Custom: allow additional Ollama hosts (e.g. a tunnel to a home PC) via env.
+  // Set OLLAMA_EXTRA_HOSTS to a comma-separated list of hostnames.
+  ...(typeof process !== 'undefined' && process.env?.OLLAMA_EXTRA_HOSTS
+    ? process.env.OLLAMA_EXTRA_HOSTS.split(',').map(h => h.trim()).filter(Boolean)
+    : []),
 ]);
 
 function isLocalDeployment(): boolean {

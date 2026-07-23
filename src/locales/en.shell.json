@@ -1,9 +1,9 @@
 {
   "shell": {
-    "documentTitle": "World Monitor — Real-Time Global Intelligence Dashboard",
-    "metaDescription": "Real-time global intelligence platform. Featured in WIRED. Used by 2M+ people across 190 countries. Conflicts, markets, military, OSINT in one view.",
+    "documentTitle": "Brian's World Monitor — Geopolitics, Finance, Science & Archaeology",
+    "metaDescription": "Brian's personal real-time intelligence dashboard: world geopolitics, financial markets, scientific discoveries, and archaeology news with local AI analysis.",
     "offlineTitle": "You're Offline",
-    "offlineMessage": "World Monitor requires an internet connection for real-time intelligence data.",
+    "offlineMessage": "Brian's World Monitor requires an internet connection for real-time intelligence data.",
     "offlineRetry": "Retry"
   },
   "header": {
@@ -761,7 +761,7 @@
       "shellCancel": "Cancel",
       "shellSaveClose": "Save & Close",
       "shellSearchPlaceholder": "Search settings...",
-      "shellTitle": "World Monitor Settings",
+      "shellTitle": "Brian's World Monitor Settings",
       "sidecarError": "Could not reach sidecar to toggle verbose mode",
       "sidecarUnreachable": "Sidecar not reachable.",
       "table": {

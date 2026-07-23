@@ -138,6 +138,7 @@ const PANEL_CLUSTER: Record<string, PanelChunkName> = {
   CountryBrief: 'panels-intel', CountryBriefPage: 'panels-intel',
   CountryDeepDive: 'panels-intel',
   CrossSourceSignals: 'panels-intel', CustomWidget: 'panels-intel',
+  CoverageCompare: 'panels-intel',
   Deduction: 'panels-intel',
   DisasterCorrelation: 'panels-intel',
   EconomicCorrelation: 'panels-intel',

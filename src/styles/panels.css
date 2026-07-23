@@ -3222,3 +3222,46 @@ a.hub-top-story {
   color: var(--text-dim);
   font-size: 11px;
 }
+
+/* ============ Coverage Compare Panel ============ */
+.cc-content { display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+.cc-toolbar { display: flex; gap: 8px; }
+.cc-refresh-btn, .cc-ai-btn {
+  background: var(--accent, #4a9eff); color: #fff; border: none; border-radius: 4px;
+  padding: 5px 12px; font-size: 11px; cursor: pointer; font-family: inherit;
+}
+.cc-refresh-btn:hover, .cc-ai-btn:hover { filter: brightness(1.15); }
+.cc-ai-btn:disabled { opacity: 0.5; cursor: wait; }
+.cc-status { font-size: 11px; color: var(--text-dim, #888); }
+.cc-list { display: flex; flex-direction: column; gap: 6px; }
+.cc-details {
+  border: 1px solid var(--border, #2a2a2a); border-radius: 6px; padding: 6px 8px;
+  background: var(--panel-bg-alt, rgba(255,255,255,0.02));
+}
+.cc-summary { cursor: pointer; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+.cc-count { color: var(--accent, #4a9eff); font-weight: 700; font-size: 11px; }
+.cc-title { font-weight: 600; }
+.cc-flag {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 1px 6px; border-radius: 8px; background: rgba(74,158,255,0.15);
+  color: var(--accent, #4a9eff); white-space: nowrap;
+}
+.cc-flag-warn { background: rgba(255,159,67,0.15); color: #ff9f43; }
+.cc-consensus { font-size: 10px; color: var(--text-dim, #888); margin: 6px 0 2px; }
+.cc-group { margin-top: 8px; }
+.cc-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; color: var(--text-dim, #999); }
+.cc-group-mainstream { color: #4a9eff; }
+.cc-group-independent { color: #2ecc71; }
+.cc-group-local { color: #f1c40f; }
+.cc-group-state { color: #ff9f43; }
+.cc-group-gov { color: #b28dff; }
+.cc-item { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; font-size: 11px; padding: 2px 0; }
+.cc-source { font-weight: 600; white-space: nowrap; }
+.cc-lang { font-size: 9px; border: 1px solid var(--border, #444); border-radius: 3px; padding: 0 3px; color: var(--text-dim, #999); }
+.cc-headline { color: var(--text, #ddd); text-decoration: none; }
+.cc-headline:hover { text-decoration: underline; }
+.cc-unique { font-size: 9px; color: #2ecc71; }
+.cc-ai-row { margin-top: 8px; }
+.cc-ai-result { font-size: 11px; margin-top: 6px; line-height: 1.45; }
+.cc-ai-result h3 { font-size: 12px; margin: 8px 0 3px; }
+.cc-ai-via { font-size: 9px; color: var(--text-dim, #888); text-transform: uppercase; margin-bottom: 4px; }

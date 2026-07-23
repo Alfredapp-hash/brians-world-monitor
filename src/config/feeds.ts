@@ -468,6 +468,29 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     { name: 'Reuters Energy', url: rss('https://news.google.com/rss/search?q=site:reuters.com+(oil+OR+gas+OR+energy+OR+OPEC)+when:3d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Mining & Resources', url: rss('https://news.google.com/rss/search?q=(lithium+OR+"rare+earth"+OR+cobalt+OR+mining)+when:3d&hl=en-US&gl=US&ceid=US:en') },
   ],
+  science: [
+    { name: 'ScienceDaily', url: rss('https://www.sciencedaily.com/rss/all.xml') },
+    { name: 'Phys.org', url: rss('https://phys.org/rss-feed/') },
+    { name: 'Nature News', url: rss('https://www.nature.com/nature.rss') },
+    { name: 'Science (AAAS)', url: rss('https://www.science.org/rss/news_current.xml') },
+    { name: 'New Scientist', url: rss('https://www.newscientist.com/feed/home/') },
+    { name: 'Live Science', url: rss('https://www.livescience.com/feeds.xml') },
+    { name: 'Scientific American', url: rss('https://news.google.com/rss/search?q=site:scientificamerican.com+when:2d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'NASA', url: rss('https://www.nasa.gov/rss/dyn/breaking_news.rss') },
+    { name: 'Space.com', url: rss('https://www.space.com/feeds/all') },
+    { name: 'Quanta Magazine', url: rss('https://www.quantamagazine.org/feed/') },
+    { name: 'Science Discoveries', url: rss('https://news.google.com/rss/search?q=("scientific+discovery"+OR+"new+study"+OR+breakthrough+science)+when:2d&hl=en-US&gl=US&ceid=US:en') },
+  ],
+  archaeology: [
+    { name: 'Archaeology Magazine', url: rss('https://www.archaeology.org/feed') },
+    { name: 'HeritageDaily', url: rss('https://www.heritagedaily.com/feed') },
+    { name: 'Ancient Origins', url: rss('https://www.ancient-origins.net/rss.xml') },
+    { name: 'Sci.News Archaeology', url: rss('https://www.sci.news/archaeology/feed') },
+    { name: 'Smithsonian Archaeology', url: rss('https://news.google.com/rss/search?q=site:smithsonianmag.com+(archaeology+OR+ancient)+when:7d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'The Past', url: rss('https://the-past.com/feed/') },
+    { name: 'Phys.org Archaeology', url: rss('https://phys.org/rss-feed/science-news/archaeology-fossils/') },
+    { name: 'Archaeology News', url: rss('https://news.google.com/rss/search?q=(archaeology+OR+excavation+OR+"ancient+city"+OR+"archaeologists+discover")+when:3d&hl=en-US&gl=US&ceid=US:en') },
+  ],
 };
 
 // Tech/AI variant feeds
