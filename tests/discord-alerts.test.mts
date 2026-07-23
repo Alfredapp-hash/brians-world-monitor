@@ -54,9 +54,30 @@ describe('discord-alerts', () => {
       phrases: [{ phrase: 'unprecedented security threat', kind: 'coordinated', sources: ['A', 'B', 'C'] }],
       flags: ['⚠ TALKING POINT — synchronized phrasing'],
     })) as { username: string; embeds: Array<{ title: string; fields: Array<{ name: string; value: string }> }> };
-    assert.equal(payload.username, "Brian's World Monitor");
+    assert.equal(payload.username, "JSA's Monitor");
     assert.ok(payload.embeds[0]!.title.includes('TALKING POINT'));
     const phraseField = payload.embeds[0]!.fields.find(f => f.name === 'Synchronized phrasing');
     assert.ok(phraseField!.value.includes('unprecedented security threat'));
+  });
+});
+
+describe('daily digest', () => {
+  it('is due once per day after 08:00 local', async () => {
+    const { digestDue } = await import('../src/services/discord-alerts');
+    const at = (h: number) => { const d = new Date('2026-07-23T00:00:00'); d.setHours(h); return d.getTime(); };
+    assert.equal(digestDue(null, at(9)), true);
+    assert.equal(digestDue('2026-07-23', at(9)), false);   // already sent today
+    assert.equal(digestDue('2026-07-22', at(9)), true);    // sent yesterday
+    assert.equal(digestDue('2026-07-22', at(6)), false);   // too early
+  });
+
+  it('builds a digest with top-5 stories by NCI', async () => {
+    const { buildDigestPayload } = await import('../src/services/discord-alerts');
+    const stories = [10, 80, 30, 60, 20, 90].map((n, i) => story({ key: `s${i}`, nci: n, title: `Story ${n}` }));
+    const payload = buildDigestPayload({ stories, headlineCount: 500, alerts: 2, avgNci: 33, peakNci: 90 }, Date.parse('2026-07-23T12:00:00Z')) as { embeds: Array<{ description: string }> };
+    const desc = payload.embeds[0]!.description;
+    assert.ok(desc.startsWith('**1.** [NCI 90]'));
+    assert.ok(desc.includes('[NCI 80]'));
+    assert.ok(!desc.includes('[NCI 10]')); // only top 5
   });
 });

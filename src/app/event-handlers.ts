@@ -46,7 +46,6 @@ import {
   INTEL_SOURCES,
 } from '@/config';
 import { resolveNewsCategories, enabledNewsCategoryKeys } from '@/config/feed-resolution';
-import { VARIANT_META } from '@/config/variant-meta';
 import { isDesktopRuntime } from '@/services/runtime';
 import {
   MISSION_PRESETS,
@@ -1578,21 +1577,11 @@ export class EventHandlerManager implements AppModule {
     trackVariantSwitch(SITE_VARIANT, variant);
     await this.exitFullscreenForNavigation();
 
-    if (this.ctx.isDesktopApp || options.isLocalDev) {
-      writeStorageValue('worldmonitor-variant', variant);
-      window.location.reload();
-      return;
-    }
-
-    const target = options.href || VARIANT_META[variant]?.url;
-    if (!target) return;
-    try {
-      const parsed = new URL(target, window.location.href);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
-      window.location.href = parsed.toString();
-    } catch {
-      return;
-    }
+    // JSA's Monitor fork: variants always switch locally via storage —
+    // never navigate to the upstream worldmonitor.app variant domains.
+    void options;
+    writeStorageValue('worldmonitor-variant', variant);
+    window.location.reload();
   }
 
   toggleFullscreen(): void {

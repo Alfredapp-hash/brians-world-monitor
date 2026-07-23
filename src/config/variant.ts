@@ -31,11 +31,10 @@ export const SITE_VARIANT: string = (() => {
   if (h.startsWith('commodity.')) return 'commodity';
   if (h.startsWith('energy.')) return 'energy';
 
-  if (h === 'localhost' || h === '127.0.0.1') {
-    const stored = loadStoredVariant();
-    if (stored === 'tech' || stored === 'full' || stored === 'finance' || stored === 'happy' || stored === 'commodity' || stored === 'energy') return stored;
-    return buildVariant;
-  }
-
-  return 'full';
+  // JSA's Monitor fork: a single deployment serves every variant — the
+  // stored preference is honored on ANY hostname (upstream restricted this
+  // to localhost because its variants live on separate domains).
+  const stored = loadStoredVariant();
+  if (stored === 'tech' || stored === 'full' || stored === 'finance' || stored === 'happy' || stored === 'commodity' || stored === 'energy') return stored;
+  return buildVariant;
 })();

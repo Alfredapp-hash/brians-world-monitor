@@ -508,7 +508,9 @@ describe('gateway telemetry payload — bearer identity propagation', () => {
 
     assert.equal(spy.events.length, 1);
     const ev = spy.events[0]!;
-    assert.equal(ev.tier, 2, `tier should reflect resolved entitlement, got ${ev.tier}`);
+    // Fork: checkEntitlementDetailed no longer resolves entitlement rows
+    // (self-hosted unlock), so telemetry tier stays at the default 0.
+    assert.equal(ev.tier, 0, `fork emits tier 0 (no entitlement resolution), got ${ev.tier}`);
     assert.equal(ev.customer_id, 'user_api');
     assert.equal(ev.auth_kind, 'clerk_jwt');
     assert.equal(ev.domain, 'market');

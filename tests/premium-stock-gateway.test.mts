@@ -227,11 +227,8 @@ describe('premium gateway API key enforcement', () => {
             'X-Api-Key': 'wm_free_test_key',
           },
         }));
-        assert.equal(res.status, 403, `${method} ${path} should fail at the entitlement gate`);
-        const body = await res.json() as { error?: string; requiredTier?: number; currentTier?: number };
-        assert.equal(body.error, 'Upgrade required', `${method} ${path} should use the standardized entitlement body`);
-        assert.equal(body.requiredTier, 1, `${method} ${path} should declare the required tier`);
-        assert.equal(body.currentTier, 0, `${method} ${path} should include the caller tier when known`);
+        // Fork: entitlement gates removed — every route serves the request.
+        assert.equal(res.status, 200, `${method} ${path} should be open on the self-hosted fork`);
       }
     } finally {
       globalThis.fetch = originalFetchForIssue4609GateTest;
@@ -677,10 +674,8 @@ describe('premium gateway bearer token auth', () => {
           'X-Api-Key': 'wm_free_test_key',
         },
       }));
-      assert.equal(res.status, 403);
-      const body = await res.json() as { error?: string; currentTier?: number };
-      assert.equal(body.error, 'Upgrade required');
-      assert.equal(body.currentTier, 0);
+      // Fork: entitlement gates removed — request is served regardless of key owner tier.
+      assert.equal(res.status, 200);
     } finally {
       globalThis.fetch = originalFetchForMixedAuthTest;
       if (originalSiteUrl === undefined) delete process.env.CONVEX_SITE_URL;
@@ -690,7 +685,7 @@ describe('premium gateway bearer token auth', () => {
     }
   });
 
-  it('free bearer token on premium endpoint → 403', async () => {
+  it('fork: free bearer token on premium endpoint is allowed (self-hosted unlock)', async () => {
     const token = await signToken({ sub: 'user_free', plan: 'free' });
     const res = await handler(new Request('https://worldmonitor.app/api/market/v1/analyze-stock?symbol=AAPL', {
       headers: {
@@ -698,7 +693,7 @@ describe('premium gateway bearer token auth', () => {
         Authorization: `Bearer ${token}`,
       },
     }));
-    assert.equal(res.status, 403);
+    assert.equal(res.status, 200);
   });
 
   it('rejects invalid/expired bearer token on premium endpoint → 401', async () => {

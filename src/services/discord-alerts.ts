@@ -172,6 +172,74 @@ export async function dispatchDiscordAlerts(stories: AlertStory[]): Promise<numb
   return count;
 }
 
+// ── Daily digest ──
+
+const DIGEST_SENT_KEY = 'bwm-discord-digest-date';
+
+export interface DigestInput {
+  stories: AlertStory[];
+  headlineCount: number;
+  alerts: number;
+  avgNci: number;
+  peakNci: number;
+}
+
+function todayKey(now: number): string {
+  return new Date(now).toISOString().slice(0, 10);
+}
+
+/** Pure: should a digest go out now? Once per calendar day, after 08:00 local. */
+export function digestDue(lastSentDate: string | null, now: number = Date.now()): boolean {
+  if (new Date(now).getHours() < 8) return false;
+  return lastSentDate !== todayKey(now);
+}
+
+/** Pure: build the daily digest payload. */
+export function buildDigestPayload(input: DigestInput, now: number = Date.now()): object {
+  const top = [...input.stories].sort((a, b) => b.nci - a.nci).slice(0, 5);
+  const lines = top.map((s, i) =>
+    `**${i + 1}.** [NCI ${s.nci}] ${s.talkingPoint ? '⚠ ' : ''}${s.title}`.slice(0, 250));
+  return {
+    username: "JSA's Monitor",
+    embeds: [{
+      title: `📰 Daily Intelligence Digest — ${new Date(now).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+      description: lines.join('\n').slice(0, 3500) || 'No multi-source stories in the current window.',
+      color: 0xf0a832,
+      fields: [
+        { name: 'Headlines analyzed', value: String(input.headlineCount), inline: true },
+        { name: 'Talking-point alerts', value: String(input.alerts), inline: true },
+        { name: 'Avg / Peak NCI', value: `${input.avgNci} / ${input.peakNci}`, inline: true },
+      ],
+      footer: { text: "NCI measures indicators, not proof · JSA's Monitor" },
+      timestamp: new Date(now).toISOString(),
+    }],
+  };
+}
+
+/** Post the once-daily digest if due (fire-and-forget). */
+export async function maybeSendDailyDigest(input: DigestInput): Promise<boolean> {
+  if (!getAlertsEnabled()) return false;
+  const webhook = getDiscordWebhook();
+  if (!isValidWebhookUrl(webhook)) return false;
+  let last: string | null = null;
+  try { last = localStorage.getItem(DIGEST_SENT_KEY); } catch { /* ignore */ }
+  const now = Date.now();
+  if (!digestDue(last, now)) return false;
+  try {
+    const res = await fetch(webhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildDigestPayload(input, now)),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (res.ok || res.status === 204) {
+      try { localStorage.setItem(DIGEST_SENT_KEY, todayKey(now)); } catch { /* ignore */ }
+      return true;
+    }
+  } catch { /* silent */ }
+  return false;
+}
+
 /** Send a test message so the user can verify their webhook. */
 export async function sendTestAlert(webhookUrl: string): Promise<boolean> {
   if (!isValidWebhookUrl(webhookUrl)) return false;

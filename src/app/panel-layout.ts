@@ -688,7 +688,7 @@ export class PanelLayoutManager implements AppModule {
       case PanelGateReason.ANONYMOUS:
         return () => this.ctx.authModal?.open();
       case PanelGateReason.FREE_TIER:
-        return () => window.open('https://worldmonitor.app/pro', '_blank', 'noopener,noreferrer');
+        return () => { /* fork: premium is unlocked — no upsell navigation */ };
       default:
         return () => {};
     }
@@ -728,7 +728,9 @@ export class PanelLayoutManager implements AppModule {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
           <div class="variant-switcher">${(() => {
-        const local = this.ctx.isDesktopApp || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        // Fork: all variants served from this one deployment — always switch
+        // locally, never link out to upstream variant domains.
+        const local = true;
         const inIframe = window.self !== window.top;
         const vHref = (v: string, prod: string) => local || SITE_VARIANT === v ? '#' : prod;
         const vTarget = (v: string) => !local && SITE_VARIANT !== v && inIframe ? 'target="_blank" rel="noopener"' : '';
@@ -875,16 +877,15 @@ export class PanelLayoutManager implements AppModule {
           <span class="mobile-menu-item-icon">${getCurrentTheme() === 'dark' ? '☀️' : '🌙'}</span>
           <span class="mobile-menu-item-label">${getCurrentTheme() === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
         </button>
-        <a class="mobile-menu-item" href="https://x.com/eliehabib" target="_blank" rel="noopener">
+        <a class="mobile-menu-item" href="${BRAND.x}" target="_blank" rel="noopener">
           <span class="mobile-menu-item-icon"><svg class="x-logo" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
-          <span class="mobile-menu-item-label">@eliehabib</span>
+          <span class="mobile-menu-item-label">@JSAsmonitor</span>
         </a>
         <div class="mobile-menu-divider"></div>
         <div class="mobile-menu-footer-links">
-          <a href="${this.ctx.isDesktopApp ? 'https://worldmonitor.app/pro' : 'https://www.worldmonitor.app/pro'}" target="_blank" rel="noopener">Pro</a>
-          <a href="${this.ctx.isDesktopApp ? 'https://worldmonitor.app/blog/' : 'https://www.worldmonitor.app/blog/'}" target="_blank" rel="noopener">Blog</a>
-          <a href="${this.ctx.isDesktopApp ? 'https://worldmonitor.app/docs' : 'https://www.worldmonitor.app/docs'}" target="_blank" rel="noopener">Docs</a>
-          <a href="https://status.worldmonitor.app/" target="_blank" rel="noopener">Status</a>
+          <a href="${BRAND.about}" target="_blank" rel="noopener">About</a>
+          <a href="${BRAND.github}" target="_blank" rel="noopener">GitHub</a>
+          <a href="${BRAND.discordInvite}" target="_blank" rel="noopener">Discord</a>
         </div>
         <div class="mobile-menu-version">v${__APP_VERSION__}</div>
       </nav>
