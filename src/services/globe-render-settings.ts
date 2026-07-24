@@ -1,5 +1,5 @@
 export type GlobeRenderScale = 'auto' | '1' | '1.5' | '2' | '3';
-export type GlobeTexture = 'topographic' | 'blue-marble';
+export type GlobeTexture = 'topographic' | 'blue-marble' | 'day';
 
 const STORAGE_KEY = 'wm-globe-render-scale';
 const EVENT_NAME = 'wm-globe-render-scale-changed';
@@ -63,6 +63,10 @@ export interface GlobePerformanceProfile {
   disablePulseAnimations: boolean;
   disableDashAnimations: boolean;
   disableAtmosphere: boolean;
+  /** Eco: skip bump/specular surface maps on the globe material (GLOBE · WS). */
+  disableSurfaceDetail: boolean;
+  /** Procedural parallax star count for the enhanced preset (0 = skip). */
+  starCount: number;
 }
 
 export function resolvePerformanceProfile(scale: GlobeRenderScale): GlobePerformanceProfile {
@@ -71,23 +75,27 @@ export function resolvePerformanceProfile(scale: GlobeRenderScale): GlobePerform
     disablePulseAnimations: isEco,
     disableDashAnimations: isEco,
     disableAtmosphere: isEco,
+    disableSurfaceDetail: isEco,
+    starCount: isEco ? 0 : 350,
   };
 }
 
 export const GLOBE_TEXTURE_OPTIONS: { value: GlobeTexture; label: string }[] = [
   { value: 'topographic', label: 'Topographic' },
   { value: 'blue-marble', label: 'Blue Marble (NASA)' },
+  { value: 'day', label: 'Day Satellite' },
 ];
 
 export const GLOBE_TEXTURE_URLS: Record<GlobeTexture, string> = {
   'topographic': '/textures/earth-topo-bathy.jpg',
   'blue-marble': '/textures/earth-blue-marble.jpg',
+  'day': '/textures/earth-day.jpg',
 };
 
 export function getGlobeTexture(): GlobeTexture {
   try {
     const raw = localStorage.getItem(TEXTURE_STORAGE_KEY);
-    if (raw === 'topographic' || raw === 'blue-marble') return raw;
+    if (raw === 'topographic' || raw === 'blue-marble' || raw === 'day') return raw;
   } catch { /* ignore */ }
   return 'topographic';
 }
@@ -123,7 +131,9 @@ export function getGlobeVisualPreset(): GlobeVisualPreset {
     const raw = localStorage.getItem(PRESET_STORAGE_KEY);
     if (raw === 'classic' || raw === 'enhanced') return raw;
   } catch { /* ignore */ }
-  return 'classic';
+  // GLOBE · WS: 'enhanced' (Cosmos) is the default for new users — branded
+  // material/lighting/starfield. Users with a stored 'classic' pref keep it.
+  return 'enhanced';
 }
 
 export function setGlobeVisualPreset(preset: GlobeVisualPreset): void {
@@ -138,4 +148,36 @@ export function subscribeGlobeVisualPresetChange(cb: (preset: GlobeVisualPreset)
   };
   window.addEventListener(PRESET_EVENT_NAME, handler);
   return () => window.removeEventListener(PRESET_EVENT_NAME, handler);
+}
+
+// ─── Auto-rotate preference (GLOBE · WS on-globe control cluster) ────────────
+
+const AUTO_ROTATE_STORAGE_KEY = 'wm-globe-auto-rotate';
+const AUTO_ROTATE_EVENT_NAME = 'wm-globe-auto-rotate-changed';
+
+/**
+ * Returns the stored auto-rotate preference, or null when the user has never
+ * set one — callers apply their platform default (mobile on, desktop off).
+ */
+export function getGlobeAutoRotate(): boolean | null {
+  try {
+    const raw = localStorage.getItem(AUTO_ROTATE_STORAGE_KEY);
+    if (raw === 'on') return true;
+    if (raw === 'off') return false;
+  } catch { /* ignore */ }
+  return null;
+}
+
+export function setGlobeAutoRotate(enabled: boolean): void {
+  try { localStorage.setItem(AUTO_ROTATE_STORAGE_KEY, enabled ? 'on' : 'off'); } catch { /* ignore */ }
+  window.dispatchEvent(new CustomEvent(AUTO_ROTATE_EVENT_NAME, { detail: { enabled } }));
+}
+
+export function subscribeGlobeAutoRotateChange(cb: (enabled: boolean) => void): () => void {
+  const handler = (e: Event) => {
+    const detail = (e as CustomEvent).detail as { enabled?: boolean } | undefined;
+    cb(detail?.enabled ?? getGlobeAutoRotate() ?? true);
+  };
+  window.addEventListener(AUTO_ROTATE_EVENT_NAME, handler);
+  return () => window.removeEventListener(AUTO_ROTATE_EVENT_NAME, handler);
 }

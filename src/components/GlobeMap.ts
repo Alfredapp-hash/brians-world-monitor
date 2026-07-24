@@ -4,14 +4,15 @@
  * Matches World Monitor's MapContainer API so it can be used as a drop-in
  * replacement within MapContainer when the user enables globe mode.
  *
- * Architecture mirrors Sentinel (sentinel.axonia.us):
+ * Architecture (originally mirrored Sentinel; visuals rebranded in GLOBE · WS):
  *  - globe.gl v2 (new Globe(element, config))
- *  - Earth texture: /textures/earth-topo-bathy.jpg
- *  - Night sky background: /textures/night-sky.png
- *  - Specular/water map: /textures/earth-water.png
- *  - Atmosphere: #4466cc glow via built-in Fresnel shader
+ *  - Earth texture: /textures/earth-topo-bathy.jpg (+ blue-marble / day, cyclable)
+ *  - Night sky background: /textures/night-sky.png (4096×2048, shipped)
+ *  - Relief: bumpImageUrl from the topo texture; oceans get a specular /
+ *    roughness treatment from /textures/earth-water.png (sun glint)
+ *  - Atmosphere: desaturated warm JSA glow via built-in Fresnel shader
  *  - All markers via htmlElementsData (single merged array with _kind discriminator)
- *  - Auto-rotate after 60 s of inactivity
+ *  - Auto-rotate after 60 s of inactivity (persisted via wm-globe-auto-rotate)
  */
 
 import Globe from 'globe.gl';
@@ -24,7 +25,7 @@ import { PIPELINES } from '@/config/pipelines';
 import { BRAND } from '@/config/brand';
 import { t } from '@/services/i18n';
 import { SITE_VARIANT } from '@/config/variant';
-import { getGlobeRenderScale, resolveGlobePixelRatio, resolvePerformanceProfile, subscribeGlobeRenderScaleChange, getGlobeTexture, GLOBE_TEXTURE_URLS, subscribeGlobeTextureChange, getGlobeVisualPreset, subscribeGlobeVisualPresetChange, type GlobeRenderScale, type GlobePerformanceProfile, type GlobeVisualPreset } from '@/services/globe-render-settings';
+import { getGlobeRenderScale, resolveGlobePixelRatio, resolvePerformanceProfile, subscribeGlobeRenderScaleChange, getGlobeTexture, setGlobeTexture, GLOBE_TEXTURE_URLS, GLOBE_TEXTURE_OPTIONS, subscribeGlobeTextureChange, getGlobeVisualPreset, subscribeGlobeVisualPresetChange, getGlobeAutoRotate, setGlobeAutoRotate, type GlobeRenderScale, type GlobePerformanceProfile, type GlobeVisualPreset, type GlobeTexture } from '@/services/globe-render-settings';
 import {
   getLayerExplanation,
   getLayersForVariant,
@@ -72,6 +73,26 @@ export interface GlobeMapOptions {
   onInitError?: (error: unknown) => void;
   chrome?: boolean;
 }
+
+// ─── GLOBE · WS brand visual constants ──────────────────────────────────────
+// Atmosphere: upstream shipped a generic blue (#4466cc). Evaluated against the
+// default topo-bathy texture, a desaturated warm tone in the #8a6d3a family
+// reads as "JSA amber" without tipping the Earth into a burning look — the
+// Fresnel shader thins it to a dark-gold rim over the deep-blue oceans. A pure
+// accent (#f0a832) at the same altitude reads like fire; a cooler rim
+// (#4a5f8a) was kept as the *fill-light* color inside the enhanced preset
+// instead of the atmosphere so the warm rim stays the brand signature.
+const GLOBE_ATMOSPHERE_COLOR = '#8a6d3a';
+const GLOBE_ATMOSPHERE_ALTITUDE = 0.15;
+const NIGHT_SKY_URL = '/textures/night-sky.png';
+const GLOBE_BUMP_URL = '/textures/earth-topo-bathy.jpg';
+const GLOBE_WATER_URL = '/textures/earth-water.png';
+// Bump scale for the 100-unit globe.gl sphere — visible relief on mountain
+// ranges under the raking key light without shimmering at low zoom.
+const GLOBE_BUMP_SCALE = 6;
+// Phong ocean specular color: dim steel so the glint stays subtle on the
+// dark dashboard (classic preset).
+const GLOBE_OCEAN_SPECULAR = '#2e3138';
 
 const SAT_COUNTRY_COLORS: Record<string, string> = { CN: '#ff2020', RU: '#ff8800', US: '#4488ff', EU: '#44cc44', KR: '#aa66ff', IN: '#ff66aa', TR: '#ff4466', OTHER: '#ccccff' };
 const SAT_TYPE_EMOJI: Record<string, string> = { sar: '\u{1F4E1}', optical: '\u{1F4F7}', military: '\u{1F396}', sigint: '\u{1F4FB}' };
@@ -488,8 +509,21 @@ export class GlobeMap {
   private outerGlow: any = null;
   private innerGlow: any = null;
   private starField: any = null;
-  private cyanLight: any = null;
+  private fillLight: any = null;
   private extrasAnimFrameId: number | null = null;
+  // GLOBE · WS: shared light rig (both presets) + surface-detail textures
+  private sunLight: any = null;
+  private lightRigHandler: (() => void) | null = null;
+  private waterSpecTex: any = null;
+  private waterRoughTex: any = null;
+  private waterTexPromise: Promise<{ spec: any; rough: any } | null> | null = null;
+  private surfaceDetailOn = false;
+  private enhancedEpoch = 0;
+  // GLOBE · WS: on-globe quick controls (bottom-right cluster)
+  private quickControlsEl: HTMLElement | null = null;
+  private qualityBadgeEl: HTMLElement | null = null;
+  private texToastTimer: ReturnType<typeof setTimeout> | null = null;
+  private autoRotateEnabled = false;
   private pendingFlushWhilePaused = false;
   private controlsAutoRotateBeforePause: boolean | null = null;
   private controlsDampingBeforePause: boolean | null = null;
@@ -670,6 +704,7 @@ export class GlobeMap {
     this.unsubscribeGlobeQuality = subscribeGlobeRenderScaleChange((scale) => {
       this.applyRenderQuality(scale);
       this.applyPerformanceProfile(resolvePerformanceProfile(scale));
+      this.syncQuickControls();
     });
 
     // Initial sizing: use container dimensions, fall back to window if not yet laid out
@@ -686,9 +721,11 @@ export class GlobeMap {
     const initialTexture = getGlobeTexture();
     globe
       .globeImageUrl(GLOBE_TEXTURE_URLS[initialTexture])
-      .backgroundImageUrl('')
-      .atmosphereColor('#4466cc')
-      .atmosphereAltitude(0.18)
+      // Starfield backdrop — the shipped 4096×2048 night-sky.png (previously
+      // loaded by nobody: backgroundImageUrl('') left it dead weight).
+      .backgroundImageUrl(NIGHT_SKY_URL)
+      .atmosphereColor(GLOBE_ATMOSPHERE_COLOR)
+      .atmosphereAltitude(GLOBE_ATMOSPHERE_ALTITUDE)
       .width(initW)
       .height(initH)
       .pathTransitionDuration(0);
@@ -700,7 +737,10 @@ export class GlobeMap {
     // surviving/second pointer's position in mixed mouse|pen + touch gestures —
     // crashes reading undefined.x on touchscreen laptops (WORLDMONITOR-QD).
     guardOrbitControlsPointerTracking(controls);
-    controls.autoRotate = !desktop;
+    // Auto-rotate: user pref wins (wm-globe-auto-rotate); platform default
+    // otherwise (desktop WebView2 machines default off — see #930).
+    this.autoRotateEnabled = getGlobeAutoRotate() ?? !desktop;
+    controls.autoRotate = this.autoRotateEnabled;
     controls.autoRotateSpeed = 0.3;
     controls.enablePan = false;
     controls.enableZoom = true;
@@ -735,7 +775,13 @@ export class GlobeMap {
     // Save default material for classic preset restoration
     this.savedDefaultMaterial = globe.globeMaterial();
 
-    // Apply visual enhancements based on preset
+    // GLOBE · WS: shared light rig — a warm key light that tracks the camera
+    // (raking angle keeps bump relief + ocean glint visible on the lit face
+    // while the dashboard stays dark). Applies to both presets.
+    this.initLightRig();
+
+    // Apply visual enhancements based on preset ('enhanced' is the default
+    // for new users; stored 'classic' prefs are respected).
     const initialPreset = getGlobeVisualPreset();
     if (initialPreset === 'enhanced') {
       setTimeout(() => this.applyEnhancedVisuals(), 800);
@@ -745,9 +791,15 @@ export class GlobeMap {
       this.applyVisualPreset(preset);
     });
 
-    // Subscribe to texture changes (kept as-is)
+    // Texture changes: swap albedo and dispose the replaced GPU texture once
+    // the new one has actually been applied (three-globe loads async).
     this.unsubscribeGlobeTexture = subscribeGlobeTextureChange((texture) => {
-      if (this.globe) this.globe.globeImageUrl(GLOBE_TEXTURE_URLS[texture]);
+      if (!this.globe) return;
+      const mat = this.globe.globeMaterial() as any;
+      const oldMap = mat?.map ?? null;
+      this.globe.globeImageUrl(GLOBE_TEXTURE_URLS[texture]);
+      if (oldMap) this.disposeReplacedAlbedo(oldMap);
+      this.syncQuickControls();
     });
 
     // Pause auto-rotate on user interaction; resume after 60 s idle (like Sentinel)
@@ -760,7 +812,7 @@ export class GlobeMap {
       if (this.renderPaused) return;
       if (this.autoRotateTimer) clearTimeout(this.autoRotateTimer);
       this.autoRotateTimer = setTimeout(() => {
-        if (!this.renderPaused) controls.autoRotate = !desktop;
+        if (!this.renderPaused && this.autoRotateEnabled) controls.autoRotate = true;
       }, 60_000);
     };
 
@@ -969,10 +1021,11 @@ export class GlobeMap {
     this.applyRenderQuality(initialScale);
     this.applyPerformanceProfile(resolvePerformanceProfile(initialScale));
 
-    // Add overlay UI (zoom controls + layer panel)
+    // Add overlay UI (zoom controls + layer panel + quick controls)
     if (this.chrome) {
       this.createControls();
       this.createLayerToggles();
+      this.createGlobeQuickControls();
     }
 
     // Load static datasets
@@ -1940,6 +1993,80 @@ export class GlobeMap {
     if (!pov) return;
     const alt = Math.min(4.0, (pov.altitude ?? 1.8) * 1.6);
     this.globe.pointOfView({ lat: pov.lat, lng: pov.lng, altitude: alt }, 500);
+  }
+
+  // ─── GLOBE · WS: on-globe quick controls (bottom-right cluster) ───────────
+
+  private createGlobeQuickControls(): void {
+    const el = document.createElement('div');
+    el.className = 'globe-quick-controls';
+    setTrustedHtml(el, trustedHtml(`
+      <span class="globe-quality-badge" title="Render quality — change in Settings"></span>
+      <button type="button" class="map-btn globe-qc-btn globe-qc-texture" title="Cycle globe texture">&#127757;</button>
+      <button type="button" class="map-btn globe-qc-btn globe-qc-rotate" title="Toggle auto-rotate" aria-pressed="false">&#10227;</button>
+    `, "GLOBE WS quick controls"));
+    this.container.appendChild(el);
+    this.quickControlsEl = el;
+    this.qualityBadgeEl = el.querySelector('.globe-quality-badge');
+
+    el.querySelector('.globe-qc-rotate')?.addEventListener('click', () => {
+      this.setAutoRotateEnabled(!this.autoRotateEnabled);
+    });
+    el.querySelector('.globe-qc-texture')?.addEventListener('click', () => {
+      this.cycleGlobeTexture();
+    });
+    this.syncQuickControls();
+  }
+
+  private setAutoRotateEnabled(enabled: boolean): void {
+    this.autoRotateEnabled = enabled;
+    setGlobeAutoRotate(enabled); // persists to wm-globe-auto-rotate
+    if (this.autoRotateTimer) { clearTimeout(this.autoRotateTimer); this.autoRotateTimer = null; }
+    if (this.controls && !this.renderPaused) {
+      this.controls.autoRotate = enabled;
+      if (enabled) this.wakeGlobe();
+    }
+    this.syncQuickControls();
+  }
+
+  private cycleGlobeTexture(): void {
+    const current = getGlobeTexture();
+    const idx = GLOBE_TEXTURE_OPTIONS.findIndex(o => o.value === current);
+    const next = GLOBE_TEXTURE_OPTIONS[(idx + 1) % GLOBE_TEXTURE_OPTIONS.length]!;
+    setGlobeTexture(next.value as GlobeTexture); // subscription applies + persists
+    this.showTextureToast(next.label);
+  }
+
+  /** Briefly shows the active texture name next to the cluster. */
+  private showTextureToast(label: string): void {
+    if (!this.quickControlsEl) return;
+    let toast = this.quickControlsEl.querySelector('.globe-tex-toast') as HTMLElement | null;
+    if (!toast) {
+      toast = document.createElement('span');
+      toast.className = 'globe-tex-toast';
+      this.quickControlsEl.prepend(toast);
+    }
+    toast.textContent = label;
+    toast.classList.remove('visible');
+    void toast.offsetWidth; // restart the CSS transition
+    toast.classList.add('visible');
+    if (this.texToastTimer) clearTimeout(this.texToastTimer);
+    this.texToastTimer = setTimeout(() => toast?.classList.remove('visible'), 1600);
+  }
+
+  /** Reflects auto-rotate state + render-scale quality in the cluster. */
+  private syncQuickControls(): void {
+    if (!this.quickControlsEl) return;
+    const rotateBtn = this.quickControlsEl.querySelector('.globe-qc-rotate');
+    if (rotateBtn) {
+      rotateBtn.classList.toggle('active', this.autoRotateEnabled);
+      rotateBtn.setAttribute('aria-pressed', String(this.autoRotateEnabled));
+      rotateBtn.setAttribute('title', this.autoRotateEnabled ? 'Auto-rotate: on' : 'Auto-rotate: off');
+    }
+    if (this.qualityBadgeEl) {
+      const scale = getGlobeRenderScale();
+      this.qualityBadgeEl.textContent = scale === 'auto' ? 'AUTO' : `${scale}×`;
+    }
   }
 
   private createLayerToggles(): void {
@@ -3570,63 +3697,219 @@ export class GlobeMap {
   public setOnCountry(_cb: any): void {}
   public getHotspotLevel(_id: string) { return 'low'; }
 
-  private async applyEnhancedVisuals(): Promise<void> {
-    if (!this.globe || this.destroyed) return;
+  // ─── GLOBE · WS: light rig + surface detail (relief bump / ocean water) ───
+
+  /**
+   * Warm key light that tracks the camera at a raking offset (upper-left of
+   * the view) so bump relief catches light and oceans show a specular glint
+   * on whichever hemisphere the user is looking at. A dimmed neutral ambient
+   * keeps the dark-dashboard mood (globe.gl defaults: ambient π, key 0.6π).
+   */
+  private async initLightRig(): Promise<void> {
     try {
       const THREE = await import('three');
+      if (!this.globe || this.destroyed) return;
+      const ambient = new THREE.AmbientLight(0xffffff, 2.4);
+      const sun = new THREE.DirectionalLight(0xfff1de, 1.8);
+      this.sunLight = sun;
+      (this.globe as any).lights([ambient, sun]);
+
+      const dir = new THREE.Vector3();
+      const up = new THREE.Vector3(0, 1, 0);
+      const right = new THREE.Vector3();
+      const update = () => {
+        const cam = this.globe?.camera();
+        if (!cam || !this.sunLight) return;
+        dir.copy(cam.position).normalize();
+        right.crossVectors(up, dir);
+        if (right.lengthSq() < 1e-6) right.set(1, 0, 0); else right.normalize();
+        this.sunLight.position.copy(dir).multiplyScalar(380)
+          .addScaledVector(right, -170)
+          .addScaledVector(up, 150);
+      };
+      update();
+      this.lightRigHandler = update;
+      this.controls?.addEventListener('change', update);
+    } catch { /* cosmetic — ignore */ }
+  }
+
+  /**
+   * Lazy-loads the earth-water map once: as-is for the Phong specularMap
+   * (classic) and inverted via canvas into a roughness map for the enhanced
+   * MeshStandardMaterial (oceans smooth/glinting, land matte).
+   */
+  private ensureWaterTextures(): Promise<{ spec: any; rough: any } | null> {
+    if (this.waterTexPromise) return this.waterTexPromise;
+    this.waterTexPromise = (async () => {
+      try {
+        const THREE = await import('three');
+        const spec = await new THREE.TextureLoader().loadAsync(GLOBE_WATER_URL);
+        let rough: any = null;
+        try {
+          const img = spec.image as HTMLImageElement | undefined;
+          if (img?.width) {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              // rough = 1 − 0.65·water → oceans ≈0.35 (soft glint), land 1.0
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.globalCompositeOperation = 'difference';
+              ctx.globalAlpha = 0.65;
+              ctx.drawImage(img, 0, 0);
+              rough = new THREE.CanvasTexture(canvas);
+            }
+          }
+        } catch { /* roughness map optional */ }
+        this.waterSpecTex = spec;
+        this.waterRoughTex = rough;
+        return { spec, rough };
+      } catch {
+        return null;
+      }
+    })();
+    return this.waterTexPromise;
+  }
+
+  /**
+   * Applies the water/relief finish to whatever material the globe currently
+   * uses. Safe to call repeatedly (preset switches, eco↔full transitions).
+   */
+  private async refreshMaterialFinish(): Promise<void> {
+    if (!this.globe || this.destroyed || !this.surfaceDetailOn) return;
+    const water = await this.ensureWaterTextures();
+    if (!this.globe || this.destroyed || !this.surfaceDetailOn) return;
+    const mat = this.globe.globeMaterial() as any;
+    if (!mat) return;
+    if (mat.isMeshStandardMaterial) {
+      if (water?.rough) mat.roughnessMap = water.rough;
+      mat.roughness = 1.0;
+      mat.metalness = 0.05;
+    } else if (mat.isMeshPhongMaterial) {
+      if (water?.spec) mat.specularMap = water.spec;
+      mat.specular?.set(GLOBE_OCEAN_SPECULAR);
+      mat.shininess = 12;
+    }
+    mat.bumpScale = GLOBE_BUMP_SCALE;
+    mat.needsUpdate = true;
+  }
+
+  /** Eco render scale skips bump + water maps entirely (perf guardrail). */
+  private setSurfaceDetail(enabled: boolean): void {
+    if (!this.globe || this.surfaceDetailOn === enabled) return;
+    this.surfaceDetailOn = enabled;
+    if (enabled) {
+      (this.globe as any).bumpImageUrl(GLOBE_BUMP_URL);
+      this.refreshMaterialFinish();
+    } else {
+      (this.globe as any).bumpImageUrl(null);
+      const mat = this.globe.globeMaterial() as any;
+      if (mat) {
+        if (mat.isMeshStandardMaterial) mat.roughnessMap = null;
+        if (mat.isMeshPhongMaterial) mat.specularMap = null;
+        mat.needsUpdate = true;
+      }
+    }
+  }
+
+  /**
+   * Disposes a replaced albedo texture once three-globe's async loader has
+   * actually swapped it out (polling — the loader exposes no completion hook).
+   */
+  private disposeReplacedAlbedo(oldMap: any): void {
+    let tries = 0;
+    const poll = () => {
+      if (this.destroyed || !this.globe) { oldMap.dispose?.(); return; }
+      const current = (this.globe.globeMaterial() as any)?.map;
+      if (current && current !== oldMap) { oldMap.dispose?.(); return; }
+      if (++tries < 20) setTimeout(poll, 500);
+    };
+    setTimeout(poll, 500);
+  }
+
+  private async applyEnhancedVisuals(): Promise<void> {
+    if (!this.globe || this.destroyed) return;
+    const epoch = ++this.enhancedEpoch;
+    try {
+      const THREE = await import('three');
+      if (!this.globe || this.destroyed || epoch !== this.enhancedEpoch) return;
       const scene = this.globe.scene();
 
       const oldMat = this.globe.globeMaterial();
       if (oldMat) {
         const stdMat = new THREE.MeshStandardMaterial({
-          color: 0xffffff, roughness: 0.8, metalness: 0.1,
-          emissive: new THREE.Color(0x0a1f2e), emissiveIntensity: 0.3,
+          color: 0xffffff, roughness: 1.0, metalness: 0.05,
+          // Near-bg dark emissive keeps the night limb from going pure black
+          // without the old teal cast (0x0a1f2e).
+          emissive: new THREE.Color(0x0d1016), emissiveIntensity: 0.35,
         });
+        // Carry over async-loaded maps (albedo from globeImageUrl, relief
+        // from bumpImageUrl) — three-globe assigned them to the old material.
         if ((oldMat as any).map) stdMat.map = (oldMat as any).map;
+        if ((oldMat as any).bumpMap) { stdMat.bumpMap = (oldMat as any).bumpMap; stdMat.bumpScale = GLOBE_BUMP_SCALE; }
         (this.globe as any).globeMaterial(stdMat);
       }
+      this.refreshMaterialFinish();
 
-      this.cyanLight = new THREE.PointLight(0x00d4ff, 0.3);
-      this.cyanLight.position.set(-10, -10, -10);
-      scene.add(this.cyanLight);
+      // Cool fill from behind-left — the "subtle cooler rim" counterweight to
+      // the warm key light + warm atmosphere (see brand constants note).
+      this.fillLight = new THREE.DirectionalLight(0x4a5f8a, 0.5);
+      this.fillLight.position.set(-320, -80, -260);
+      scene.add(this.fillLight);
 
-      const outerGeo = new THREE.SphereGeometry(2.15, 24, 24);
+      // Atmosphere halo shells. (Pre-WS these were radius 2.15/2.08 spheres —
+      // buried INSIDE the radius-100 globe, i.e. invisible. Sized correctly
+      // now and rebranded from cyan to the JSA warm family.)
+      const profile = resolvePerformanceProfile(getGlobeRenderScale());
+      const outerGeo = new THREE.SphereGeometry(106, 48, 24);
       const outerMat = new THREE.MeshBasicMaterial({
-        color: 0x00d4ff, side: THREE.BackSide, transparent: true, opacity: 0.15,
+        color: 0xc8a25a, side: THREE.BackSide, transparent: true, opacity: 0.035, depthWrite: false,
       });
       this.outerGlow = new THREE.Mesh(outerGeo, outerMat);
+      this.outerGlow.visible = !profile.disableAtmosphere;
       scene.add(this.outerGlow);
 
-      const innerGeo = new THREE.SphereGeometry(2.08, 24, 24);
+      const innerGeo = new THREE.SphereGeometry(102.5, 48, 24);
       const innerMat = new THREE.MeshBasicMaterial({
-        color: 0x00a8cc, side: THREE.BackSide, transparent: true, opacity: 0.1,
+        color: 0xf0a832, side: THREE.BackSide, transparent: true, opacity: 0.05, depthWrite: false,
       });
       this.innerGlow = new THREE.Mesh(innerGeo, innerMat);
+      this.innerGlow.visible = !profile.disableAtmosphere;
       scene.add(this.innerGlow);
 
-      const starCount = 600;
-      const starPositions = new Float32Array(starCount * 3);
-      const starColors = new Float32Array(starCount * 3);
-      for (let i = 0; i < starCount; i++) {
-        const r = 50 + Math.random() * 50;
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-        starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-        starPositions[i * 3 + 2] = r * Math.cos(phi);
-        const brightness = 0.5 + Math.random() * 0.5;
-        starColors[i * 3] = brightness;
-        starColors[i * 3 + 1] = brightness;
-        starColors[i * 3 + 2] = brightness;
+      // Procedural parallax stars — sit between the globe and the night-sky
+      // skysphere (radius 50k) for depth. Count comes from the perf profile
+      // (0 on eco). Pre-WS these were at r 50–100: inside the globe.
+      const starCount = profile.starCount;
+      if (starCount > 0) {
+        const starPositions = new Float32Array(starCount * 3);
+        const starColors = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount; i++) {
+          const r = 700 + Math.random() * 900;
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2 * Math.random() - 1);
+          starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+          starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+          starPositions[i * 3 + 2] = r * Math.cos(phi);
+          const brightness = 0.4 + Math.random() * 0.6;
+          // Slight warm/cool temperature variation
+          const warm = Math.random() * 0.12;
+          starColors[i * 3] = Math.min(1, brightness + warm);
+          starColors[i * 3 + 1] = brightness;
+          starColors[i * 3 + 2] = Math.min(1, brightness + (0.12 - warm));
+        }
+        const starGeo = new THREE.BufferGeometry();
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+        const starMat = new THREE.PointsMaterial({
+          size: 2.4, vertexColors: true, transparent: true, opacity: 0.85, depthWrite: false,
+        });
+        this.starField = new THREE.Points(starGeo, starMat);
+        scene.add(this.starField);
+        this.startExtrasLoop();
       }
-      const starGeo = new THREE.BufferGeometry();
-      starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-      starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
-      const starMat = new THREE.PointsMaterial({ size: 0.1, vertexColors: true, transparent: true });
-      this.starField = new THREE.Points(starGeo, starMat);
-      scene.add(this.starField);
-
-      this.startExtrasLoop();
     } catch { /* cosmetic — ignore */ }
   }
 
@@ -3634,7 +3917,6 @@ export class GlobeMap {
     if (this.extrasAnimFrameId != null) return;
     const animateExtras = () => {
       if (this.destroyed) return;
-      if (this.outerGlow) this.outerGlow.rotation.y += 0.0003;
       if (this.starField) this.starField.rotation.y += 0.00005;
       this.extrasAnimFrameId = requestAnimationFrame(animateExtras);
     };
@@ -3643,12 +3925,13 @@ export class GlobeMap {
 
   private removeEnhancedVisuals(): void {
     if (!this.globe) return;
+    this.enhancedEpoch++; // invalidate any in-flight applyEnhancedVisuals()
     if (this.extrasAnimFrameId != null) {
       cancelAnimationFrame(this.extrasAnimFrameId);
       this.extrasAnimFrameId = null;
     }
     const scene = this.globe.scene();
-    for (const obj of [this.outerGlow, this.innerGlow, this.starField, this.cyanLight]) {
+    for (const obj of [this.outerGlow, this.innerGlow, this.starField, this.fillLight]) {
       if (!obj) continue;
       scene.remove(obj);
       if (obj.geometry) obj.geometry.dispose();
@@ -3657,16 +3940,20 @@ export class GlobeMap {
     const mat = this.globe.globeMaterial();
     if (mat && (mat as any).isMeshStandardMaterial) {
       const texMap = (mat as any).map;
+      const bumpMap = (mat as any).bumpMap;
       mat.dispose();
       if (this.savedDefaultMaterial) {
         if (texMap) (this.savedDefaultMaterial as any).map = texMap;
+        if (bumpMap) (this.savedDefaultMaterial as any).bumpMap = bumpMap;
         (this.globe as any).globeMaterial(this.savedDefaultMaterial);
       }
     }
     this.outerGlow = null;
     this.innerGlow = null;
     this.starField = null;
-    this.cyanLight = null;
+    this.fillLight = null;
+    // Restore the water finish on the (Phong) classic material
+    this.refreshMaterialFinish();
   }
 
   private applyVisualPreset(preset: GlobeVisualPreset): void {
@@ -3720,10 +4007,15 @@ export class GlobeMap {
       if (this.outerGlow) this.outerGlow.visible = false;
       if (this.innerGlow) this.innerGlow.visible = false;
     } else {
-      this.globe.atmosphereAltitude(0.18);
+      this.globe.atmosphereAltitude(GLOBE_ATMOSPHERE_ALTITUDE);
       if (this.outerGlow) this.outerGlow.visible = true;
       if (this.innerGlow) this.innerGlow.visible = true;
     }
+
+    // GLOBE · WS perf guardrails: eco drops bump/water maps and the
+    // procedural starfield; higher scales restore them.
+    this.setSurfaceDetail(!profile.disableSurfaceDetail);
+    if (this.starField) this.starField.visible = profile.starCount > 0;
 
     if (prevPulse !== this._pulseEnabled) {
       this.flushMarkers();
@@ -3768,7 +4060,7 @@ export class GlobeMap {
         }
       } else {
         this.wakeGlobe();
-        if (this.outerGlow && this.extrasAnimFrameId == null) {
+        if (this.starField && this.extrasAnimFrameId == null) {
           this.startExtrasLoop();
         }
       }
@@ -3802,6 +4094,20 @@ export class GlobeMap {
       this.controls.removeEventListener('end', this.controlsEndHandler);
       this.controlsEndHandler = null;
     }
+    if (this.lightRigHandler && this.controls) {
+      this.controls.removeEventListener('change', this.lightRigHandler);
+      this.lightRigHandler = null;
+    }
+    this.sunLight = null;
+    if (this.texToastTimer) { clearTimeout(this.texToastTimer); this.texToastTimer = null; }
+    this.quickControlsEl?.remove();
+    this.quickControlsEl = null;
+    this.qualityBadgeEl = null;
+    this.waterSpecTex?.dispose?.();
+    this.waterSpecTex = null;
+    this.waterRoughTex?.dispose?.();
+    this.waterRoughTex = null;
+    this.waterTexPromise = null;
     this.destroyed = true;
     if (this.extrasAnimFrameId != null) {
       cancelAnimationFrame(this.extrasAnimFrameId);
@@ -3816,7 +4122,7 @@ export class GlobeMap {
       });
       this.satBeamGroup = null;
     }
-    for (const obj of [this.outerGlow, this.innerGlow, this.starField, this.cyanLight]) {
+    for (const obj of [this.outerGlow, this.innerGlow, this.starField, this.fillLight]) {
       if (!obj) continue;
       if (scene) scene.remove(obj);
       if (obj.geometry) obj.geometry.dispose();
@@ -3829,7 +4135,7 @@ export class GlobeMap {
     this.outerGlow = null;
     this.innerGlow = null;
     this.starField = null;
-    this.cyanLight = null;
+    this.fillLight = null;
     if (this.flushTimer) { clearTimeout(this.flushTimer); this.flushTimer = null; }
     if (this.flushMaxTimer) { clearTimeout(this.flushMaxTimer); this.flushMaxTimer = null; }
     if (this.autoRotateTimer) clearTimeout(this.autoRotateTimer);

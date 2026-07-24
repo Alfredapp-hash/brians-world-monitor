@@ -524,3 +524,86 @@
     z-index: 210;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GLOBE · WS (on-globe quick controls, bottom-right cluster)
+   Compact control cluster rendered by GlobeMap.createGlobeQuickControls():
+   auto-rotate toggle, texture cycler (+ transient name toast) and a
+   read-only render-quality badge. Mirrors the WS2 terrain-toggle styling
+   (theme tokens only, amber marks active state). Keep as one block.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.globe-mode .globe-quick-controls {
+  position: absolute;
+  right: 10px;
+  bottom: 22px; /* clears .map-attribution (bottom: 2px) */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 500;
+  pointer-events: auto;
+}
+
+.globe-mode .globe-quick-controls .map-btn.globe-qc-btn {
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  background: color-mix(in srgb, var(--bg, #0a0c10) 92%, transparent);
+  border: 1px solid var(--border, #262c38);
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  border-radius: var(--radius-sm, 3px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.globe-mode .globe-quick-controls .map-btn.globe-qc-btn:hover {
+  color: var(--text, #e8e4dc);
+  border-color: color-mix(in srgb, var(--accent, #f0a832) 40%, var(--border, #262c38));
+}
+
+.globe-mode .globe-quick-controls .map-btn.globe-qc-rotate.active {
+  color: var(--accent, #f0a832);
+  border-color: color-mix(in srgb, var(--accent, #f0a832) 55%, transparent);
+  background: color-mix(in srgb, var(--accent, #f0a832) 10%, var(--bg, #0a0c10));
+}
+
+.globe-mode .globe-quick-controls .globe-quality-badge {
+  font-family: var(--font-mono, 'SF Mono', 'Cascadia Code', monospace);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 5px;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  border: 1px solid var(--border, #262c38);
+  border-radius: var(--radius-sm, 3px);
+  background: color-mix(in srgb, var(--bg, #0a0c10) 80%, transparent);
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.globe-mode .globe-quick-controls .globe-tex-toast {
+  font-family: var(--font-mono, 'SF Mono', 'Cascadia Code', monospace);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 7px;
+  color: var(--accent, #f0a832);
+  border: 1px solid color-mix(in srgb, var(--accent, #f0a832) 45%, transparent);
+  border-radius: var(--radius-sm, 3px);
+  background: color-mix(in srgb, var(--bg, #0a0c10) 92%, transparent);
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(4px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+
+.globe-mode .globe-quick-controls .globe-tex-toast.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
