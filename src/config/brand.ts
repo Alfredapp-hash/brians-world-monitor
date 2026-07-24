@@ -13,6 +13,8 @@ export const BRAND = {
   x: 'https://x.com/JSAsmonitor',
   /** Landing page path. */
   about: '/about.html',
+  /** Public NCI methodology explainer. */
+  methodology: '/methodology.html',
   /** Upstream project this fork is based on (credit + AGPL lineage). */
   upstream: 'https://github.com/koala73/worldmonitor',
 } as const;
