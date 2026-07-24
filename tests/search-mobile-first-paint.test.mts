@@ -90,7 +90,11 @@ interface SearchModalHarness {
   recentOrEmptyCalls: number;
   chipRenderCalls: number;
 }
-const Harness = new Function('isMobileDevice', harnessJs)(() => true) as new () => SearchModalHarness;
+// open() dispatches a `jsam:palette-open` document event so the mission-preset
+// popover closes when the palette takes the screen (#5b03631a) — stub just
+// enough of `document` for that call to no-op inside this sandboxed class body.
+const documentStub = { dispatchEvent: () => true };
+const Harness = new Function('isMobileDevice', 'document', harnessJs)(() => true, documentStub) as new () => SearchModalHarness;
 
 function withAnimationFrames(run: (frames: FrameRequestCallback[]) => void): void {
   const original = Object.getOwnPropertyDescriptor(globalThis, 'requestAnimationFrame');

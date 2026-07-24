@@ -644,6 +644,21 @@ export class GlobeMap {
     this.onMapContextMenuCb({ lat: coords.lat, lon: coords.lng, screenX: e.clientX, screenY: e.clientY });
   };
 
+  // Country click: globe.gl's own onGlobeClick fires with the raycast-resolved
+  // {lat, lng} on the sphere surface, and — critically — only when the click
+  // lands on the bare globe (not on a point/hotspot/polygon layer object, and
+  // not the tail end of a drag-rotate), so it's a strictly better source of
+  // truth here than a manual raycaster would be. Same lookup + payload shape
+  // as the flat/DeckGL engines (getCountryAtCoordinates → CountryClickPayload)
+  // so CountryBriefPanel opens identically regardless of which map is active.
+  private onCountryClickCb: ((c: CountryClickPayload) => void) | null = null;
+  private readonly handleGlobeClick = (coords: { lat: number; lng: number }): void => {
+    if (!this.onCountryClickCb) return;
+    const hit = getCountryAtCoordinates(coords.lat, coords.lng);
+    if (!hit) return;
+    this.onCountryClickCb({ lat: coords.lat, lon: coords.lng, code: hit.code, name: hit.name });
+  };
+
   constructor(container: HTMLElement, initialState: MapContainerState, options: GlobeMapOptions = {}) {
     this.container = container;
     this.chrome = options.chrome ?? true;
@@ -843,6 +858,7 @@ export class GlobeMap {
     }
 
     this.container.addEventListener('contextmenu', this.handleContextMenu);
+    globe.onGlobeClick(this.handleGlobeClick);
 
     // Wire HTML marker layer
     globe
@@ -3040,8 +3056,8 @@ export class GlobeMap {
     this.onHotspotClickCb = cb;
   }
 
-  public setOnCountryClick(_cb: (c: CountryClickPayload) => void): void {
-    // Globe country click not yet implemented — no-op
+  public setOnCountryClick(cb: (c: CountryClickPayload) => void): void {
+    this.onCountryClickCb = cb;
   }
 
   public setOnMapContextMenu(cb: (payload: { lat: number; lon: number; screenX: number; screenY: number }) => void): void {

@@ -1570,7 +1570,21 @@ export class CountryIntelManager implements AppModule {
   }
 
   private async buildSignalDetails(code: string): Promise<CountryDeepDiveSignalDetails> {
-    const cluster = (await getSignalAggregator()).getCountryClusters().find((entry) => entry.country === code);
+    // Mirror getCountrySignals' degrade-on-failure handling: the signal-aggregator
+    // chunk is lazy-loaded, and if the dynamic import() rejects (chunk load
+    // failure / offline), this used to throw past this function's only caller
+    // (openCountryBriefByCode), which just console.warn'd and moved on without
+    // ever calling page.updateSignalDetails(). That left the "Loading top
+    // high-severity signals…" placeholder seeded in renderInitialSignals()
+    // on screen forever — an error rendered as an eternal spinner instead of
+    // the empty/unavailable state it should show.
+    let clusters: CountrySignalCluster[] = [];
+    try {
+      clusters = (await getSignalAggregator()).getCountryClusters();
+    } catch (err) {
+      console.warn('[CountryBrief] signal details aggregator unavailable, degrading:', err);
+    }
+    const cluster = clusters.find((entry) => entry.country === code);
     if (!cluster) {
       return { critical: 0, high: 0, medium: 0, low: 0, recentHigh: [] };
     }
