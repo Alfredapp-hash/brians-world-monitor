@@ -9,8 +9,8 @@ import { GeoJsonLayer, ScatterplotLayer, PathLayer, IconLayer, TextLayer, Polygo
 import maplibregl from 'maplibre-gl';
 import type { StyleSpecification } from 'maplibre-gl';
 import { BRAND } from '@/config/brand';
-import { FALLBACK_DARK_STYLE, FALLBACK_LIGHT_STYLE, getMapProvider, getMapTheme, isLightMapTheme } from '@/config/basemap';
-import { getStyleForProvider } from '@/config/basemap-styles';
+import { FALLBACK_DARK_STYLE, FALLBACK_LIGHT_STYLE, getMapProvider, getMapTheme, getTerrainMode, setTerrainMode, isLightMapTheme } from '@/config/basemap';
+import { getStyleForProvider, applyTerrainToMap, TERRAIN_ATTRIBUTION_HTML } from '@/config/basemap-styles';
 import Supercluster from 'supercluster';
 import type {
   MapLayers,
@@ -123,6 +123,7 @@ import {
   type MapVariant,
 } from '@/config/map-layer-definitions';
 import { renderLayerExplanationCard } from '@/utils/layer-explanation-card';
+import { groupLayerToggles, type GroupedLayerPanelHandle } from '@/components/map/layer-groups';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
 import { onEntitlementChange } from '@/services/entitlements';
 import { hasPremiumAccess } from '@/services/panel-gating';
@@ -563,6 +564,7 @@ export class DeckGLMap {
   private aptGroups: import('@/types').APTGroup[] = [];
   private aptGroupsLoaded = false;
   private _unsubscribeAuthState: (() => void) | null = null;
+  private layerGroupsHandle: GroupedLayerPanelHandle | null = null;
   private _unsubscribeEntitlement: (() => void) | null = null;
   private aptGroupsLayerFailed = false;
   private satelliteImageryLayerFailed = false;
@@ -580,6 +582,7 @@ export class DeckGLMap {
   private militaryFlightClusters: MilitaryFlightCluster[] = [];
   private activeFlightTrails = new Set<string>();
   private clearTrailsBtn: HTMLButtonElement | null = null;
+  private terrainToggleBtn: HTMLButtonElement | null = null;
   private militaryVessels: MilitaryVessel[] = [];
   private militaryVesselClusters: MilitaryVesselCluster[] = [];
   private serverBases: MilitaryBaseEnriched[] = [];
@@ -988,6 +991,80 @@ export class DeckGLMap {
     } catch { /* ignore */ }
   }
 
+  // ── Terrain mode (physical-geography basemap) ──────────────────────────────
+  // Hillshade relief + boosted waterways/physical labels layered onto the
+  // active dark basemap. Applied after every style.load (initial load, theme /
+  // provider switches, fallback recreation) so it survives the existing
+  // switchBasemap() machinery; turning terrain OFF simply re-runs
+  // switchBasemap(), whose setStyle(diff:false) reload restores the pristine
+  // flat style. DEM tiles are only requested while terrain mode is active.
+
+  /** Apply terrain styling if the persisted preference says so. */
+  private applyTerrainIfEnabled(): void {
+    const map = this.maplibreMap;
+    if (!map) return;
+    if (getTerrainMode() !== 'terrain') {
+      this.updateTerrainAttribution(false);
+      return;
+    }
+    try {
+      // NOTE: not gated on isStyleLoaded() — that also waits for tile loads and
+      // is legitimately false inside a style.load handler. addLayer/setPaint
+      // only need the style JSON to be processed; if the style genuinely isn't
+      // ready (toggle raced a style switch), the throw below re-arms on the
+      // next style.load.
+      applyTerrainToMap(map);
+      this.updateTerrainAttribution(true);
+    } catch (err) {
+      console.warn('[DeckGLMap] terrain apply deferred:', (err as Error)?.message);
+      map.once('style.load', () => this.applyTerrainIfEnabled());
+    }
+  }
+
+  /** Append/remove the Mapzen/AWS terrain-tiles credit in the attribution line. */
+  private updateTerrainAttribution(on: boolean): void {
+    const attr = this.container.querySelector('.map-attribution');
+    if (!attr) return;
+    const existing = attr.querySelector('.terrain-attrib');
+    if (on && !existing) {
+      const span = document.createElement('span');
+      span.className = 'terrain-attrib';
+      // Built from a constant (no user input); mirror the surrounding
+      // attribution markup which is trusted static HTML.
+      setTrustedHtml(span, trustedHtml(` · ${TERRAIN_ATTRIBUTION_HTML}`, 'static terrain attribution'));
+      attr.appendChild(span);
+    } else if (!on && existing) {
+      existing.remove();
+    }
+  }
+
+  /** Toggle terrain mode, persist it, and restyle without touching deck.gl overlays. */
+  private toggleTerrainMode(): void {
+    const next = getTerrainMode() === 'terrain' ? 'flat' : 'terrain';
+    setTerrainMode(next);
+    this.syncTerrainButton();
+    if (next === 'terrain') {
+      // Turning ON: mutate the live style in place (cheap, no reload).
+      this.applyTerrainIfEnabled();
+    } else {
+      // Turning OFF: reload the provider style via the existing switch path so
+      // every water/label paint override reverts to its pristine value. The
+      // deck.gl overlay is a MapLibre control and survives setStyle().
+      this.updateTerrainAttribution(false);
+      void this.switchBasemap();
+    }
+  }
+
+  private syncTerrainButton(): void {
+    if (!this.terrainToggleBtn) return;
+    const on = getTerrainMode() === 'terrain';
+    this.terrainToggleBtn.textContent = on ? 'TERRAIN' : 'FLAT';
+    this.terrainToggleBtn.classList.toggle('active', on);
+    this.terrainToggleBtn.title = on
+      ? 'Physical terrain basemap on — click for flat dark map'
+      : 'Flat dark basemap — click for physical terrain';
+  }
+
   private setupDOM(): void {
     const wrapper = document.createElement('div');
     wrapper.className = 'deckgl-map-wrapper';
@@ -1102,6 +1179,7 @@ export class DeckGLMap {
       this.maplibreMap.on('load', () => {
         this.attachMapLibreInteractionHandlers();
         localizeMapLabels(this.maplibreMap);
+        this.applyTerrainIfEnabled();
         this.initDeck();
         this.loadCountryBoundaries();
         this.fetchServerBases();
@@ -1111,6 +1189,7 @@ export class DeckGLMap {
 
     this.maplibreMap.on('load', () => {
       localizeMapLabels(this.maplibreMap);
+      this.applyTerrainIfEnabled();
       this.initDeck();
       this.loadCountryBoundaries();
       this.fetchServerBases();
@@ -5389,6 +5468,9 @@ export class DeckGLMap {
         <button class="map-btn zoom-out" title="${t('components.deckgl.zoomOut')}">-</button>
         <button class="map-btn zoom-reset" title="${t('components.deckgl.resetView')}">&#8962;</button>
       </div>
+      <div class="terrain-toggle-control">
+        <button class="map-btn terrain-toggle" type="button"></button>
+      </div>
       <div class="view-selector">
         <select class="view-select">
           <option value="global">${t('components.deckgl.views.global')}</option>
@@ -5412,6 +5494,12 @@ export class DeckGLMap {
       else if (target.classList.contains('zoom-out')) this.zoomOut();
       else if (target.classList.contains('zoom-reset')) this.resetView();
     });
+
+    // Terrain/flat basemap toggle (sits with the map's own control cluster —
+    // the 2D/3D renderer choice lives in Settings, not in a toolbar we own).
+    this.terrainToggleBtn = controls.querySelector('.terrain-toggle') as HTMLButtonElement;
+    this.syncTerrainButton();
+    this.terrainToggleBtn.addEventListener('click', () => this.toggleTerrainMode());
 
     const viewSelect = controls.querySelector('.view-select') as HTMLSelectElement;
     viewSelect.value = this.state.view;
@@ -5506,6 +5594,16 @@ export class DeckGLMap {
     toggles.appendChild(authorBadge);
 
     this.container.appendChild(toggles);
+
+    // WS3: re-house the flat row list into collapsible themed groups.
+    // Rows keep their ids/handlers — shared module, see layer-groups.ts.
+    const groupList = toggles.querySelector('.toggle-list') as HTMLElement | null;
+    if (groupList) {
+      this.layerGroupsHandle = groupLayerToggles({
+        listEl: groupList,
+        isActive: (key) => !!this.state.layers[key],
+      });
+    }
 
     // Unlock premium layers when Pro status resolves. Pro can come from EITHER:
     //   1. Clerk role === 'pro' (subscribeAuthState fires on Clerk changes)
@@ -6098,6 +6196,7 @@ export class DeckGLMap {
       const toggle = this.container.querySelector(`.layer-toggle[data-layer="${key}"] input`) as HTMLInputElement;
       if (toggle) toggle.checked = value;
     });
+    this.layerGroupsHandle?.refresh();
   }
 
   public getState(): DeckMapState {
@@ -7115,6 +7214,7 @@ export class DeckGLMap {
   private lastActiveLayerCount = 0;
 
   private enforceLayerLimit(): void {
+    this.layerGroupsHandle?.refresh();
     const WARN_THRESHOLD = 13;
     const togglesEl = this.container.querySelector('.deckgl-layer-toggles');
     if (!togglesEl) return;
@@ -7143,6 +7243,7 @@ export class DeckGLMap {
       const target = (row ?? toggle) as HTMLElement;
       target.style.display = 'none';
       toggle.setAttribute('data-layer-hidden', '');
+      this.layerGroupsHandle?.refresh();
     }
   }
 
@@ -7689,6 +7790,7 @@ export class DeckGLMap {
     map.setStyle(style, { diff: false });
     map.once('style.load', () => {
       localizeMapLabels(this.maplibreMap);
+      this.applyTerrainIfEnabled();
       this.loadCountryBoundaries();
       if (this.radarActive) this.applyRadarLayer();
       const paintTheme = isLightMapTheme(mapTheme) ? 'light' as const : 'dark' as const;
@@ -7752,6 +7854,7 @@ export class DeckGLMap {
     this.maplibreMap.setStyle(fallback, { diff: false });
     this.maplibreMap.once('style.load', () => {
       localizeMapLabels(this.maplibreMap);
+      this.applyTerrainIfEnabled();
       this.loadCountryBoundaries();
       if (this.radarActive) this.applyRadarLayer();
       const paintTheme = isLightMapTheme(mapTheme) ? 'light' as const : 'dark' as const;
@@ -7787,6 +7890,7 @@ export class DeckGLMap {
     this.stopTradeAnimation();
     this.activeFlightTrails.clear();
     this.clearTrailsBtn = null;
+    this.terrainToggleBtn = null;
     this._unsubscribeAuthState?.();
     this._unsubscribeAuthState = null;
     this._unsubscribeEntitlement?.();

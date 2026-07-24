@@ -198,13 +198,9 @@ describe('crawlable content corpus deployment contracts', () => {
 
     for (const scriptName of ['build', 'build:full']) {
       const script = packageJson.scripts[scriptName];
-      assert.ok(script.includes('npm run build:blog'), scriptName + ' must build the Astro blog first');
+      assert.ok(!script.includes('build:blog'), scriptName + ' must not reference the removed blog build');
       assert.ok(script.includes('npm run build:crawlable-corpus'), scriptName + ' must build the static corpus');
       assert.ok(script.includes('npm run build:content-corpus'), scriptName + ' must run content corpus sitemap integration');
-      assert.ok(
-        script.indexOf('npm run build:blog') < script.indexOf('npm run build:crawlable-corpus'),
-        scriptName + ' must build /blog first so existing /blog/glossary remains delegated to the blog sitemap'
-      );
       assert.ok(
         script.indexOf('npm run build:crawlable-corpus') < script.indexOf('npm run build:content-corpus'),
         scriptName + ' must scan the corpus only after the page generator runs'
@@ -257,11 +253,6 @@ describe('crawlable content corpus deployment contracts', () => {
       );
     }
 
-    assert.equal(
-      catchAllMatcher.test('/blog/glossary/country-instability-index/'),
-      false,
-      'existing blog glossary pages stay covered by the /blog static exclusion'
-    );
     assert.equal(catchAllMatcher.test('/country-intel?iso2=UA'), true);
   });
 
@@ -274,9 +265,9 @@ describe('crawlable content corpus deployment contracts', () => {
     }
   });
 
-  it('keeps robots.txt advertising root, blog, and Mintlify docs sitemaps', () => {
+  it('keeps robots.txt advertising root and Mintlify docs sitemaps', () => {
     assert.match(robotsSource, /^Sitemap: https:\/\/www\.worldmonitor\.app\/sitemap\.xml$/m);
-    assert.match(robotsSource, /^Sitemap: https:\/\/www\.worldmonitor\.app\/blog\/sitemap-index\.xml$/m);
+    assert.doesNotMatch(robotsSource, /blog\/sitemap-index\.xml/, 'the removed blog must not advertise a sitemap');
     assert.match(robotsSource, /^Sitemap: https:\/\/www\.worldmonitor\.app\/docs\/sitemap\.xml$/m);
   });
 
@@ -2619,15 +2610,11 @@ describe('agent readiness: named developer-resource pages (#4953)', () => {
       f,
       readFileSync(resolve(__dirname, `../public/${f}`), 'utf-8'),
     ]);
-    // The sitemap and the indexed "Build on World Monitor" blog post are the two
-    // web-search discovery surfaces (candidate fixes #1/#3 of the issue) — assert
-    // them directly so a dropped sitemap entry or blog cross-link is caught here,
-    // not only via the reverse #4999 sitemap->MD_PAGES sweep.
+    // The sitemap is the web-search discovery surface — assert it directly so a
+    // dropped sitemap entry is caught here, not only via the reverse #4999
+    // sitemap->MD_PAGES sweep. (The upstream blog cross-link surface was removed
+    // with the blog-site subproject.)
     const sitemap = readFileSync(resolve(__dirname, '../public/sitemap.xml'), 'utf-8');
-    const blogPost = readFileSync(
-      resolve(__dirname, '../blog-site/src/content/blog/build-on-worldmonitor-developer-api-open-source.md'),
-      'utf-8'
-    );
     for (const page of DEV_PAGES) {
       const url = `https://worldmonitor.app${page.path}`;
       assert.ok(catalogHrefs.includes(url), `api-catalog must advertise ${url}`);
@@ -2638,7 +2625,6 @@ describe('agent readiness: named developer-resource pages (#4953)', () => {
         sitemap.includes(`https://www.worldmonitor.app${page.path}`),
         `sitemap.xml must register ${page.path} on the www host`
       );
-      assert.ok(blogPost.includes(page.path), `the developer blog post must cross-link ${page.path}`);
     }
   });
 });

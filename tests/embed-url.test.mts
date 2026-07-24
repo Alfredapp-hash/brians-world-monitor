@@ -119,7 +119,7 @@ describe('embed URL contract', () => {
 
   it('escapes iframe snippet attributes', () => {
     const snippet = buildEmbedIframeSnippet('https://www.worldmonitor.app/embed?layers=weather&x="><script>');
-    assert.ok(snippet.includes('title="World Monitor live map"'));
+    assert.ok(snippet.includes(`title="JSA's Monitor live map"`));
     assert.ok(snippet.includes('loading="lazy"'));
     assert.ok(snippet.includes('referrerpolicy="strict-origin-when-cross-origin"'));
     assert.ok(snippet.includes('&quot;&gt;&lt;script&gt;'));

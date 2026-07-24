@@ -243,3 +243,284 @@
   color: var(--text-dim-safe, var(--text-dim, #a9a49b));
   border-top-color: var(--border, #262c38);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WS2 · TERRAIN BASEMAP TOGGLE (map control cluster)
+   Terrain/flat basemap switch rendered inside .deckgl-controls next to the
+   zoom cluster. Uses theme tokens only; amber accent marks the active
+   terrain state. Appended by Workstream 2 — keep as one block.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.deckgl-controls .terrain-toggle-control {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.deckgl-controls .map-btn.terrain-toggle {
+  width: auto;
+  min-width: 32px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono, 'SF Mono', 'Cascadia Code', monospace);
+  background: color-mix(in srgb, var(--bg, #0a0c10) 92%, transparent);
+  border: 1px solid var(--border, #262c38);
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  border-radius: var(--radius-sm, 3px);
+  text-transform: uppercase;
+}
+
+.deckgl-controls .map-btn.terrain-toggle:hover {
+  color: var(--text, #e8e4dc);
+  border-color: color-mix(in srgb, var(--accent, #f0a832) 40%, var(--border, #262c38));
+}
+
+.deckgl-controls .map-btn.terrain-toggle.active {
+  color: var(--accent, #f0a832);
+  border-color: color-mix(in srgb, var(--accent, #f0a832) 55%, transparent);
+  background: color-mix(in srgb, var(--accent, #f0a832) 10%, var(--bg, #0a0c10));
+}
+
+/* Terrain-tiles credit appended to the attribution line while terrain is on */
+.map-attribution .terrain-attrib a {
+  color: inherit;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WS3 · GROUPED LAYERS (collapsible themed layer-toggle groups)
+   Shared group chrome for all three map engines — group sections are built
+   by src/components/map/layer-groups.ts inside the engines' existing
+   .layer-toggles containers. Per-chip styling (section 5 above + main.css)
+   is untouched; this block adds group headers, master toggles, the vertical
+   SVG panel that supersedes the <=1500px horizontal chip row, and the
+   mobile LAYERS pill. Appended by Workstream 3 — keep as one block.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Group sections (both engines) ──────────────────────────────────────── */
+.layer-toggles .layer-group {
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--bg, #0a0c10) 55%, transparent);
+  border: 1px solid var(--border, #262c38);
+  border-radius: var(--radius-sm, 3px);
+  overflow: hidden;
+}
+
+.layer-toggles .layer-group + .layer-group {
+  margin-top: 2px;
+}
+
+.layer-toggles .layer-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  background: color-mix(in srgb, var(--bg, #0a0c10) 88%, transparent);
+}
+
+.layer-toggles .layer-group-header:hover .layer-group-name,
+.layer-toggles .layer-group-header:focus-visible .layer-group-name {
+  color: var(--text, #e9e6df);
+}
+
+.layer-toggles .layer-group-header:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent, #f0a832) 60%, transparent);
+  outline-offset: -1px;
+}
+
+.layer-toggles .layer-group-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.layer-toggles .layer-group-count {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent, #f0a832);
+}
+
+.layer-toggles .layer-group-chevron {
+  flex: 0 0 auto;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  transition: transform 0.15s ease;
+}
+
+.layer-toggles .layer-group.collapsed .layer-group-chevron {
+  transform: rotate(-90deg);
+}
+
+/* Group master toggle — tri-state: off / mixed (dash) / all on (amber) */
+.layer-toggles .layer-group-master {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  cursor: pointer;
+  position: relative;
+  background: transparent;
+  border: 1px solid var(--border, #262c38);
+  border-radius: 2px;
+}
+
+.layer-toggles .layer-group-master:hover {
+  border-color: color-mix(in srgb, var(--accent, #f0a832) 55%, var(--border, #262c38));
+}
+
+.layer-toggles .layer-group-master:checked {
+  background: var(--accent, #f0a832);
+  border-color: var(--accent, #f0a832);
+}
+
+.layer-toggles .layer-group-master:checked::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--bg, #0a0c10);
+}
+
+.layer-toggles .layer-group-master:indeterminate {
+  background: color-mix(in srgb, var(--accent, #f0a832) 25%, transparent);
+  border-color: color-mix(in srgb, var(--accent, #f0a832) 60%, transparent);
+}
+
+.layer-toggles .layer-group-master:indeterminate::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 4px;
+  height: 2px;
+  background: var(--accent, #f0a832);
+}
+
+.layer-toggles .layer-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px 4px 4px;
+}
+
+.layer-toggles .layer-group.collapsed .layer-group-body {
+  display: none;
+}
+
+/* While a layer search query is live, collapsed groups open so matches are
+   visible; groups with zero matches are display:none'd from JS. */
+.deckgl-layer-toggles .layer-groups-searching .layer-group.collapsed .layer-group-body {
+  display: flex;
+}
+
+/* ── SVG fallback panel: vertical grouped stack, bottom-left ─────────────
+   Supersedes the section-5 <=1500px single-row horizontal scroll — the
+   grouped panel is a fixed-width vertical stack with internal scroll, so
+   it can never cover the whole map at any width. */
+.layer-toggles:not(.deckgl-layer-toggles) {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 3px;
+  width: 236px;
+  max-width: 236px;
+  max-height: 46vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-1, 4px);
+  background: color-mix(in srgb, var(--bg, #0a0c10) 90%, transparent);
+  border: 1px solid var(--border, #262c38);
+  border-radius: var(--radius-sm, 3px);
+  scrollbar-width: thin;
+}
+
+.layer-toggles:not(.deckgl-layer-toggles) .layer-toggle-row .layer-toggle {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* 48px a11y hit-area preserved; re-anchored for the vertical stack */
+.layer-toggles:not(.deckgl-layer-toggles) .layer-help-btn {
+  align-self: flex-end;
+  margin: -12px 0;
+}
+
+/* Panel pill/header (SVG panel only — rendered by layer-groups.ts) */
+.layer-groups-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--bg, #0a0c10) 92%, transparent);
+  border: 1px solid var(--border, #262c38);
+  border-radius: var(--radius-sm, 3px);
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.layer-groups-pill:hover,
+.layer-groups-pill:focus-visible {
+  color: var(--accent, #f0a832);
+  border-color: color-mix(in srgb, var(--accent, #f0a832) 45%, transparent);
+}
+
+/* Collapsed to pill: hide groups + help, shrink to content */
+.layer-toggles.layer-panel-collapsed {
+  width: auto;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.layer-toggles.layer-panel-collapsed .layer-group,
+.layer-toggles.layer-panel-collapsed .layer-help-btn {
+  display: none;
+}
+
+/* Mobile: the grouped panel is short enough to be usable — surface it as a
+   dismissible LAYERS pill (layer-groups.ts boots it collapsed <=768px).
+   main.css hides .layer-toggles with !important inside @layer base, so this
+   override must live in the same layer with higher specificity. */
+@layer base {
+  @media (max-width: 768px) {
+    .layer-toggles:not(.deckgl-layer-toggles) {
+      display: flex !important;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .layer-toggles:not(.deckgl-layer-toggles) {
+    max-height: 38vh;
+    z-index: 210;
+  }
+}

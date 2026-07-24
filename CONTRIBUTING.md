@@ -57,7 +57,7 @@ Variants share all code but differ in default panels, map layers, and RSS feeds.
 
 | Directory | Purpose |
 |---|---|
-| `src/components/` | UI components — 163 top-level TypeScript component files |
+| `src/components/` | UI components — 164 top-level TypeScript component files |
 | `src/services/` | Data fetching modules — sebuf client wrappers, AI, signal analysis |
 | `src/config/` | Static data and variant configs (feeds, geo, military, pipelines, ports) |
 | `src/generated/` | Auto-generated sebuf client + server stubs (**do not edit by hand**) |
@@ -310,7 +310,7 @@ When filing a bug report, please include:
 - **Browser/OS** — your environment details
 - **Console errors** — any relevant browser console output
 
-Use the [Bug Report issue template](https://github.com/koala73/worldmonitor/issues/new/choose) when available.
+Use the [Bug Report issue template](https://github.com/Alfredapp-hash/brians-world-monitor/issues/new/choose) when available.
 
 ## Feature Requests
 
@@ -321,7 +321,7 @@ We welcome feature ideas! When suggesting a feature:
 - **Consider alternatives** you've thought about
 - **Provide context** — who would benefit from this feature?
 
-Use the [Feature Request issue template](https://github.com/koala73/worldmonitor/issues/new/choose) when available.
+Use the [Feature Request issue template](https://github.com/Alfredapp-hash/brians-world-monitor/issues/new/choose) when available.
 
 ## Code of Conduct
 

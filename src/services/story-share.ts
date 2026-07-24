@@ -91,7 +91,7 @@ export const shareTexts = {
       ? `• Score: ${data.cii.score}/100 (${data.cii.level})\n• 24h change: ${data.cii.change24h > 0 ? '+' : ''}${data.cii.change24h}%\n`
       : '• Score: Unavailable\n') +
     `${data.threats.critical > 0 ? `• Critical threats: ${data.threats.critical}\n` : ''}` +
-    `\nData via World Monitor - Open source geopolitical intelligence`,
+    `\nData via JSA's Monitor - Open source geopolitical intelligence`,
 
   telegram: (data: StoryData) =>
     `${toFlagEmoji(data.countryCode, '')} *${data.countryName} Intelligence*\n\n` +
@@ -113,7 +113,7 @@ export function getShareUrls(data: StoryData): Record<string, string> {
   return {
     twitter: `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
-    reddit: `https://reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(`${data.countryName} Intelligence Brief - World Monitor`)}`,
+    reddit: `https://reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(`${data.countryName} Intelligence Brief - JSA's Monitor`)}`,
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
     whatsapp: `https://wa.me/?text=${encodeURIComponent(shareTexts.whatsapp(data))}`,
     telegram: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareTexts.telegram(data))}`,

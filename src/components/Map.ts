@@ -1,3 +1,6 @@
+// NOTE (Workstream 2 / terrain basemap): this D3/SVG renderer is the mobile /
+// no-WebGL fallback and draws vector topology only — raster hillshade (the
+// jsam-terrain-mode preference handled in DeckGLMap) does not apply here.
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { escapeHtml } from '@/utils/sanitize';
@@ -42,6 +45,7 @@ import { pinWebcam, isPinned } from '@/services/webcams/pinned-store';
 import type { WebcamEntry, WebcamCluster } from '@/generated/client/worldmonitor/webcam/v1/service_client';
 import { tokenizeForMatch, matchKeyword, findMatchingKeywords } from '@/utils/keyword-match';
 import { MapPopup } from './MapPopup';
+import { groupLayerToggles, type GroupedLayerPanelHandle } from '@/components/map/layer-groups';
 import type { GetChokepointStatusResponse } from '@/services/supply-chain';
 import type { AcledConflictEvent } from '@/generated/client/worldmonitor/conflict/v1/service_client';
 import {
@@ -144,6 +148,7 @@ export class MapComponent {
   private clusterGl: WebGLRenderingContext | null = null;
   private state: MapState;
   private layerExplanationOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
+  private layerGroupsHandle: GroupedLayerPanelHandle | null = null;
   private worldData: WorldTopology | null = null;
   private countryFeatures: Feature<Geometry>[] | null = null;
   private isResizing = false;
@@ -603,6 +608,14 @@ export class MapComponent {
     toggles.appendChild(helpBtn);
     enforceLayerLimit();
 
+    // WS3: re-house the flat chip wall into collapsible themed groups.
+    // Chips keep their ids/handlers — shared module, see layer-groups.ts.
+    this.layerGroupsHandle = groupLayerToggles({
+      listEl: toggles,
+      isActive: (key) => !!this.state.layers[key],
+      panelLabel: t('components.deckgl.layersTitle'),
+    });
+
     return toggles;
   }
 
@@ -820,6 +833,7 @@ export class MapComponent {
       if (!layer) return;
       btn.classList.toggle('active', this.state.layers[layer]);
     });
+    this.layerGroupsHandle?.refresh();
   }
 
   private createLegend(): HTMLElement {
@@ -3737,6 +3751,7 @@ export class MapComponent {
       btn?.classList.remove('loading');
     }
 
+    this.layerGroupsHandle?.refresh();
     this.onLayerChange?.(layer, this.state.layers[layer], source);
     // Defer render to next frame to avoid blocking the click handler
     this.scheduleRender();
@@ -3750,6 +3765,7 @@ export class MapComponent {
     const btn = this.container.querySelector(`.layer-toggle[data-layer="${layer}"]`);
     if (btn) {
       (btn as HTMLElement).style.display = 'none';
+      this.layerGroupsHandle?.refresh();
     }
   }
 

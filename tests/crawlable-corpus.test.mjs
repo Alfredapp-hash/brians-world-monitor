@@ -33,8 +33,8 @@ describe('crawlable corpus generator', () => {
 
       assert.equal(manifest.sections.countries.count, 196);
       assert.equal(manifest.sections.chokepoints.count, 13);
-      assert.ok(manifest.sections.changelog.count >= 2, `expected paginated changelog pages, got ${manifest.sections.changelog.count}`);
-      assert.ok(manifest.sections.glossary.count >= 15, `expected existing glossary manifest entries, got ${manifest.sections.glossary.count}`);
+      assert.ok(manifest.sections.changelog.count >= 1, `expected changelog pages, got ${manifest.sections.changelog.count}`);
+      assert.equal(manifest.sections.glossary, undefined, 'glossary section was removed with the upstream blog');
 
       for (const path of [
         'countries/index.html',
@@ -42,7 +42,6 @@ describe('crawlable corpus generator', () => {
         'chokepoints/index.html',
         'chokepoints/strait-of-hormuz/index.html',
         'reference/changelog/index.html',
-        'reference/changelog/page/2/index.html',
         'crawlable-corpus.json',
       ]) {
         assert.ok(existsSync(join(outDir, path)), `missing generated file ${path}`);
@@ -75,8 +74,8 @@ describe('crawlable corpus generator', () => {
       // Human trade-route names replace the old raw route-id dump.
       assert.match(hormuz, /Persian Gulf → Europe \(Oil\)/);
       assert.doesNotMatch(hormuz, /Canonical ID|Energy baseline|Route IDs:/, 'chokepoint page must not dump raw registry fields');
-      // Cross-link to the matching glossary term.
-      assert.match(hormuz, /href="\/blog\/glossary\/strait-of-hormuz\/"/);
+      // The upstream blog (and its glossary) is gone — no /blog/ links may remain.
+      assert.doesNotMatch(hormuz, /href="\/blog\//, 'chokepoint pages must not link into the removed blog');
       assert.doesNotMatch(hormuz, /<script[^>]+type="module"|id="app"/, 'chokepoint page must be raw static HTML, not the SPA shell');
 
       const hormuzLd = jsonLdObjects(hormuz);
@@ -88,11 +87,8 @@ describe('crawlable corpus generator', () => {
       assert.match(dover, /tracked as a strategic waterway reference/);
 
       const changelogIndex = read(outDir, 'reference/changelog/index.html');
-      const changelogPage2 = read(outDir, 'reference/changelog/page/2/index.html');
-      assert.match(changelogIndex, /<link rel="next" href="https:\/\/www\.worldmonitor\.app\/reference\/changelog\/page\/2\/">/);
-      assert.match(changelogIndex, /server scorer read non-existent/);
-      assert.match(changelogIndex, /methodology_version is now v8/);
-      assert.match(changelogPage2, /<link rel="prev" href="https:\/\/www\.worldmonitor\.app\/reference\/changelog\/">/);
+      assert.match(changelogIndex, /Hard fork identity/);
+      assert.match(changelogIndex, /Coverage Compare \+ NCI engine/);
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }
@@ -104,9 +100,9 @@ describe('crawlable corpus generator', () => {
     assert.equal(data.resilience.capturedAt, '2026-05-28');
     assert.ok(data.countries.some((country) => country.slug === 'norway' && country.rank === 1));
     assert.ok(data.chokepoints.some((chokepoint) => chokepoint.slug === 'strait-of-hormuz' && chokepoint.id === 'hormuz_strait'));
-    assert.ok(data.glossaryTerms.some((term) => term.slug === 'country-resilience-index'));
-    assert.ok(data.changelog[0].bullets[0].includes('server scorer read non-existent'));
-    assert.ok(data.changelog[0].bullets[0].includes('methodology_version is now v8'));
+    assert.equal(data.glossaryTerms, undefined, 'glossary data was removed with the upstream blog');
+    assert.ok(data.changelog[0].bullets[0].includes('Hard fork identity'));
+    assert.ok(data.changelog[0].bullets[0].includes('jsas-monitor'));
     assert.match(data.lastmod.chokepoints, /^\d{4}-\d{2}-\d{2}$/);
   });
 });

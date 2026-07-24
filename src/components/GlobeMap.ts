@@ -34,6 +34,7 @@ import {
   type MapVariant,
 } from '@/config/map-layer-definitions';
 import { renderLayerExplanationCard } from '@/utils/layer-explanation-card';
+import { groupLayerToggles, type GroupedLayerPanelHandle } from '@/components/map/layer-groups';
 import { guardOrbitControlsPointerTracking } from '@/utils/orbit-controls-pointer-guard';
 import { getSecretState } from '@/services/runtime-config';
 import { resolveTradeRouteSegments, type TradeRouteSegment } from '@/config/trade-routes';
@@ -589,6 +590,7 @@ export class GlobeMap {
 
   // Overlay UI elements
   private layerTogglesEl: HTMLElement | null = null;
+  private layerGroupsHandle: GroupedLayerPanelHandle | null = null;
   private tooltipEl: HTMLElement | null = null;
   private tooltipHideTimer: ReturnType<typeof setTimeout> | null = null;
   private satHoverStyle: HTMLStyleElement | null = null;
@@ -674,6 +676,13 @@ export class GlobeMap {
     const initW = this.container.clientWidth || window.innerWidth;
     const initH = this.container.clientHeight || window.innerHeight;
 
+    // Terrain-mode feasibility (Workstream 2): the globe already renders real
+    // physical geography — its DEFAULT texture is '/textures/earth-topo-bathy.jpg'
+    // (topographic relief + bathymetry) governed by the existing wm-globe-texture
+    // preference in globe-render-settings.ts. Wiring the flat map's
+    // jsam-terrain-mode preference in here would fight that dedicated texture
+    // picker, so the globe intentionally keeps its own setting; the flat-map
+    // hillshade/waterways treatment (DeckGLMap) is the terrain deliverable.
     const initialTexture = getGlobeTexture();
     globe
       .globeImageUrl(GLOBE_TEXTURE_URLS[initialTexture])
@@ -1976,6 +1985,16 @@ export class GlobeMap {
     el.appendChild(authorBadge);
     this.container.appendChild(el);
 
+    // WS3: re-house the flat row list into collapsible themed groups.
+    // Rows keep their ids/handlers — shared module, see layer-groups.ts.
+    const groupList = el.querySelector('.toggle-list') as HTMLElement | null;
+    if (groupList) {
+      this.layerGroupsHandle = groupLayerToggles({
+        listEl: groupList,
+        isActive: (key) => !!this.layers[key],
+      });
+    }
+
     el.querySelectorAll('.layer-toggle input').forEach(input => {
       input.addEventListener('change', () => {
         const layer = (input as HTMLInputElement).closest('.layer-toggle')?.getAttribute('data-layer') as keyof MapLayers | null;
@@ -2760,6 +2779,7 @@ export class GlobeMap {
         this.imageryFootprintPolygons = [];
       }
     }
+    this.layerGroupsHandle?.refresh();
   }
 
   public enableLayer(layer: keyof MapLayers): void {
@@ -2778,6 +2798,7 @@ export class GlobeMap {
 
   private enforceLayerLimit(): void {
     if (!this.layerTogglesEl) return;
+    this.layerGroupsHandle?.refresh();
     const WARN_THRESHOLD = 13;
     const activeCount = Array.from(this.layerTogglesEl.querySelectorAll<HTMLInputElement>('.layer-toggle input'))
       .filter(i => i.checked).length;
@@ -2959,6 +2980,7 @@ export class GlobeMap {
     const toggle = this.layerTogglesEl?.querySelector(`.layer-toggle[data-layer="${layer}"]`);
     toggle?.closest('.layer-toggle-row')?.remove();
     toggle?.remove();
+    this.layerGroupsHandle?.refresh();
   }
   public setLayerLoading(layer: keyof MapLayers, loading: boolean): void {
     this.layerTogglesEl?.querySelector(`.layer-toggle[data-layer="${layer}"]`)?.classList.toggle('loading', loading);

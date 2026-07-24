@@ -109,6 +109,26 @@ export function setMapTheme(provider: MapProvider, theme: string): void {
   writeStorageValue(THEME_STORAGE_PREFIX + provider, theme);
 }
 
+// ── Terrain mode (physical-geography basemap) ────────────────────────────────
+// 'terrain' layers hillshade relief + boosted waterways/physical labels on top
+// of the active dark basemap; 'flat' is the classic flat dark style. Persisted
+// separately from provider/theme so it survives provider switches. Default is
+// 'terrain' (real physical geography out of the box).
+
+export type TerrainMode = 'terrain' | 'flat';
+
+const TERRAIN_STORAGE_KEY = 'jsam-terrain-mode';
+
+export function getTerrainMode(): TerrainMode {
+  const stored = readStorageValue(TERRAIN_STORAGE_KEY);
+  if (stored === 'flat' || stored === 'terrain') return stored;
+  return 'terrain';
+}
+
+export function setTerrainMode(mode: TerrainMode): void {
+  writeStorageValue(TERRAIN_STORAGE_KEY, mode);
+}
+
 export function isLightMapTheme(mapTheme: string): boolean {
   return ['light', 'white', 'positron', 'voyager'].includes(mapTheme);
 }

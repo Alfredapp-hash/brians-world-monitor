@@ -337,7 +337,7 @@
         "OLLAMA_API_URL": "e.g. http://127.0.0.1:11434 (Ollama) or http://127.0.0.1:1234/v1 (LM Studio) — OpenAI-compatible endpoint.",
         "OLLAMA_MODEL": "e.g. llama3.1:8b — model tag to use for summarization."
       },
-      "skipSetup": "Sla de configuratie over — een enkele World Monitor-licentie ontgrendelt alles. Meld u aan voor de wachtlijst voor vroege toegang.",
+      "skipSetup": "Sla de configuratie over — een enkele JSA's Monitor-licentie ontgrendelt alles. Meld u aan voor de wachtlijst voor vroege toegang.",
       "reserveEarlyAccess": "Reserveer Vroege Toegang"
     },
     "countryIntel": {
@@ -458,7 +458,7 @@
           "submitBtn": "API-abonnementen bekijken"
         }
       },
-      "shellTitle": "World Monitor-instellingen",
+      "shellTitle": "JSA's Monitor-instellingen",
       "shellSearchPlaceholder": "Instellingen doorzoeken...",
       "shellCancel": "Annuleren",
       "shellSaveClose": "Opslaan & Sluiten",
@@ -1638,7 +1638,7 @@
       "tripDays": "Reisdagen"
     },
     "chatAnalyst": {
-      "infoTooltip": "<strong>WM Analist</strong> AI-analist met live context over geopolitieke, markt-, militaire en economische domeinen. Aangedreven door Claude met realtime data uit actieve WorldMonitor-feeds."
+      "infoTooltip": "<strong>WM Analist</strong> AI-analist met live context over geopolitieke, markt-, militaire en economische domeinen. Aangedreven door Claude met realtime data uit actieve JSA's Monitor-feeds."
     },
     "cotPositioning": {
       "infoTooltip": "<strong>CFTC COT Positionering</strong> Commitments of Traders-rapport: nettopositie van commerciëlen, grote speculanten en kleine handelaren in grondstof- en financiële futures. Wekelijks gepubliceerd (vrijdag). Bron: CFTC."
@@ -1765,7 +1765,7 @@
       "infoTooltip": "<strong>Macro-indicatoren</strong> Belangrijke macro-economische indicatoren voor de VS en de eurozone: CPI, werkloosheid, GDP en centrale banktarieven. Waarden getoond met delta ten opzichte van de voorgaande periode. Bron: FRED (Federal Reserve Economic Data)."
     },
     "monitors": {
-      "infoTooltip": "<strong>Zoekwoordmonitoren</strong> Voeg een willekeurige term toe om live nieuwsvermeldingen over alle WorldMonitor-bronnen te volgen. Resultaten worden in realtime bijgewerkt naarmate overeenkomende artikelen worden opgenomen."
+      "infoTooltip": "<strong>Zoekwoordmonitoren</strong> Voeg een willekeurige term toe om live nieuwsvermeldingen over alle JSA's Monitor-bronnen te volgen. Resultaten worden in realtime bijgewerkt naarmate overeenkomende artikelen worden opgenomen."
     },
     "renewable": {
       "infoTooltip": "<strong>Hernieuwbare energie</strong> Aandeel hernieuwbare bronnen in de elektriciteitsopwekking per regio en jaar, plus geïnstalleerd vermogen in de VS voor zon, wind en kolen (MW). Bronnen: Wereldbank (EG.ELC.RNEW.ZS) en EIA."
@@ -3067,10 +3067,10 @@
     "copyCoordinates": "Coördinaten kopiëren"
   },
   "shell": {
-    "documentTitle": "World Monitor — Real-Time Global Intelligence Dashboard",
+    "documentTitle": "JSA's Monitor — Real-Time Global Intelligence Dashboard",
     "metaDescription": "Real-time global intelligence platform. Featured in WIRED. Used by 2M+ people across 190 countries. Conflicts, markets, military, OSINT in one view.",
     "offlineTitle": "Je bent offline",
-    "offlineMessage": "World Monitor heeft een internetverbinding nodig voor real-time inlichtingengegevens.",
+    "offlineMessage": "JSA's Monitor heeft een internetverbinding nodig voor real-time inlichtingengegevens.",
     "offlineRetry": "Opnieuw proberen"
   },
   "widgets": {
@@ -3108,12 +3108,12 @@
     "phaseError": "Fout",
     "previewCheckingHeading": "Widget builder wordt verbonden",
     "previewReadyHeading": "Beschrijf het gewenste widget",
-    "previewFetchingHeading": "Live WorldMonitor-gegevens ophalen",
+    "previewFetchingHeading": "Live JSA's Monitor-gegevens ophalen",
     "previewComposingHeading": "Widget-indeling wordt samengesteld",
     "previewErrorHeading": "Het voorbeeld vereist aandacht",
     "previewCheckingCopy": "We valideren je widget-sleutel en backend-beschikbaarheid voordat genereren wordt ingeschakeld.",
     "previewReadyCopy": "Gebruik een promptvoorbeeld of beschrijf de exacte live-weergave die je wilt. Het voorbeeld wordt hier bijgewerkt voordat je het opslaat.",
-    "previewFetchingCopy": "De agent roept goedgekeurde WorldMonitor-eindpunten aan en vorm de dataset voor het widget.",
+    "previewFetchingCopy": "De agent roept goedgekeurde JSA's Monitor-eindpunten aan en vorm de dataset voor het widget.",
     "previewComposingCopy": "Het voorbeeld wordt weergegeven met de nieuwste live-gegevens en dashboard-opmaak.",
     "previewErrorCopy": "Los het probleem op en probeer opnieuw. Je bestaande widgets worden niet beïnvloed.",
     "createInteractive": "Interactief Widget maken",
@@ -3142,7 +3142,7 @@
   },
   "premium": {
     "pro": "PRO",
-    "lockedDesc": "Vereist een World Monitor-licentiesleutel",
+    "lockedDesc": "Vereist een JSA's Monitor-licentiesleutel",
     "signInToUnlock": "Meld u aan om premium-functies te ontgrendelen",
     "signIn": "Aanmelden om te ontgrendelen",
     "upgradeDesc": "Upgrade naar Pro voor volledige toegang tot premium-analyses",

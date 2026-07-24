@@ -581,7 +581,7 @@
         "needsKeys": "Configura le chiavi API per sbloccare funzionalità",
         "some": "Alcune funzionalità richiedono chiavi API"
       },
-      "skipSetup": "Salta la configurazione — una singola licenza World Monitor sblocca tutto. Iscriviti alla lista d'attesa per l'accesso anticipato.",
+      "skipSetup": "Salta la configurazione — una singola licenza JSA's Monitor sblocca tutto. Iscriviti alla lista d'attesa per l'accesso anticipato.",
       "summary": {
         "desktop": "Modalità desktop",
         "web": "Modalità Web (credenziali di sola lettura, gestite dal server)",
@@ -716,7 +716,7 @@
           "submitBtn": "Vedi i piani API"
         }
       },
-      "shellTitle": "Impostazioni World Monitor",
+      "shellTitle": "Impostazioni JSA's Monitor",
       "shellSearchPlaceholder": "Cerca impostazioni...",
       "shellCancel": "Annulla",
       "shellSaveClose": "Salva e chiudi",
@@ -1897,7 +1897,7 @@
       "tripDays": "Giorni viaggio"
     },
     "chatAnalyst": {
-      "infoTooltip": "<strong>Analista WM</strong> Analista AI con contesto in tempo reale nei domini geopolitico, dei mercati, militare ed economico. Alimentato da Claude con dati in tempo reale iniettati dai feed attivi di WorldMonitor."
+      "infoTooltip": "<strong>Analista WM</strong> Analista AI con contesto in tempo reale nei domini geopolitico, dei mercati, militare ed economico. Alimentato da Claude con dati in tempo reale iniettati dai feed attivi di JSA's Monitor."
     },
     "cotPositioning": {
       "infoTooltip": "<strong>Posizionamento CFTC COT</strong> Rapporto sugli impegni dei trader: posizionamento netto di commerciali, grandi speculatori e piccoli trader in futures su materie prime e finanziari. Pubblicato settimanalmente (venerdì). Fonte: CFTC."
@@ -2029,7 +2029,7 @@
       "infoTooltip": "<strong>Indicatori macro</strong> Indicatori macroeconomici chiave per USA e zona euro: CPI, disoccupazione, GDP e tassi delle banche centrali. Valori con delta rispetto al periodo precedente. Fonte: FRED (Federal Reserve Economic Data)."
     },
     "monitors": {
-      "infoTooltip": "<strong>Monitor di parole chiave</strong> Aggiungi qualsiasi termine per tracciare le menzioni nelle notizie in tempo reale da tutte le fonti WorldMonitor. I risultati si aggiornano in tempo reale man mano che gli articoli corrispondenti vengono acquisiti."
+      "infoTooltip": "<strong>Monitor di parole chiave</strong> Aggiungi qualsiasi termine per tracciare le menzioni nelle notizie in tempo reale da tutte le fonti JSA's Monitor. I risultati si aggiornano in tempo reale man mano che gli articoli corrispondenti vengono acquisiti."
     },
     "renewable": {
       "infoTooltip": "<strong>Energia rinnovabile</strong> Quota delle rinnovabili nella produzione di elettricità per regione e anno, più capacità installata negli USA per solare, eolico e carbone (MW). Fonti: Banca Mondiale (EG.ELC.RNEW.ZS) ed EIA."
@@ -3085,10 +3085,10 @@
     "copyCoordinates": "Copia coordinate"
   },
   "shell": {
-    "documentTitle": "World Monitor — Dashboard di intelligence globale in tempo reale",
+    "documentTitle": "JSA's Monitor — Dashboard di intelligence globale in tempo reale",
     "metaDescription": "Piattaforma di intelligence globale in tempo reale. In primo piano su WIRED. Utilizzata da 2M+ persone in 190 paesi. Conflitti, mercati, militari, OSINT in un'unica vista.",
     "offlineTitle": "Sei Offline",
-    "offlineMessage": "World Monitor richiede una connessione Internet per i dati di intelligence in tempo reale.",
+    "offlineMessage": "JSA's Monitor richiede una connessione Internet per i dati di intelligence in tempo reale.",
     "offlineRetry": "Riprova"
   },
   "widgets": {
@@ -3126,12 +3126,12 @@
     "phaseError": "Errore",
     "previewCheckingHeading": "Connessione al generatore di widget",
     "previewReadyHeading": "Descrivi il widget che desideri",
-    "previewFetchingHeading": "Recupero dati WorldMonitor live",
+    "previewFetchingHeading": "Recupero dati JSA's Monitor live",
     "previewComposingHeading": "Composizione del layout del widget",
     "previewErrorHeading": "L'anteprima richiede attenzione",
     "previewCheckingCopy": "Stiamo validando la tua chiave widget e la disponibilità del backend prima di abilitare la generazione.",
     "previewReadyCopy": "Usa un esempio di prompt o descrivi la visualizzazione live esatta che desideri. L'anteprima si aggiornerà qui prima di salvarla.",
-    "previewFetchingCopy": "L'agente sta chiamando gli endpoint WorldMonitor approvati e modellando il dataset per il widget.",
+    "previewFetchingCopy": "L'agente sta chiamando gli endpoint JSA's Monitor approvati e modellando il dataset per il widget.",
     "previewComposingCopy": "L'anteprima viene renderizzata con i dati live più recenti e lo stile del dashboard.",
     "previewErrorCopy": "Risolvi il problema e riprova. I tuoi widget esistenti non sono interessati.",
     "createInteractive": "Crea widget interattivo",
@@ -3160,7 +3160,7 @@
   },
   "premium": {
     "pro": "PRO",
-    "lockedDesc": "Richiede una chiave di licenza World Monitor",
+    "lockedDesc": "Richiede una chiave di licenza JSA's Monitor",
     "signInToUnlock": "Accedi per sbloccare le funzioni premium",
     "signIn": "Accedi per Sbloccare",
     "upgradeDesc": "Esegui l'upgrade a Pro per accesso completo all'analitiche premium",
