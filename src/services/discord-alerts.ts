@@ -185,7 +185,14 @@ export interface DigestInput {
 }
 
 function todayKey(now: number): string {
-  return new Date(now).toISOString().slice(0, 10);
+  // LOCAL calendar date (not UTC) so it agrees with the local-hour gate in
+  // digestDue — a UTC date key drifts across midnight for non-UTC users,
+  // causing skipped or duplicated digests near the boundary.
+  const d = new Date(now);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /** Pure: should a digest go out now? Once per calendar day, after 08:00 local. */

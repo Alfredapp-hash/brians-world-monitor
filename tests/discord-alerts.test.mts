@@ -81,3 +81,16 @@ describe('daily digest', () => {
     assert.ok(!desc.includes('[NCI 10]')); // only top 5
   });
 });
+
+describe('digest date key uses local calendar date', () => {
+  it('todayKey-derived digestDue is stable within a local day regardless of UTC boundary', async () => {
+    const { digestDue } = await import('../src/services/discord-alerts');
+    // 22:00 local on the 23rd (which is already the 24th in UTC for UTC+3):
+    const eveningLocal = (() => { const d = new Date('2026-07-23T00:00:00'); d.setHours(22); return d.getTime(); })();
+    // If we already sent for local date 2026-07-23, an evening re-check must NOT re-send.
+    assert.equal(digestDue('2026-07-23', eveningLocal), false);
+    // And a fresh local day (24th morning) is due again.
+    const nextMorning = (() => { const d = new Date('2026-07-24T00:00:00'); d.setHours(9); return d.getTime(); })();
+    assert.equal(digestDue('2026-07-23', nextMorning), true);
+  });
+});

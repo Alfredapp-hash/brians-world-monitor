@@ -67,13 +67,17 @@ select:focus-visible {
   background: #f0a83266;
 }
 
-/* Coverage Compare buttons adopt the identity accent */
+/* Coverage Compare buttons adopt the identity accent.
+ * Near-black label on amber = ~5.9:1 (WCAG AA); white on this amber failed at
+ * 3.55:1. Purple darkened to #6a45d8 so white text clears 4.5:1. */
 .cc-refresh-btn,
 .cc-ai-btn {
   background: #b57d16;
+  color: #14100a;
 }
 .cc-nci-ai-btn {
-  background: #8a5cf5;
+  background: #6a45d8;
+  color: #fff;
 }
 .cc-local-btn,
 .cc-copy-btn {

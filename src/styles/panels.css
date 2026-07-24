@@ -3267,7 +3267,7 @@ a.hub-top-story {
 .cc-ai-via { font-size: 9px; color: var(--text-dim, #888); text-transform: uppercase; margin-bottom: 4px; }
 
 /* Coverage Compare — talking-point detection */
-.cc-flag-alert { background: rgba(231,76,60,0.2); color: #e74c3c; font-weight: 700; }
+.cc-flag-alert { background: rgba(231,76,60,0.2); color: #ff6b5c; font-weight: 700; }
 .cc-details-alert { border-color: rgba(231,76,60,0.5); }
 .cc-sync { font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 700; white-space: nowrap; }
 .cc-sync-low { background: rgba(46,204,113,0.15); color: #2ecc71; }
@@ -3373,7 +3373,7 @@ a.hub-top-story {
 .cc-ai-status-ok { color: #2ecc71; }
 .cc-ai-status-down { color: #e74c3c; }
 .cc-ai-status-none { color: var(--text-dim, #888); }
-.cc-stats { grid-template-columns: repeat(7, 1fr); }
+.cc-stats { grid-template-columns: repeat(6, 1fr); }
 @media (max-width: 760px) { .cc-stats { grid-template-columns: repeat(4, 1fr); } }
 
 /* Coverage Compare — live pipeline */
@@ -3449,3 +3449,21 @@ a.hub-top-story {
 .cc-summary .cc-share-btn { margin-left: 4px; }
 .cc-share-btn:hover { border-color: var(--accent, #f0a832); color: var(--accent, #f0a832); }
 .cc-modal-header .cc-share-btn { padding: 4px 10px; font-size: 12px; }
+
+/* Coverage Compare — expert-review pass: hierarchy, a11y, states */
+/* Tier-colored left stripe so suspicious stories pop from the list (P1) */
+.cc-tier-l0 { border-left: 3px solid #2ecc71; }
+.cc-tier-l1 { border-left: 3px solid #f1c40f; }
+.cc-tier-l2 { border-left: 3px solid #e67e22; }
+.cc-tier-l3 { border-left: 3px solid #e74c3c; }
+.cc-tier-l4 { border-left: 3px solid #ff6b5c; }
+/* Action buttons row (moved out of <summary> for valid a11y semantics) */
+.cc-card-actions { display: flex; gap: 6px; justify-content: flex-end; padding: 4px 0 2px; }
+/* Always-visible epistemic disclaimer under the status line (P4) */
+.cc-persistent-note {
+  font-size: 10px; color: var(--text-dim, #888); font-style: italic;
+  padding: 3px 2px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 4px;
+}
+/* Manual score cells: clearer button affordance (P5) */
+.cc-nci-score { box-shadow: inset 0 -1px 0 rgba(255,255,255,0.12); }
+.cc-nci-score:focus-visible { outline: 2px solid var(--accent, #f0a832); outline-offset: 1px; }
