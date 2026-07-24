@@ -512,6 +512,10 @@ export class EventHandlerManager implements AppModule {
   }
 
   private setupEventListeners(): void {
+    // Yield to the command palette: when ⌘K opens, any open mission-preset
+    // popover closes so the palette never renders underneath it.
+    document.addEventListener('jsam:palette-open', () => this.closeMissionPresetPopover());
+
     document.getElementById('copyLinkBtn')?.addEventListener('click', async () => {
       const shareUrl = this.getShareUrl();
       if (!shareUrl) return;
@@ -655,7 +659,8 @@ export class EventHandlerManager implements AppModule {
     if (!this.ctx.isDesktopApp && fullscreenBtn) {
       fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
       this.boundFullscreenHandler = () => {
-        fullscreenBtn.textContent = document.fullscreenElement ? '\u26F6' : '\u26F6';
+        // Icon is an inline SVG set in panel-layout.ts \u2014 only toggle state here
+        // (the old textContent write nuked the SVG child on fullscreenchange).
         fullscreenBtn.classList.toggle('active', !!document.fullscreenElement);
         this.syncMapAfterLayoutChange();
       };

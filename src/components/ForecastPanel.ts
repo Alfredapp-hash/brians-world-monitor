@@ -469,9 +469,9 @@ export class ForecastPanel extends Panel {
       const emptyCopy = hasAnyForecasts
         ? 'No forecasts match the current filter'
         : this.sourceState.degraded
-          ? 'Forecast backend unavailable'
+          ? 'Forecasts are temporarily offline — retrying automatically.'
           : this.sourceState.error
-            ? 'Forecast request failed'
+            ? 'Forecasts are warming up — retrying automatically.'
             : 'No forecasts available';
       const sourceHtml = this.renderSourceNotice();
       this.setSafeContent(unsafeRawHtml(`
@@ -508,11 +508,11 @@ export class ForecastPanel extends Panel {
 
   private renderSourceNotice(): string {
     if (!this.sourceState.degraded && !this.sourceState.stale && !this.sourceState.error) return '';
-    const errorDetail = this.sourceState.degraded ? '' : this.sourceState.error.replace(/_/g, ' ');
+    // Calm, sentence-cased copy — no raw backend error codes in the UI.
     const parts = [
-      this.sourceState.degraded ? 'Forecast source degraded' : '',
-      this.sourceState.stale ? 'stale cache' : '',
-      errorDetail,
+      this.sourceState.degraded ? 'Live forecast feed is catching up' : '',
+      this.sourceState.stale ? 'showing cached data' : '',
+      !this.sourceState.degraded && this.sourceState.error ? 'retrying automatically' : '',
     ].filter(Boolean);
     return `<div class="fc-source-notice">${escapeHtml(parts.join(' · '))}</div>`;
   }

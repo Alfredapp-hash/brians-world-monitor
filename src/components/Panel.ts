@@ -47,6 +47,9 @@ const lockSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
 
 const upgradeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="16" x2="12" y2="8"/></svg>`;
 
+// Satellite-dish line icon (currentColor) for the shared designed empty state.
+const emptyStateSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10a7.31 7.31 0 0 0 10 10Z"/><path d="m9 15 3-3"/><path d="M17 13a6 6 0 0 0-6-6"/><path d="M21 13A10 10 0 0 0 11 3"/></svg>`;
+
 const ROW_RESIZE_STEP_PX = 80;
 const COL_RESIZE_STEP_PX = 80;
 const FRESHNESS_BADGE_REFRESH_MS = 60_000;
@@ -851,6 +854,31 @@ export class Panel {
         h('div', { className: 'panel-loading-text' }, message),
       ),
     );
+  }
+
+  /**
+   * Render the shared designed empty state: a dim line icon, one sentence-cased
+   * message line, and an optional dimmer hint line — vertically centered in the
+   * panel body. Calm by design: never red, never jargon. Pass a custom inline
+   * SVG string via `opts.icon` to swap the default satellite-dish glyph.
+   */
+  public showEmpty(message: string, opts?: { icon?: string; hint?: string }): void {
+    if (this._locked) return;
+    this.setErrorState(false);
+    this.clearRetryCountdown();
+
+    const iconEl = h('div', { className: 'panel-empty-icon', 'aria-hidden': 'true' });
+    setTrustedHtml(iconEl, trustedHtml(opts?.icon ?? emptyStateSvg, 'static inline empty-state icon'));
+
+    const children: HTMLElement[] = [
+      iconEl,
+      h('div', { className: 'panel-empty-msg' }, message),
+    ];
+    if (opts?.hint) {
+      children.push(h('div', { className: 'panel-empty-hint' }, opts.hint));
+    }
+
+    replaceChildren(this.content, h('div', { className: 'panel-empty' }, ...children));
   }
 
   public showError(message?: string, onRetry?: () => void, autoRetrySeconds?: number): void {

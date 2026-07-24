@@ -1,0 +1,245 @@
+/*
+ * Chrome refinements — header zones, map layer-chip legend, toasts, icons.
+ * Owned by the visual-overhaul Workstream C. Imported unlayered (after
+ * brians-theme.css) so chrome styling wins over legacy rules.
+ */
+
+/* ============================================================
+   1. Header zones — left: brand | context: region + mission | right: controls
+   All existing IDs/classes preserved; grouping is visual only.
+   ============================================================ */
+
+.header-left {
+  gap: var(--space-2, 8px);
+  min-width: 0;
+}
+
+.header-right {
+  gap: var(--space-2, 8px);
+}
+
+.logo,
+.logo-mobile {
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+/* Context zone: divider ahead of the live-status + region + mission group */
+.header .status-indicator {
+  margin-left: var(--space-2, 8px);
+  padding-left: var(--space-3, 14px);
+  border-left: 1px solid var(--border, #262c38);
+}
+
+/* ── Variant switcher demoted: at rest only the active variant shows.
+   Hover or keyboard focus reveals the full set. Emoji glyphs replaced by
+   text labels (chrome is a line-icon / type system, not an emoji system). */
+.variant-switcher .variant-icon {
+  display: none;
+}
+
+.variant-switcher .variant-option .variant-label {
+  max-width: none;
+  opacity: 1;
+  overflow: visible;
+}
+
+.variant-switcher:not(:hover, :focus-within) .variant-option:not(.active),
+.variant-switcher:not(:hover, :focus-within) .variant-divider {
+  display: none;
+}
+
+/* Collapsed-state affordance so the switcher reads as expandable */
+.variant-switcher::after {
+  content: '\25BE'; /* ▾ */
+  font-size: 8px;
+  line-height: 1;
+  padding: 0 2px;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  pointer-events: none;
+}
+
+.variant-switcher:is(:hover, :focus-within)::after {
+  content: none;
+}
+
+/* Active variant rides the brand amber, not upstream green */
+.variant-option.active {
+  color: var(--accent, #f0a832);
+  background: color-mix(in srgb, var(--accent, #f0a832) 12%, transparent);
+}
+
+.variant-option.active .variant-icon {
+  filter: none;
+}
+
+/* ── Right-cluster compression: secondary actions get quieter/smaller */
+.copy-link-btn {
+  padding: 3px 8px;
+  font-size: 10px;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  border-radius: var(--radius-sm, 3px);
+}
+
+.search-btn {
+  padding: 3px 9px;
+  border-radius: var(--radius-sm, 3px);
+  margin-right: 0;
+}
+
+.fullscreen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm, 3px);
+}
+
+.fullscreen-btn svg {
+  display: block;
+}
+
+/* ============================================================
+   2. Header skeletons — the two auth placeholder boxes shipped as
+   permanently-shimmering empty pills when Clerk never resolved.
+   The mount keeps its reserved width (header.css) so hiding them
+   causes no layout shift; real buttons appear when auth resolves.
+   ============================================================ */
+
+.auth-header-widget .auth-header-skeleton {
+  display: none;
+}
+
+/* ============================================================
+   3. Discord promo toast — on-palette, clear of footer + panels
+   ============================================================ */
+
+.community-widget {
+  right: var(--space-4, 16px);
+  /* Sit above the site footer (~52px) + breathing room + device safe area */
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: var(--z-toast, 500);
+}
+
+.cw-pill {
+  background: var(--surface, #12161e);
+  border: 1px solid var(--border, #262c38);
+  border-radius: var(--radius-pill, 28px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.cw-dot {
+  background: var(--accent, #f0a832);
+}
+
+.cw-dot::after {
+  border-color: color-mix(in srgb, var(--accent, #f0a832) 40%, transparent);
+}
+
+.cw-cta {
+  background: var(--accent, #f0a832);
+  color: var(--bg, #0a0c10);
+  font-weight: 700;
+}
+
+.cw-cta:hover,
+.cw-cta:focus-visible {
+  background: color-mix(in srgb, var(--accent, #f0a832) 85%, #ffffff);
+}
+
+.cw-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  font-size: 18px;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+}
+
+.cw-close:hover,
+.cw-close:focus-visible {
+  color: var(--text, #e9e6df);
+}
+
+/* ============================================================
+   4. Icon chrome — SVG line icons replace emoji glyphs
+   ============================================================ */
+
+.search-mobile-fab {
+  color: var(--bg, #0a0c10);
+}
+
+.search-mobile-fab svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+/* ============================================================
+   5. Map layer chips — uniform chip geometry, one info-button
+   style, and a single scrollable row below 1500px so the chip
+   wall never covers map geography.
+   ============================================================ */
+
+.layer-toggles:not(.deckgl-layer-toggles) {
+  gap: var(--space-1, 4px);
+}
+
+.layer-toggles:not(.deckgl-layer-toggles) .layer-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 22px;
+  padding: 3px 8px;
+  border: 1px solid var(--border, #262c38);
+  border-radius: var(--radius-sm, 3px);
+  white-space: nowrap;
+}
+
+/* One info-affordance style across both map engines (was circle vs square) */
+.layer-toggles:not(.deckgl-layer-toggles) .layer-explain-btn,
+.deckgl-layer-toggles .layer-explain-btn {
+  width: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: 1px solid var(--border, #262c38);
+  border-radius: var(--radius-sm, 3px);
+  background: var(--bg, #0a0c10);
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.layer-toggles:not(.deckgl-layer-toggles) .layer-explain-btn.has-layer-explanation,
+.deckgl-layer-toggles .layer-explain-btn.has-layer-explanation {
+  color: var(--accent, #f0a832);
+  border-color: color-mix(in srgb, var(--accent, #f0a832) 45%, transparent);
+}
+
+@media (max-width: 1500px) {
+  .layer-toggles:not(.deckgl-layer-toggles) {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: calc(100% - 20px);
+    padding: var(--space-1, 4px);
+    background: color-mix(in srgb, var(--bg, #0a0c10) 88%, transparent);
+    border-radius: var(--radius-sm, 3px);
+    scrollbar-width: thin;
+  }
+
+  .layer-toggles:not(.deckgl-layer-toggles) .layer-toggle-row,
+  .layer-toggles:not(.deckgl-layer-toggles) .layer-help-btn {
+    flex: 0 0 auto;
+  }
+}
+
+/* Map author badge: fork brand, quiet chrome (was upstream cyan credit) */
+.map-author-badge {
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  border-top-color: var(--border, #262c38);
+}

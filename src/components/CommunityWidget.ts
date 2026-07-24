@@ -1,10 +1,11 @@
+import { BRAND } from '@/config/brand';
 import { t } from '@/services/i18n';
 import { getDismissed, setDismissed } from '@/utils/cross-domain-storage';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 
 
 const DISMISSED_KEY = 'wm-community-dismissed-v2';
-const DISCUSSION_URL = 'https://discord.gg/re63kWKxaz';
+const DISCUSSION_URL = BRAND.discordInvite;
 
 export function mountCommunityWidget(): void {
   if (getDismissed(DISMISSED_KEY)) return;

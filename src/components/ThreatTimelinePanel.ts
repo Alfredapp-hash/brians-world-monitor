@@ -61,14 +61,14 @@ export class ThreatTimelinePanel extends Panel {
       console.warn('[ThreatTimeline] insight refresh failed, falling back to clusters:', err);
     }
 
-    this.updateFromClusters(this.lastClusters, 'degraded', 'Server insight snapshot unavailable');
+    this.updateFromClusters(this.lastClusters, 'degraded', 'Live insights are temporarily unavailable — showing cached event data.');
   }
 
   public updateFromServerInsights(insights: ServerInsights): void {
     const items = normalizeServerInsightStories(insights);
     const state = buildThreatTimelineState(items, {
       status: insights.status,
-      statusMessage: insights.status === 'degraded' ? 'Server insight snapshot degraded' : '',
+      statusMessage: insights.status === 'degraded' ? 'Some insight sources are delayed — coverage may be partial.' : '',
     });
     this.renderState(state, 'Insights snapshot');
   }
@@ -90,7 +90,11 @@ export class ThreatTimelinePanel extends Panel {
       const message = state.status === 'degraded'
         ? 'No recent threat metadata available from the intelligence snapshot.'
         : 'No recent threat metadata in the last 7 days.';
-      this.renderEmpty(message, state.degradedReasons);
+      // The degraded message already says the snapshot is unavailable — drop the
+      // status line from the reasons so it doesn't render as a duplicate second
+      // line. Genuinely informative reasons (e.g. invalid timestamps) still show.
+      const reasons = state.degradedReasons.filter(reason => reason !== state.statusMessage);
+      this.renderEmpty(message, reasons);
       return;
     }
 

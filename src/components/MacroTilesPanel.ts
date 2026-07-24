@@ -99,9 +99,12 @@ function chinaTileHtml(indicator: ChinaMacroIndicator): string {
     : null;
   const deltaText = delta === null ? '' : `${delta >= 0 ? '+' : ''}${chinaValueFmt(indicator, delta)} vs prior`;
   const state = indicator.stale ? 'STALE' : (indicator.unavailableReason || (available ? 'LIVE' : 'UNAVAILABLE'));
+  // Degraded-mode calm: an unavailable indicator reads as neutral-dim (not
+  // alarm red) and a stale one as amber watch — a dashboard with sources down
+  // should look intentional, not crashed.
   const stateColor = indicator.stale
-    ? '#f39c12'
-    : (indicator.unavailableReason || !available ? '#e74c3c' : '#27ae60');
+    ? 'var(--status-warn, #e08a3c)'
+    : (indicator.unavailableReason || !available ? 'var(--text-dim-safe, #a9a49b)' : '#27ae60');
   const observed = indicator.observationDate || 'No observation date';
   const source = indicator.source || 'Source unavailable';
 

@@ -30,6 +30,63 @@
   --overlay-light: rgba(240, 168, 50, 0.07);
 }
 
+/* ============================================================
+   Token foundation — spacing, radii, z-index ladder, type
+   steps, semantic status scale. Single source of truth for
+   new work (Workstreams B/D consume these).
+   ============================================================ */
+:root {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* Z-index ladder */
+  --z-base: 1;
+  --z-panel: 10;
+  --z-dropdown: 100;
+  --z-toast: 500;
+  --z-modal: 1000;
+  --z-palette: 1100;
+  --z-max: 2000;
+
+  /* Type steps (match dominant 9/10/11/12/14px usage) */
+  --text-xs: 9px;
+  --text-sm: 10px;
+  --text-md: 11px;
+  --text-lg: 12px;
+  --text-xl: 14px;
+
+  /* Semantic status scale — tuned to sit alongside amber #f0a832
+   * on #0a0c10. All foreground values clear WCAG AA on --bg:
+   * info 7.3:1, watch 10.0:1, warn 7.3:1, alert 5.1:1. */
+  --status-info: #6da5c9;
+  --status-info-bg: rgba(109, 165, 201, 0.12);
+  --status-watch: #d9b64a;
+  --status-watch-bg: rgba(217, 182, 74, 0.12);
+  --status-warn: #e08a3c;
+  --status-warn-bg: rgba(224, 138, 60, 0.12);
+  --status-alert: #e05252;
+  --status-alert-bg: rgba(224, 82, 82, 0.12);
+
+  /* Readable dim text: 7.9:1 on #0a0c10 (upstream #888/#6b6b6b failed AA).
+   * --text-dim-safe is the canonical value; --text-dim is repointed here
+   * (NOT in main.css — legacy variants there still derive from it). */
+  --text-dim-safe: #a9a49b;
+  --text-dim: var(--text-dim-safe);
+}
+
 /* Header & footer carry the identity strongest */
 .site-footer-name,
 .mobile-menu-title {
@@ -50,11 +107,15 @@
   border-radius: 8px;
 }
 
-/* Amber focus ring for interactive elements */
+/* Amber focus ring for all interactive primitives (keyboard only) */
 button:focus-visible,
+[role="button"]:focus-visible,
 a:focus-visible,
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
   outline: 2px solid rgba(240, 168, 50, 0.65);
   outline-offset: 1px;
 }

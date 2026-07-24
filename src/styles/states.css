@@ -1,0 +1,294 @@
+/*
+ * Shared degraded-mode states — empty / loading / error / offline chrome.
+ * Owned by the visual-overhaul Workstream B. Imported unlayered (after
+ * brians-theme.css) so state styling wins over legacy per-panel rules.
+ *
+ * Design intent: a dashboard with APIs down should look intentional, not
+ * crashed. Degraded states are dim, calm and neutral — never red walls.
+ * Amber (--status-warn / --accent) is the single accent for "actionable".
+ */
+
+/* ------------------------------------------------------------------ */
+/* 1. Designed empty state (Panel.showEmpty)                          */
+/* ------------------------------------------------------------------ */
+
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: var(--space-2, 8px);
+  min-height: 120px;
+  min-height: 100%; /* fill the well so centering is real; falls back to 120px */
+  margin: auto;
+  padding: var(--space-6, 24px) var(--space-4, 16px);
+  text-align: center;
+  opacity: 1;
+  font-size: 11px;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+}
+
+.panel-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  opacity: 0.55;
+  margin-bottom: var(--space-1, 4px);
+}
+
+.panel-empty-icon svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+.panel-empty-msg {
+  font-size: var(--text-size-md, 11px);
+  line-height: 1.45;
+  max-width: 240px;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+}
+
+.panel-empty-hint {
+  font-size: var(--text-size-sm, 10px);
+  line-height: 1.4;
+  max-width: 240px;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  opacity: 0.7;
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. Calm error states (Panel.showError / showRetrying)              */
+/* ------------------------------------------------------------------ */
+
+/* Error body matches the designed empty state: centered, dim, no alarm. */
+.panel-error-state {
+  flex: 1;
+  margin: auto;
+  gap: var(--space-2, 8px);
+  min-height: 120px;
+  min-height: 100%;
+  padding: var(--space-6, 24px) var(--space-4, 16px);
+}
+
+.panel-error-msg {
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  font-size: var(--text-size-md, 11px);
+  max-width: 240px;
+}
+
+/* Radar loses its alert coloring: neutral ring, small amber dot as the
+   single "something is retrying" affordance. */
+.panel-error-radar {
+  border-color: var(--border, rgba(255, 255, 255, 0.14));
+  opacity: 0.55;
+}
+
+.panel-error-radar .panel-radar-sweep {
+  background: linear-gradient(90deg, transparent, var(--status-warn, var(--accent, #f0a832)));
+}
+
+.panel-error-radar .panel-radar-dot.error {
+  background: var(--status-warn, var(--accent, #f0a832));
+  box-shadow: 0 0 6px var(--status-warn-bg, rgba(240, 168, 50, 0.35));
+}
+
+/* Header of a failing panel: neutral, not a red banner. The unavailable
+   badge (below) carries the amber accent. */
+.panel-header-error {
+  background: var(--overlay-subtle, rgba(255, 255, 255, 0.03));
+  border-bottom-color: var(--border, rgba(255, 255, 255, 0.14));
+}
+
+.panel-header-error .panel-title {
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+}
+
+.panel-header-error .panel-count {
+  background: var(--overlay-medium, rgba(255, 255, 255, 0.08));
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+}
+
+/* ------------------------------------------------------------------ */
+/* 3. Demoted UNAVAILABLE badges — neutral gray, small amber dot      */
+/* ------------------------------------------------------------------ */
+
+.panel-data-badge.unavailable {
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  border-color: var(--border, rgba(255, 255, 255, 0.16));
+  background: var(--overlay-subtle, rgba(255, 255, 255, 0.04));
+  padding-left: 16px;
+  border-radius: var(--radius-pill, 10px);
+}
+
+.panel-data-badge.unavailable::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--status-warn, var(--accent, #f0a832));
+  transform: translateY(-50%);
+}
+
+/* Service-status list + connectivity banner: same demotion. */
+.status-indicator--unavailable {
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+}
+
+.status-indicator--unavailable .status-dot {
+  background: var(--status-warn, var(--accent, #f0a832));
+}
+
+.cached-mode-banner--unavailable {
+  border-top-color: var(--border, rgba(255, 255, 255, 0.16));
+  background: var(--overlay-subtle, rgba(255, 255, 255, 0.04));
+}
+
+.cached-mode-banner--unavailable .cached-mode-banner__badge {
+  border-color: var(--status-warn, var(--accent, #f0a832));
+  color: var(--status-warn, var(--accent, #f0a832));
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. LIVE NEWS — center the ready state, kill the dead black void    */
+/* ------------------------------------------------------------------ */
+
+#live-news .panel-content,
+.panel[data-panel="live-news"] .panel-content {
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ready state: a defined 16:9 well, centered in the panel instead of a
+   full-height black slab. Off-brand red glow becomes a quiet amber tint. */
+#live-news .live-news-placeholder.live-media-shell,
+.panel[data-panel="live-news"] .live-news-placeholder.live-media-shell {
+  flex: 0 1 auto;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 100%;
+  min-height: 160px;
+  margin: auto;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--status-warn-bg, rgba(240, 168, 50, 0.08)), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 45%),
+    var(--bg, #0a0c10);
+}
+
+/* Playing state: cap the player to the well so a shallow row never leaves
+   a void below (fullscreen keeps its own !important height rules). */
+.panel:not(.live-news-fullscreen) .live-news-player {
+  flex: 0 1 auto;
+  width: 100%;
+  max-height: 100%;
+  margin: auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. Webcam tiles — fixed ratio + designed poster placeholders       */
+/* ------------------------------------------------------------------ */
+
+/* Fixed 16:9 tiles instead of stretch-to-fill voids; the grid centers
+   vertically when the panel row is taller than the wall. */
+.webcam-grid {
+  height: auto;
+  grid-template-rows: none;
+  grid-auto-rows: auto;
+  align-content: center;
+  background: transparent;
+  gap: var(--space-1, 4px);
+}
+
+.webcam-cell {
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border-radius: var(--radius-sm, 4px);
+}
+
+/* Poster placeholder: layered dark-to-amber gradient, centered location
+   name, small dim PLAY affordance — no maroon voids. */
+.webcam-preview-tile {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-4, 16px);
+  background:
+    radial-gradient(110% 85% at 50% 0%, var(--status-warn-bg, rgba(240, 168, 50, 0.1)), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 40%),
+    linear-gradient(180deg, #14161c 0%, var(--bg, #0a0c10) 78%);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-sm, 4px);
+}
+
+.webcam-preview-status {
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+}
+
+.webcam-preview-title {
+  text-shadow: none;
+}
+
+.webcam-preview-meta {
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+}
+
+/* Play affordance: quiet neutral-amber chip instead of a red alert pill
+   (shared with the Live News ready-state button). */
+.live-media-shell .offline-retry,
+.webcam-preview-play {
+  background: var(--overlay-subtle, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.18));
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+}
+
+.live-media-shell .offline-retry:hover,
+.webcam-preview-play:hover,
+.webcam-preview-tile:hover .webcam-preview-play {
+  background: var(--status-warn-bg, rgba(240, 168, 50, 0.12));
+  border-color: var(--status-warn, var(--accent, #f0a832));
+  color: var(--status-warn, var(--accent, #f0a832));
+}
+
+.live-media-shell .offline-retry:focus-visible,
+.webcam-preview-play:focus-visible {
+  outline: 2px solid var(--status-warn, var(--accent, #f0a832));
+  outline-offset: 2px;
+}
+
+/* Ready dots: amber standby instead of red-alert (red still means "live"
+   once a stream is actually playing via .webcam-cell-label). */
+.live-media-shell-dot,
+.live-media-shell-dot::before,
+.webcam-preview-tile .webcam-live-dot {
+  background: var(--status-warn, var(--accent, #f0a832));
+}
+
+/* Paused placeholder centers in the well like every other calm state. */
+.webcam-placeholder {
+  flex: 1;
+  margin: auto;
+  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. Reduced motion — one global gate                                */
+/* ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

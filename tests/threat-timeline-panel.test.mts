@@ -497,7 +497,7 @@ describe('ThreatTimelinePanel refresh behavior', () => {
       assert.equal(fetchCalls, 1, 'refresh attempted the on-demand insights fetch');
       assert.match(contentEl.innerHTML, /Fallback protests spread after outage/);
       assert.match(contentEl.innerHTML, /Keyword fallback/);
-      assert.match(contentEl.innerHTML, /Server insight snapshot unavailable/);
+      assert.match(contentEl.innerHTML, /Live insights are temporarily unavailable/);
       assert.doesNotMatch(contentEl.innerHTML, /Fresh server-backed escalation/, 'degraded fallback replaces stale server content');
       assert.ok(badgeEl.classList.contains('cached'), 'degraded fallback is visibly badged as cached/degraded');
       assert.match(badgeEl.textContent ?? '', /degraded/);
@@ -522,7 +522,7 @@ describe('ThreatTimelinePanel refresh behavior', () => {
 
       assert.match(contentEl.innerHTML, /Recovered server-backed escalation/);
       assert.doesNotMatch(contentEl.innerHTML, /Fallback protests spread after outage/);
-      assert.doesNotMatch(contentEl.innerHTML, /Server insight snapshot unavailable/);
+      assert.doesNotMatch(contentEl.innerHTML, /Live insights are temporarily unavailable/);
       assert.ok(badgeEl.classList.contains('live'), 'server recovery restores the live badge');
     } finally {
       panel.destroy();

@@ -205,6 +205,9 @@ export class SearchModal {
   }
 
   public open(): void {
+    // The palette must own the screen: tell any open popover/modal chrome
+    // (e.g. the mission-preset picker) to close before we render on top.
+    document.dispatchEvent(new CustomEvent('jsam:palette-open'));
     if (this.closeTimeoutId) {
       clearTimeout(this.closeTimeoutId);
       this.closeTimeoutId = null;
