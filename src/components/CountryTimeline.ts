@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import { escapeHtml } from '@/utils/sanitize';
 import { getCSSColor } from '@/utils';
+import { CATEGORY } from '@/styles/tokens';
 import { t } from '@/services/i18n';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 
@@ -14,11 +15,14 @@ export interface TimelineEvent {
 
 const LANES: TimelineEvent['lane'][] = ['protest', 'conflict', 'natural', 'military'];
 
+// Qualitative lane identities — raw CATEGORY constants (not CSS vars)
+// because they're written into SVG presentation attributes (fill), where
+// custom properties don't resolve.
 const LANE_COLORS: Record<TimelineEvent['lane'], string> = {
-  protest: '#ffaa00',
-  conflict: '#ff4444',
-  natural: '#b478ff',
-  military: '#64b4ff',
+  protest: CATEGORY.gold,
+  conflict: CATEGORY.red,
+  natural: CATEGORY.violet,
+  military: CATEGORY.blue,
 };
 
 const SEVERITY_RADIUS: Record<string, number> = {

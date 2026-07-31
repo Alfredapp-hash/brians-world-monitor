@@ -2,6 +2,7 @@ import type { EconomicServiceClient } from '@/generated/client/worldmonitor/econ
 import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { CATEGORY } from '@/styles/tokens';
 
 let _client: EconomicServiceClient | null = null;
 async function getEconomicClient(): Promise<EconomicServiceClient> {
@@ -120,7 +121,7 @@ function buildEcbPolyline(ecbRates: Record<string, number>, yMin: number, yMax: 
     })
     .filter(Boolean);
   if (points.length < 2) return '';
-  return `<polyline points="${points.join(' ')}" fill="none" stroke="#2ecc71" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" stroke-linejoin="round"/>`;
+  return `<polyline points="${points.join(' ')}" fill="none" stroke="${CATEGORY.aqua}" stroke-width="1.5" stroke-dasharray="5,3" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
 function buildEcbCircles(ecbRates: Record<string, number>, yMin: number, yMax: number): string {
@@ -130,7 +131,7 @@ function buildEcbCircles(ecbRates: Record<string, number>, yMin: number, yMax: n
     const x = ecbXPos(tenor);
     if (x === null) return '';
     const y = yPos(rate, yMin, yMax);
-    return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="2.5" fill="#2ecc71" stroke="rgba(0,0,0,0.4)" stroke-width="1"/>`;
+    return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="2.5" fill="${CATEGORY.aqua}" stroke="rgba(0,0,0,0.4)" stroke-width="1"/>`;
   }).join('');
 }
 
@@ -160,8 +161,8 @@ function renderChart(current: YieldPoint[], prior: YieldPoint[], ecbRates: Recor
       ${buildXAxisLabels(current.length)}
       ${priorLine}
       ${ecbLine}
-      <polyline points="${curPoints}" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      ${buildCircles(current, yMin, yMax, '#3498db')}
+      <polyline points="${curPoints}" fill="none" stroke="${CATEGORY.blue}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${buildCircles(current, yMin, yMax, CATEGORY.blue)}
       ${ecbDots}
     </svg>`;
 }
@@ -212,7 +213,7 @@ function renderRatesTab(rows: RateRow[]): string {
     const prev = row.obs[row.obs.length - 2];
     const change = prev ? latest.value - prev.value : null;
     const changeStr = change !== null ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : '';
-    const changeColor = change === null ? '' : change >= 0 ? '#e74c3c' : '#27ae60';
+    const changeColor = change === null ? '' : change >= 0 ? 'var(--status-alert)' : 'var(--status-good)';
     return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
       <div style="width:90px;font-size:10px;color:var(--text-dim)">${escapeHtml(row.label)}</div>
       ${miniRateSparkline(row.obs.slice(-24), row.color)}
@@ -274,10 +275,10 @@ export class YieldCurvePanel extends Panel {
         : null;
 
       this._rateRows = [
-        { id: 'ESTR', label: '€STR', obs: results['ESTR']?.observations ?? [], color: '#2ecc71' },
-        { id: 'EURIBOR3M', label: 'EURIBOR 3M', obs: results['EURIBOR3M']?.observations ?? [], color: '#3498db' },
-        { id: 'EURIBOR6M', label: 'EURIBOR 6M', obs: results['EURIBOR6M']?.observations ?? [], color: '#9b59b6' },
-        { id: 'EURIBOR1Y', label: 'EURIBOR 1Y', obs: results['EURIBOR1Y']?.observations ?? [], color: '#e67e22' },
+        { id: 'ESTR', label: '€STR', obs: results['ESTR']?.observations ?? [], color: CATEGORY.blue },
+        { id: 'EURIBOR3M', label: 'EURIBOR 3M', obs: results['EURIBOR3M']?.observations ?? [], color: CATEGORY.orange },
+        { id: 'EURIBOR6M', label: 'EURIBOR 6M', obs: results['EURIBOR6M']?.observations ?? [], color: CATEGORY.aqua },
+        { id: 'EURIBOR1Y', label: 'EURIBOR 1Y', obs: results['EURIBOR1Y']?.observations ?? [], color: CATEGORY.gold },
       ];
 
       const validCount = this._current.filter(p => p.value !== null).length;
@@ -313,15 +314,15 @@ export class YieldCurvePanel extends Panel {
     const spreadSign = spreadBps !== null ? (Number(spreadBps) >= 0 ? '+' : '') : '';
 
     const statusBadge = isInverted
-      ? `<span style="background:#e74c3c;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:0.08em">INVERTED</span>`
-      : `<span style="background:#2ecc71;color:#000;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:0.08em">NORMAL</span>`;
+      ? `<span style="background:var(--status-alert);color:var(--text);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:0.08em">INVERTED</span>`
+      : `<span style="background:var(--status-good);color:var(--bg);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:0.08em">NORMAL</span>`;
 
     const spreadHtml = spreadBps !== null
-      ? `<span style="font-size:11px;color:var(--text-dim);margin-left:10px">2Y-10Y Spread: <span style="color:${isInverted ? '#e74c3c' : '#2ecc71'}">${escapeHtml(spreadSign + spreadBps)}bps</span></span>`
+      ? `<span style="font-size:11px;color:var(--text-dim);margin-left:10px">2Y-10Y Spread: <span style="color:${isInverted ? 'var(--status-alert)' : 'var(--status-good)'}">${escapeHtml(spreadSign + spreadBps)}bps</span></span>`
       : '';
 
     const ecbLegend = this._ecbRates
-      ? `<span><svg width="20" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="20" y2="2" stroke="#2ecc71" stroke-width="1.5" stroke-dasharray="5,3"/></svg> EU (ECB AAA)</span>`
+      ? `<span><svg width="20" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="20" y2="2" stroke="${CATEGORY.aqua}" stroke-width="1.5" stroke-dasharray="5,3"/></svg> EU (ECB AAA)</span>`
       : '';
 
     this.setSafeContent(unsafeRawHtml(`
@@ -333,7 +334,7 @@ export class YieldCurvePanel extends Panel {
         <div style="margin:0 -4px">${renderChart(this._current, this._prior, this._ecbRates)}</div>
         ${renderTable(this._current)}
         <div style="margin-top:8px;font-size:9px;color:var(--text-dim);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-          <span><svg width="20" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="20" y2="2" stroke="#3498db" stroke-width="2"/></svg> US (Current)</span>
+          <span><svg width="20" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="20" y2="2" stroke="${CATEGORY.blue}" stroke-width="2"/></svg> US (Current)</span>
           <span><svg width="20" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="20" y2="2" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-dasharray="4,3"/></svg> US (Prior)</span>
           ${ecbLegend}
           <span style="margin-left:auto">Source: FRED / ECB</span>

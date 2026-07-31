@@ -195,7 +195,7 @@ export class HeatmapPanel extends Panel {
       if (v === null) return 'var(--text-dim)';
       if (v < median * 0.8) return 'var(--green)';
       if (v > median * 1.2) return 'var(--red)';
-      return '#e6a817';
+      return 'var(--status-watch)';
     };
 
     const barChart =

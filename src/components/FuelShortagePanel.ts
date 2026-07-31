@@ -1,5 +1,6 @@
 import { Panel } from './Panel';
 import { escapeHtml, sanitizeUrl, unsafeRawHtml } from '@/utils/sanitize';
+import { BRAND, CATEGORY } from '@/styles/tokens';
 import { createLazyClient, getRpcBaseUrl, rpcFetch } from '@/services/rpc-client';
 import { attributionFooterHtml, ATTRIBUTION_FOOTER_CSS } from '@/utils/attribution-footer';
 
@@ -25,8 +26,8 @@ const getSupplyChainClient = createLazyClient(() => new SupplyChainServiceClient
 }));
 
 const SEVERITY_COLOR: Record<string, string> = {
-  confirmed: '#e74c3c',
-  watch:     '#f39c12',
+  confirmed: 'var(--status-alert)',
+  watch:     'var(--status-watch)',
 };
 
 // Single unicode glyph per product. Used in the table row so readers can
@@ -45,7 +46,7 @@ const QUALITY_DOT: Record<EvidenceQuality, string> = {
 };
 
 function severityChip(severity: string): string {
-  const color = SEVERITY_COLOR[severity] ?? '#7f8c8d';
+  const color = SEVERITY_COLOR[severity] ?? 'var(--text-dim)';
   const label = severity.charAt(0).toUpperCase() + severity.slice(1);
   return `<span class="fs-badge" style="background:${color}">${escapeHtml(label)}</span>`;
 }
@@ -289,20 +290,20 @@ export class FuelShortagePanel extends Panel {
         .fs-table tr.fs-row:hover td { background: rgba(255,255,255,0.03); }
         .fs-name { font-weight: 600; color: var(--text, #eee); }
         .fs-sub  { font-size: 9px; color: var(--text-dim, #888); text-transform: uppercase; letter-spacing: 0.04em; }
-        .fs-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; }
+        .fs-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.04em; }
         .fs-quality { font-family: monospace; font-size: 10px; color: var(--text-dim, #888); }
-        .fs-drawer { position: absolute; inset: 0; background: var(--panel-bg, #0f1218); padding: 12px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; }
+        .fs-drawer { position: absolute; inset: 0; background: var(--panel-bg, ${BRAND.bgSecondary}); padding: 12px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; }
         .fs-drawer-close { position: absolute; top: 8px; right: 10px; background: transparent; border: 0; color: var(--text-dim, #888); cursor: pointer; font-size: 14px; }
         .fs-drawer h3 { margin: 0 0 6px 0; font-size: 13px; color: var(--text, #eee); }
         .fs-drawer .fs-kv { display: grid; grid-template-columns: 120px 1fr; gap: 4px 10px; font-size: 10px; margin-bottom: 10px; }
         .fs-drawer .fs-kv-key { color: var(--text-dim, #888); text-transform: uppercase; letter-spacing: 0.04em; font-size: 9px; padding-top: 2px; }
         .fs-source-list { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); }
         .fs-src-item { font-size: 10px; color: var(--text, #eee); margin-bottom: 6px; }
-        .fs-src-item a { color: #4ade80; text-decoration: none; }
+        .fs-src-item a { color: var(--status-good); text-decoration: none; }
         .fs-src-item a:hover { text-decoration: underline; }
         .fs-src-type { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(255,255,255,0.08); color: var(--text-dim, #aaa); margin-right: 4px; }
-        .fs-src-type-regulator { background: #2980b9; color: #fff; }
-        .fs-src-type-operator { background: #27ae60; color: #fff; }
+        .fs-src-type-regulator { background: ${CATEGORY.blue}; color: var(--text); }
+        .fs-src-type-operator { background: ${CATEGORY.green}; color: var(--text); }
         .fs-src-type-press { background: #555; color: #ccc; }
       </style>
     `, 'legacy Panel.setContent() migration'));

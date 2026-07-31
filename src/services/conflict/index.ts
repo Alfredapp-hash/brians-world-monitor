@@ -1,4 +1,5 @@
 import { getRpcBaseUrl, getRpcErrorStatusCode } from '@/services/rpc-client';
+import { STATUS, hexToRgb, withAlpha } from '@/styles/tokens';
 import type { AcledConflictEvent as ProtoAcledEvent, UcdpViolenceEvent as ProtoUcdpEvent, HumanitarianCountrySummary as ProtoHumanSummary, ListAcledEventsResponse, ListUcdpEventsResponse, GetHumanitarianSummaryResponse, GetHumanitarianSummaryBatchResponse, IranEvent, ListIranEventsResponse } from '@/generated/client/worldmonitor/conflict/v1/service_client';
 import type { UcdpGeoEvent, UcdpEventType } from '@/types';
 import { createCircuitBreaker } from '@/utils';
@@ -365,10 +366,10 @@ function iranColorTier(ev: Pick<IranEvent, 'severity' | 'category'>): IranColorT
 }
 
 const IRAN_RGBA: Record<IranColorTier, [number, number, number, number]> = {
-  red: [255, 50, 50, 220], orange: [255, 165, 0, 200], yellow: [255, 255, 0, 180],
+  red: [...hexToRgb(STATUS.alert), 220], orange: [...hexToRgb(STATUS.warn), 200], yellow: [...hexToRgb(STATUS.watch), 180],
 };
 const IRAN_CSS: Record<IranColorTier, string> = {
-  red: 'rgba(255,50,50,0.85)', orange: 'rgba(255,165,0,0.8)', yellow: 'rgba(255,255,0,0.7)',
+  red: withAlpha(STATUS.alert, 0.85), orange: withAlpha(STATUS.warn, 0.8), yellow: withAlpha(STATUS.watch, 0.7),
 };
 
 export function getIranEventColor(ev: Pick<IranEvent, 'severity' | 'category'>): [number, number, number, number] {
@@ -380,9 +381,9 @@ export function getIranEventCssColor(ev: Pick<IranEvent, 'severity' | 'category'
 }
 
 export function getIranEventHexColor(ev: Pick<IranEvent, 'severity'>): string {
-  if (ev.severity === 'high' || ev.severity === 'critical') return '#ff3030';
-  if (ev.severity === 'elevated') return '#ff8800';
-  return '#ffcc00';
+  if (ev.severity === 'high' || ev.severity === 'critical') return STATUS.alert;
+  if (ev.severity === 'elevated') return STATUS.warn;
+  return STATUS.watch;
 }
 
 export function getIranEventRadius(severity: string): number {

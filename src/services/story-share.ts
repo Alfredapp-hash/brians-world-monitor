@@ -1,6 +1,8 @@
 import type { StoryData } from './story-data';
 import { toFlagEmoji } from '@/utils/country-flag';
 import { getCanonicalApiOrigin } from '@/services/runtime';
+// Canvas 2D cannot resolve CSS custom properties — raw token constants only.
+import { BRAND } from '@/styles/tokens';
 
 const VALID_STORY_TYPES = ['ciianalysis', 'convergence', 'brief'] as const;
 type StoryType = typeof VALID_STORY_TYPES[number];
@@ -56,9 +58,9 @@ export function generateQRCode(data: string, size: number = 200): string {
   const ctx = canvas.getContext('2d')!;
   
   // Placeholder - would use actual QR library
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = BRAND.text;
   ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = '#000000';
+  ctx.fillStyle = BRAND.bg;
   ctx.font = '14px monospace';
   ctx.textAlign = 'center';
   ctx.fillText('Scan to view', size/2, size/2 - 10);

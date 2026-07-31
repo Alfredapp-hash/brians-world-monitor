@@ -20,6 +20,12 @@ export function contrastRatio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+// Algorithmic endpoints of the WCAG foreground picker — pure white and a
+// near-black, NOT brand colors (deliberately kept out of the token set so the
+// contrast math stays theme-independent).
+const TEXT_ON_DARK = '#ffffff';
+const TEXT_ON_LIGHT = '#1a1a1a';
+
 /**
  * Pick the higher-contrast foreground text color (white or near-black) for a
  * solid hex background. Returns whichever of `#ffffff` / `#1a1a1a` has the
@@ -28,8 +34,8 @@ export function contrastRatio(a: string, b: string): number {
  * backgrounds clear WCAG AA with the chosen color; arbitrary mid-gray inputs
  * may still need a different palette to reach 4.5:1.
  */
-export function readableTextColor(bgHex: string): '#ffffff' | '#1a1a1a' {
-  return contrastRatio('#ffffff', bgHex) >= contrastRatio('#1a1a1a', bgHex)
-    ? '#ffffff'
-    : '#1a1a1a';
+export function readableTextColor(bgHex: string): typeof TEXT_ON_DARK | typeof TEXT_ON_LIGHT {
+  return contrastRatio(TEXT_ON_DARK, bgHex) >= contrastRatio(TEXT_ON_LIGHT, bgHex)
+    ? TEXT_ON_DARK
+    : TEXT_ON_LIGHT;
 }

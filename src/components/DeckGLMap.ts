@@ -47,6 +47,11 @@ import { getMilitaryBaseColor } from '@/config/military-base-colors';
 import { getMineralColor } from '@/config/mineral-colors';
 import { getWindColor } from '@/config/wind-colors';
 import { CII_LEVEL_COLORS, type CiiLevel } from '@/config/cii-colors';
+import { BRAND as BRAND_TOKENS, CATEGORY, SEVERITY, STATUS, NEUTRAL, hexToRgb } from '@/styles/tokens';
+
+// Country-embed outline on light basemaps — slate that reads on pale
+// terrain; no counterpart in the dark-only token set (documented one-off).
+const EMBED_OUTLINE_LIGHT = '#334155';
 import type { GpsJamHex } from '@/services/gps-interference';
 import { fetchImageryScenes } from '@/services/imagery';
 import type { ImageryScene } from '@/generated/server/worldmonitor/imagery/v1/service_server';
@@ -260,64 +265,55 @@ const LAYER_ZOOM_THRESHOLDS: Partial<Record<keyof MapLayers, { minZoom: number; 
 // Export for external use
 export { LAYER_ZOOM_THRESHOLDS };
 
-// Theme-aware overlay color function — refreshed each buildLayers() call
+/** Token hex → deck.gl RGBA tuple. */
+const rgba = (hex: string, a: number): [number, number, number, number] => {
+  const [r, g, b] = hexToRgb(hex);
+  return [r, g, b, a];
+};
+
+// Theme-aware overlay color function — refreshed each buildLayers() call.
+// All hues come from src/styles/tokens.ts (SEVERITY ladder for threat
+// tiers, CATEGORY for qualitative identity) so the flat map, the globe
+// and the panels share one encoding. Only alpha varies per theme.
 function getOverlayColors() {
   const isLight = getCurrentTheme() === 'light';
   return {
-    // Threat dots: IDENTICAL in both modes (user locked decision)
-    hotspotHigh: [255, 68, 68, 200] as [number, number, number, number],
-    hotspotElevated: [255, 165, 0, 200] as [number, number, number, number],
-    hotspotLow: [255, 255, 0, 180] as [number, number, number, number],
+    // Threat dots: hotspot tiers ride the severity ladder (parity with GlobeMap)
+    hotspotHigh: rgba(SEVERITY.s5, 200),
+    hotspotElevated: rgba(SEVERITY.s3, 200),
+    hotspotLow: rgba(SEVERITY.s2, 180),
 
     // Conflict zone fills: more transparent in light mode
-    conflict: isLight
-      ? [255, 0, 0, 60] as [number, number, number, number]
-      : [255, 0, 0, 100] as [number, number, number, number],
+    conflict: rgba(STATUS.alert, isLight ? 60 : 100),
 
-    // Infrastructure/category markers: darker variants in light mode for map readability
-    base: [0, 150, 255, 200] as [number, number, number, number],
-    nuclear: isLight
-      ? [180, 120, 0, 220] as [number, number, number, number]
-      : [255, 215, 0, 200] as [number, number, number, number],
-    datacenter: isLight
-      ? [13, 148, 136, 200] as [number, number, number, number]
-      : [0, 255, 200, 180] as [number, number, number, number],
-    cable: [0, 200, 255, 150] as [number, number, number, number],
-    cableHighlight: [255, 100, 100, 200] as [number, number, number, number],
-    cableFault: [255, 50, 50, 220] as [number, number, number, number],
-    cableDegraded: [255, 165, 0, 200] as [number, number, number, number],
-    earthquake: [255, 100, 50, 200] as [number, number, number, number],
-    vesselMilitary: [255, 100, 100, 220] as [number, number, number, number],
-    protest: [255, 150, 0, 200] as [number, number, number, number],
-    outage: [255, 50, 50, 180] as [number, number, number, number],
-    trafficAnomaly: [255, 160, 0, 200] as [number, number, number, number],
-    ddosHit: [180, 0, 255, 200] as [number, number, number, number],
-    weather: [100, 150, 255, 180] as [number, number, number, number],
-    startupHub: isLight
-      ? [22, 163, 74, 220] as [number, number, number, number]
-      : [0, 255, 150, 200] as [number, number, number, number],
-    techHQ: [100, 200, 255, 200] as [number, number, number, number],
-    accelerator: isLight
-      ? [180, 120, 0, 220] as [number, number, number, number]
-      : [255, 200, 0, 200] as [number, number, number, number],
-    cloudRegion: [150, 100, 255, 180] as [number, number, number, number],
-    stockExchange: isLight
-      ? [20, 120, 200, 220] as [number, number, number, number]
-      : [80, 200, 255, 210] as [number, number, number, number],
-    financialCenter: isLight
-      ? [0, 150, 110, 215] as [number, number, number, number]
-      : [0, 220, 150, 200] as [number, number, number, number],
-    centralBank: isLight
-      ? [180, 120, 0, 220] as [number, number, number, number]
-      : [255, 210, 80, 210] as [number, number, number, number],
-    commodityHub: isLight
-      ? [190, 95, 40, 220] as [number, number, number, number]
-      : [255, 150, 80, 200] as [number, number, number, number],
-    gulfInvestmentSA: [0, 168, 107, 220] as [number, number, number, number],
-    gulfInvestmentUAE: [255, 0, 100, 220] as [number, number, number, number],
-    ucdpStateBased: [255, 50, 50, 200] as [number, number, number, number],
-    ucdpNonState: [255, 165, 0, 200] as [number, number, number, number],
-    ucdpOneSided: [255, 255, 0, 200] as [number, number, number, number],
+    // Infrastructure/category markers
+    base: rgba(CATEGORY.blue, 200),
+    nuclear: rgba(STATUS.watch, 210),
+    datacenter: rgba(STATUS.info, 200),
+    cable: rgba(STATUS.info, 150),
+    cableHighlight: rgba(SEVERITY.s4, 200),
+    cableFault: rgba(SEVERITY.s5, 220),
+    cableDegraded: rgba(SEVERITY.s3, 200),
+    earthquake: rgba(SEVERITY.s3, 200),
+    vesselMilitary: rgba(CATEGORY.red, 220),
+    protest: rgba(STATUS.watch, 200),
+    outage: rgba(STATUS.alert, 180),
+    trafficAnomaly: rgba(STATUS.warn, 200),
+    ddosHit: rgba(CATEGORY.violet, 200),
+    weather: rgba(STATUS.info, 180),
+    startupHub: rgba(CATEGORY.green, 210),
+    techHQ: rgba(CATEGORY.blue, 200),
+    accelerator: rgba(CATEGORY.gold, 210),
+    cloudRegion: rgba(CATEGORY.violet, 190),
+    stockExchange: rgba(CATEGORY.gold, 210),
+    financialCenter: rgba(CATEGORY.aqua, 205),
+    centralBank: rgba(CATEGORY.blue, 210),
+    commodityHub: rgba(CATEGORY.orange, 205),
+    gulfInvestmentSA: rgba(CATEGORY.green, 220),
+    gulfInvestmentUAE: rgba(CATEGORY.magenta, 220),
+    ucdpStateBased: rgba(STATUS.alert, 200),
+    ucdpNonState: rgba(STATUS.warn, 200),
+    ucdpOneSided: rgba(STATUS.watch, 200),
   };
 }
 // Initialize and refresh on every buildLayers() call
@@ -2379,7 +2375,7 @@ export class DeckGLMap {
           return [255, 100, 100, 200] as [number, number, number, number];
         }
         const colorKey = d.type as keyof typeof PIPELINE_COLORS;
-        const hex = PIPELINE_COLORS[colorKey] || '#666666';
+        const hex = PIPELINE_COLORS[colorKey] || NEUTRAL.slateDim;
         return this.hexToRgba(hex, 150);
       },
       getWidth: (d) => highlightedPipelines.has(d.id) ? 3 : 1.5,
@@ -3545,11 +3541,11 @@ export class DeckGLMap {
         const intensity = Math.min(Math.max(d.intensity, 0.15), 1);
         const isCongested = (d.deltaPct || 0) >= 15;
         const alpha = Math.round(40 + intensity * 160);
-        // Orange for congested areas, cyan for normal traffic
+        // Warn-orange for congested areas, info-blue for normal traffic
         if (isCongested) {
-          return [255, 183, 3, alpha] as [number, number, number, number]; // #ffb703
+          return rgba(STATUS.warn, alpha);
         }
-        return [0, 209, 255, alpha] as [number, number, number, number]; // #00d1ff
+        return rgba(STATUS.info, alpha);
       },
       radiusMinPixels: 4,
       radiusMaxPixels: 12,
@@ -4619,7 +4615,7 @@ export class DeckGLMap {
   }
 
   private static readonly CII_LEVEL_HEX: Record<string, string> = {
-    critical: '#b91c1c', high: '#dc2626', elevated: '#f59e0b', normal: '#eab308', low: '#22c55e',
+    critical: SEVERITY.s5, high: SEVERITY.s4, elevated: SEVERITY.s3, normal: SEVERITY.s2, low: SEVERITY.s1,
   };
 
   private createCIIChoroplethLayer(): GeoJsonLayer | null {
@@ -4913,7 +4909,7 @@ export class DeckGLMap {
       case 'disease-outbreaks-layer': {
         const item = (obj as { item: DiseaseOutbreakItem }).item;
         if (!item) return null;
-        const lvlColor = item.alertLevel === 'alert' ? '#e74c3c' : item.alertLevel === 'warning' ? '#e67e22' : '#f1c40f';
+        const lvlColor = item.alertLevel === 'alert' ? 'var(--status-alert)' : item.alertLevel === 'warning' ? 'var(--status-warn)' : 'var(--status-watch)';
         const casesHtml = item.cases ? ` | ${item.cases} case${item.cases !== 1 ? 's' : ''}` : '';
         const dateStr = new Date(item.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         const metaHtml = `<br/><span style="opacity:.6;font-size:11px">${text(item.sourceName || '')} | ${dateStr}${casesHtml}</span>`;
@@ -4936,7 +4932,7 @@ export class DeckGLMap {
       case 'flight-delays-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name)} (${text(obj.iata)})</strong><br/>${text(obj.severity)}: ${text(obj.reason)}</div>` };
       case 'notam-overlay-layer':
-        return { html: `<div class="deckgl-tooltip"><strong style="color:#ff2828;">&#9888; NOTAM CLOSURE</strong><br/>${text(obj.name)} (${text(obj.iata)})<br/><span style="opacity:.7">${text((obj.reason || '').slice(0, 100))}</span></div>` };
+        return { html: `<div class="deckgl-tooltip"><strong style="color:var(--status-alert);">&#9888; NOTAM CLOSURE</strong><br/>${text(obj.name)} (${text(obj.iata)})<br/><span style="opacity:.7">${text((obj.reason || '').slice(0, 100))}</span></div>` };
       case 'aircraft-positions-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.callsign || obj.icao24)}</strong><br/>${obj.altitudeFt?.toLocaleString() ?? 0} ft · ${obj.groundSpeedKts ?? 0} kts · ${Math.round(obj.trackDeg ?? 0)}°</div>` };
       case 'apt-groups-layer':
@@ -5913,78 +5909,77 @@ export class DeckGLMap {
       hexagon: (color: string) => `<svg width="12" height="12" viewBox="0 0 12 12"><polygon points="6,1 10.5,3.5 10.5,8.5 6,11 1.5,8.5 1.5,3.5" fill="${color}"/></svg>`,
     };
 
-    const isLight = getCurrentTheme() === 'light';
     const resilienceLegendItems: { shape: string; label: string; layerKey: keyof MapLayers }[] = [
-      { shape: shapes.square('rgb(239, 68, 68)'), label: 'Resilience: Very Low', layerKey: 'resilienceScore' },
-      { shape: shapes.square('rgb(249, 115, 22)'), label: 'Resilience: Low', layerKey: 'resilienceScore' },
-      { shape: shapes.square('rgb(234, 179, 8)'), label: 'Resilience: Moderate', layerKey: 'resilienceScore' },
-      { shape: shapes.square('rgb(132, 204, 22)'), label: 'Resilience: High', layerKey: 'resilienceScore' },
-      { shape: shapes.square('rgb(34, 197, 94)'), label: 'Resilience: Very High', layerKey: 'resilienceScore' },
+      { shape: shapes.square(STATUS.alert), label: 'Resilience: Very Low', layerKey: 'resilienceScore' },
+      { shape: shapes.square(STATUS.warn), label: 'Resilience: Low', layerKey: 'resilienceScore' },
+      { shape: shapes.square(STATUS.watch), label: 'Resilience: Moderate', layerKey: 'resilienceScore' },
+      { shape: shapes.square(STATUS.info), label: 'Resilience: High', layerKey: 'resilienceScore' },
+      { shape: shapes.square(STATUS.good), label: 'Resilience: Very High', layerKey: 'resilienceScore' },
     ];
     const legendItems: { shape: string; label: string; layerKey: keyof MapLayers }[] = SITE_VARIANT === 'tech'
       ? [
-        { shape: shapes.circle(isLight ? 'rgb(22, 163, 74)' : 'rgb(0, 255, 150)'), label: t('components.deckgl.legend.startupHub'), layerKey: 'startupHubs' },
-        { shape: shapes.circle('rgb(100, 200, 255)'), label: t('components.deckgl.legend.techHQ'), layerKey: 'techHQs' },
-        { shape: shapes.circle(isLight ? 'rgb(180, 120, 0)' : 'rgb(255, 200, 0)'), label: t('components.deckgl.legend.accelerator'), layerKey: 'accelerators' },
-        { shape: shapes.circle('rgb(150, 100, 255)'), label: t('components.deckgl.legend.cloudRegion'), layerKey: 'cloudRegions' },
-        { shape: shapes.square('rgb(136, 68, 255)'), label: t('components.deckgl.legend.datacenter'), layerKey: 'datacenters' },
-        { shape: shapes.circle('rgb(231, 76, 60)'), label: t('components.deckgl.legend.diseaseAlert'), layerKey: 'diseaseOutbreaks' },
-        { shape: shapes.circle('rgb(230, 126, 34)'), label: t('components.deckgl.legend.diseaseWarning'), layerKey: 'diseaseOutbreaks' },
-        { shape: shapes.circle('rgb(241, 196, 15)'), label: t('components.deckgl.legend.diseaseWatch'), layerKey: 'diseaseOutbreaks' },
+        { shape: shapes.circle(CATEGORY.green), label: t('components.deckgl.legend.startupHub'), layerKey: 'startupHubs' },
+        { shape: shapes.circle(CATEGORY.blue), label: t('components.deckgl.legend.techHQ'), layerKey: 'techHQs' },
+        { shape: shapes.circle(CATEGORY.gold), label: t('components.deckgl.legend.accelerator'), layerKey: 'accelerators' },
+        { shape: shapes.circle(CATEGORY.violet), label: t('components.deckgl.legend.cloudRegion'), layerKey: 'cloudRegions' },
+        { shape: shapes.square(STATUS.info), label: t('components.deckgl.legend.datacenter'), layerKey: 'datacenters' },
+        { shape: shapes.circle(STATUS.alert), label: t('components.deckgl.legend.diseaseAlert'), layerKey: 'diseaseOutbreaks' },
+        { shape: shapes.circle(STATUS.warn), label: t('components.deckgl.legend.diseaseWarning'), layerKey: 'diseaseOutbreaks' },
+        { shape: shapes.circle(STATUS.watch), label: t('components.deckgl.legend.diseaseWatch'), layerKey: 'diseaseOutbreaks' },
         ...resilienceLegendItems,
       ]
       : SITE_VARIANT === 'finance'
         ? [
-          { shape: shapes.circle('rgb(255, 215, 80)'), label: t('components.deckgl.legend.stockExchange'), layerKey: 'stockExchanges' },
-          { shape: shapes.circle('rgb(0, 220, 150)'), label: t('components.deckgl.legend.financialCenter'), layerKey: 'financialCenters' },
-          { shape: shapes.hexagon('rgb(255, 210, 80)'), label: t('components.deckgl.legend.centralBank'), layerKey: 'centralBanks' },
-          { shape: shapes.square('rgb(255, 150, 80)'), label: t('components.deckgl.legend.commodityHub'), layerKey: 'commodityHubs' },
-          { shape: shapes.triangle('rgb(80, 170, 255)'), label: t('components.deckgl.legend.waterway'), layerKey: 'waterways' },
-          { shape: shapes.circle('rgb(231, 76, 60)'), label: t('components.deckgl.legend.diseaseAlert'), layerKey: 'diseaseOutbreaks' },
-          { shape: shapes.circle('rgb(230, 126, 34)'), label: t('components.deckgl.legend.diseaseWarning'), layerKey: 'diseaseOutbreaks' },
-          { shape: shapes.circle('rgb(241, 196, 15)'), label: t('components.deckgl.legend.diseaseWatch'), layerKey: 'diseaseOutbreaks' },
+          { shape: shapes.circle(CATEGORY.gold), label: t('components.deckgl.legend.stockExchange'), layerKey: 'stockExchanges' },
+          { shape: shapes.circle(CATEGORY.aqua), label: t('components.deckgl.legend.financialCenter'), layerKey: 'financialCenters' },
+          { shape: shapes.hexagon(CATEGORY.blue), label: t('components.deckgl.legend.centralBank'), layerKey: 'centralBanks' },
+          { shape: shapes.square(CATEGORY.orange), label: t('components.deckgl.legend.commodityHub'), layerKey: 'commodityHubs' },
+          { shape: shapes.triangle(STATUS.info), label: t('components.deckgl.legend.waterway'), layerKey: 'waterways' },
+          { shape: shapes.circle(STATUS.alert), label: t('components.deckgl.legend.diseaseAlert'), layerKey: 'diseaseOutbreaks' },
+          { shape: shapes.circle(STATUS.warn), label: t('components.deckgl.legend.diseaseWarning'), layerKey: 'diseaseOutbreaks' },
+          { shape: shapes.circle(STATUS.watch), label: t('components.deckgl.legend.diseaseWatch'), layerKey: 'diseaseOutbreaks' },
           ...resilienceLegendItems,
         ]
         : SITE_VARIANT === 'happy'
           ? [
-            { shape: shapes.circle('rgb(34, 197, 94)'), label: 'Positive Event', layerKey: 'positiveEvents' },
-            { shape: shapes.circle('rgb(234, 179, 8)'), label: 'Breakthrough', layerKey: 'positiveEvents' },
-            { shape: shapes.circle('rgb(74, 222, 128)'), label: 'Act of Kindness', layerKey: 'kindness' },
-            { shape: shapes.circle('rgb(255, 100, 50)'), label: 'Natural Event', layerKey: 'natural' },
-            { shape: shapes.square('rgb(34, 180, 100)'), label: 'Happy Country', layerKey: 'happiness' },
-            { shape: shapes.circle('rgb(74, 222, 128)'), label: 'Species Recovery Zone', layerKey: 'speciesRecovery' },
-            { shape: shapes.circle('rgb(255, 200, 50)'), label: 'Renewable Installation', layerKey: 'renewableInstallations' },
-            { shape: shapes.circle('rgb(160, 100, 255)'), label: t('components.deckgl.legend.aircraft'), layerKey: 'flights' },
-            { shape: shapes.circle('rgb(231, 76, 60)'), label: t('components.deckgl.legend.diseaseAlert'), layerKey: 'diseaseOutbreaks' },
-            { shape: shapes.circle('rgb(230, 126, 34)'), label: t('components.deckgl.legend.diseaseWarning'), layerKey: 'diseaseOutbreaks' },
-            { shape: shapes.circle('rgb(241, 196, 15)'), label: t('components.deckgl.legend.diseaseWatch'), layerKey: 'diseaseOutbreaks' },
+            { shape: shapes.circle(STATUS.good), label: 'Positive Event', layerKey: 'positiveEvents' },
+            { shape: shapes.circle(STATUS.watch), label: 'Breakthrough', layerKey: 'positiveEvents' },
+            { shape: shapes.circle(CATEGORY.green), label: 'Act of Kindness', layerKey: 'kindness' },
+            { shape: shapes.circle(SEVERITY.s3), label: 'Natural Event', layerKey: 'natural' },
+            { shape: shapes.square(CATEGORY.aqua), label: 'Happy Country', layerKey: 'happiness' },
+            { shape: shapes.circle(CATEGORY.green), label: 'Species Recovery Zone', layerKey: 'speciesRecovery' },
+            { shape: shapes.circle(CATEGORY.gold), label: 'Renewable Installation', layerKey: 'renewableInstallations' },
+            { shape: shapes.circle(CATEGORY.violet), label: t('components.deckgl.legend.aircraft'), layerKey: 'flights' },
+            { shape: shapes.circle(STATUS.alert), label: t('components.deckgl.legend.diseaseAlert'), layerKey: 'diseaseOutbreaks' },
+            { shape: shapes.circle(STATUS.warn), label: t('components.deckgl.legend.diseaseWarning'), layerKey: 'diseaseOutbreaks' },
+            { shape: shapes.circle(STATUS.watch), label: t('components.deckgl.legend.diseaseWatch'), layerKey: 'diseaseOutbreaks' },
             ...resilienceLegendItems,
           ]
           : SITE_VARIANT === 'commodity'
             ? [
-              { shape: shapes.hexagon(isLight ? 'rgb(180, 120, 0)' : 'rgb(255, 200, 0)'), label: t('components.deckgl.legend.commodityHub'), layerKey: 'commodityHubs' },
-              { shape: shapes.circle('rgb(180, 80, 80)'), label: t('components.deckgl.legend.miningSite'), layerKey: 'miningSites' },
-              { shape: shapes.square('rgb(80, 160, 220)'), label: t('components.deckgl.legend.commodityPort'), layerKey: 'commodityPorts' },
-              { shape: shapes.circle('rgb(255, 150, 50)'), label: t('components.deckgl.legend.pipeline'), layerKey: 'pipelines' },
-              { shape: shapes.triangle('rgb(80, 170, 255)'), label: t('components.deckgl.legend.waterway'), layerKey: 'waterways' },
-              { shape: shapes.circle('rgb(200, 100, 255)'), label: t('components.deckgl.legend.processingPlant'), layerKey: 'processingPlants' },
-              { shape: shapes.circle('rgb(231, 76, 60)'), label: t('components.deckgl.legend.diseaseAlert'), layerKey: 'diseaseOutbreaks' },
-              { shape: shapes.circle('rgb(230, 126, 34)'), label: t('components.deckgl.legend.diseaseWarning'), layerKey: 'diseaseOutbreaks' },
-              { shape: shapes.circle('rgb(241, 196, 15)'), label: t('components.deckgl.legend.diseaseWatch'), layerKey: 'diseaseOutbreaks' },
+              { shape: shapes.hexagon(CATEGORY.orange), label: t('components.deckgl.legend.commodityHub'), layerKey: 'commodityHubs' },
+              { shape: shapes.circle(CATEGORY.red), label: t('components.deckgl.legend.miningSite'), layerKey: 'miningSites' },
+              { shape: shapes.square(CATEGORY.blue), label: t('components.deckgl.legend.commodityPort'), layerKey: 'commodityPorts' },
+              { shape: shapes.circle(CATEGORY.orange), label: t('components.deckgl.legend.pipeline'), layerKey: 'pipelines' },
+              { shape: shapes.triangle(STATUS.info), label: t('components.deckgl.legend.waterway'), layerKey: 'waterways' },
+              { shape: shapes.circle(CATEGORY.violet), label: t('components.deckgl.legend.processingPlant'), layerKey: 'processingPlants' },
+              { shape: shapes.circle(STATUS.alert), label: t('components.deckgl.legend.diseaseAlert'), layerKey: 'diseaseOutbreaks' },
+              { shape: shapes.circle(STATUS.warn), label: t('components.deckgl.legend.diseaseWarning'), layerKey: 'diseaseOutbreaks' },
+              { shape: shapes.circle(STATUS.watch), label: t('components.deckgl.legend.diseaseWatch'), layerKey: 'diseaseOutbreaks' },
               ...resilienceLegendItems,
             ]
             : [
-              { shape: shapes.circle('rgb(255, 68, 68)'), label: t('components.deckgl.legend.highAlert'), layerKey: 'hotspots' },
-              { shape: shapes.circle('rgb(255, 165, 0)'), label: t('components.deckgl.legend.elevated'), layerKey: 'hotspots' },
-              { shape: shapes.circle(isLight ? 'rgb(180, 120, 0)' : 'rgb(255, 255, 0)'), label: t('components.deckgl.legend.monitoring'), layerKey: 'hotspots' },
-              { shape: shapes.circle('rgb(255, 100, 100)'), label: t('components.deckgl.legend.conflict'), layerKey: 'conflicts' },
-              { shape: shapes.triangle('rgb(68, 136, 255)'), label: t('components.deckgl.legend.base'), layerKey: 'bases' },
-              { shape: shapes.hexagon(isLight ? 'rgb(180, 120, 0)' : 'rgb(255, 220, 0)'), label: t('components.deckgl.legend.nuclear'), layerKey: 'nuclear' },
-              { shape: shapes.square('rgb(136, 68, 255)'), label: t('components.deckgl.legend.datacenter'), layerKey: 'datacenters' },
-              { shape: shapes.circle('rgb(160, 100, 255)'), label: t('components.deckgl.legend.aircraft'), layerKey: 'flights' },
-              { shape: shapes.circle('rgb(231, 76, 60)'), label: t('components.deckgl.legend.diseaseAlert'), layerKey: 'diseaseOutbreaks' },
-              { shape: shapes.circle('rgb(230, 126, 34)'), label: t('components.deckgl.legend.diseaseWarning'), layerKey: 'diseaseOutbreaks' },
-              { shape: shapes.circle('rgb(241, 196, 15)'), label: t('components.deckgl.legend.diseaseWatch'), layerKey: 'diseaseOutbreaks' },
+              { shape: shapes.circle(SEVERITY.s5), label: t('components.deckgl.legend.highAlert'), layerKey: 'hotspots' },
+              { shape: shapes.circle(SEVERITY.s3), label: t('components.deckgl.legend.elevated'), layerKey: 'hotspots' },
+              { shape: shapes.circle(SEVERITY.s2), label: t('components.deckgl.legend.monitoring'), layerKey: 'hotspots' },
+              { shape: shapes.circle(STATUS.alert), label: t('components.deckgl.legend.conflict'), layerKey: 'conflicts' },
+              { shape: shapes.triangle(CATEGORY.blue), label: t('components.deckgl.legend.base'), layerKey: 'bases' },
+              { shape: shapes.hexagon(STATUS.watch), label: t('components.deckgl.legend.nuclear'), layerKey: 'nuclear' },
+              { shape: shapes.square(STATUS.info), label: t('components.deckgl.legend.datacenter'), layerKey: 'datacenters' },
+              { shape: shapes.circle(CATEGORY.violet), label: t('components.deckgl.legend.aircraft'), layerKey: 'flights' },
+              { shape: shapes.circle(STATUS.alert), label: t('components.deckgl.legend.diseaseAlert'), layerKey: 'diseaseOutbreaks' },
+              { shape: shapes.circle(STATUS.warn), label: t('components.deckgl.legend.diseaseWarning'), layerKey: 'diseaseOutbreaks' },
+              { shape: shapes.circle(STATUS.watch), label: t('components.deckgl.legend.diseaseWatch'), layerKey: 'diseaseOutbreaks' },
               ...resilienceLegendItems,
             ];
 
@@ -6001,7 +5996,7 @@ export class DeckGLMap {
     setTrustedHtml(ciiLegend, trustedHtml(`
       <span class="legend-label-title" style="font-size:9px;letter-spacing:0.5px;">CII SCALE</span>
       <div style="display:flex;align-items:center;gap:2px;margin-top:2px;">
-        <div style="width:100%;height:8px;border-radius:3px;background:linear-gradient(to right,#28b33e,#dcc030,#e87425,#dc2626,#7f1d1d);"></div>
+        <div style="width:100%;height:8px;border-radius:3px;background:linear-gradient(to right,${SEVERITY.s1},${SEVERITY.s2},${SEVERITY.s3},${SEVERITY.s4},${SEVERITY.s5});"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:8px;opacity:0.7;margin-top:1px;">
         <span>0</span><span>31</span><span>51</span><span>66</span><span>81</span><span>100</span>
@@ -7573,7 +7568,7 @@ export class DeckGLMap {
           type: 'fill',
           source: 'country-boundaries',
           paint: {
-            'fill-color': '#3b82f6',
+            'fill-color': CATEGORY.blue,
             'fill-opacity': 0,
           },
         });
@@ -7583,7 +7578,7 @@ export class DeckGLMap {
             type: 'line',
             source: 'country-boundaries',
             paint: {
-              'line-color': getCurrentTheme() === 'light' ? '#334155' : '#94a3b8',
+              'line-color': getCurrentTheme() === 'light' ? EMBED_OUTLINE_LIGHT : NEUTRAL.slate,
               'line-width': 0.8,
               'line-opacity': getCurrentTheme() === 'light' ? 0.26 : 0.32,
             },
@@ -7594,7 +7589,7 @@ export class DeckGLMap {
           type: 'fill',
           source: 'country-boundaries',
           paint: {
-            'fill-color': '#ffffff',
+            'fill-color': BRAND_TOKENS.text,
             'fill-opacity': 0.05,
           },
           filter: ['==', ['get', 'ISO3166-1-Alpha-2'], ''],
@@ -7604,7 +7599,7 @@ export class DeckGLMap {
           type: 'line',
           source: 'country-boundaries',
           paint: {
-            'line-color': '#ffffff',
+            'line-color': BRAND_TOKENS.text,
             'line-width': 1.5,
             'line-opacity': 0.22,
           },
@@ -7615,7 +7610,7 @@ export class DeckGLMap {
           type: 'fill',
           source: 'country-boundaries',
           paint: {
-            'fill-color': '#3b82f6',
+            'fill-color': CATEGORY.blue,
             'fill-opacity': 0.12,
           },
           filter: ['==', ['get', 'ISO3166-1-Alpha-2'], ''],
@@ -7625,7 +7620,7 @@ export class DeckGLMap {
           type: 'line',
           source: 'country-boundaries',
           paint: {
-            'line-color': '#3b82f6',
+            'line-color': CATEGORY.blue,
             'line-width': 1.5,
             'line-opacity': 0.5,
           },
@@ -7880,7 +7875,7 @@ export class DeckGLMap {
     this.maplibreMap.setPaintProperty('country-hover-border', 'line-opacity', hoverBorderOpacity);
     this.maplibreMap.setPaintProperty('country-highlight-fill', 'fill-opacity', highlightOpacity);
     if (this.maplibreMap.getLayer('country-embed-outline')) {
-      this.maplibreMap.setPaintProperty('country-embed-outline', 'line-color', theme === 'light' ? '#334155' : '#94a3b8');
+      this.maplibreMap.setPaintProperty('country-embed-outline', 'line-color', theme === 'light' ? EMBED_OUTLINE_LIGHT : NEUTRAL.slate);
       this.maplibreMap.setPaintProperty('country-embed-outline', 'line-opacity', theme === 'light' ? 0.26 : 0.32);
     }
   }

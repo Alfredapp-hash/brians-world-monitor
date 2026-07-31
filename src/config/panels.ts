@@ -1,4 +1,5 @@
 import type { PanelConfig, MapLayers, DataSourceId } from '@/types';
+import { CATEGORY_ORDER, NEUTRAL, STATUS } from '@/styles/tokens';
 import { SITE_VARIANT } from './variant';
 // boundary-ignore: isDesktopRuntime is a pure env probe with no service dependencies
 import { isDesktopRuntime } from '@/services/runtime';
@@ -1514,18 +1515,13 @@ export function getProPanelKeys(
   );
 }
 
-// Monitor palette — fixed category colors persisted to localStorage (not theme-dependent)
+// Monitor palette — fixed category colors persisted to localStorage (not
+// theme-dependent). JSA CATEGORY hues in declared order, extended to 10
+// entries with the neutral slate and status-info blue.
 export const MONITOR_COLORS = [
-  '#44ff88',
-  '#ff8844',
-  '#4488ff',
-  '#ff44ff',
-  '#ffff44',
-  '#ff4444',
-  '#44ffff',
-  '#88ff44',
-  '#ff88ff',
-  '#88ffff',
+  ...CATEGORY_ORDER,
+  NEUTRAL.slate,
+  STATUS.info,
 ];
 
 export const STORAGE_KEYS = {

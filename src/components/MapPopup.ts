@@ -28,21 +28,25 @@ import { hasPremiumAccess } from '@/services/panel-gating';
 import { trackGateHit } from '@/services/analytics';
 import { renderPopupSourceLinks } from './map-popup-source-links';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
+import { CATEGORY, NEUTRAL, SEVERITY, withAlpha, STATUS } from '@/styles/tokens';
 
 
 // ── Static HS2 sector breakdown per chokepoint ────────────────────────────────
 // Based on IEA/UNCTAD estimated trade composition. Updated periodically.
 // Each entry: [label, share (0-100), color]
+// One CATEGORY hue per sector across all chokepoints: Energy=orange,
+// Containers=blue, Electronics=aqua, Machinery=violet, Chemicals=magenta,
+// Food=green, Bulk=gold, Other=neutral slate.
 const CHOKEPOINT_HS2_SECTORS: Record<string, Array<{ label: string; share: number; color: string }>> = {
-  suez:            [{ label: 'Energy', share: 30, color: '#f97316' }, { label: 'Machinery', share: 22, color: '#3b82f6' }, { label: 'Chemicals', share: 16, color: '#a855f7' }, { label: 'Food', share: 14, color: '#22c55e' }, { label: 'Other', share: 18, color: '#64748b' }],
-  malacca_strait:  [{ label: 'Energy', share: 34, color: '#f97316' }, { label: 'Electronics', share: 25, color: '#3b82f6' }, { label: 'Chemicals', share: 14, color: '#a855f7' }, { label: 'Food', share: 12, color: '#22c55e' }, { label: 'Other', share: 15, color: '#64748b' }],
-  hormuz_strait:   [{ label: 'Energy', share: 78, color: '#f97316' }, { label: 'Chemicals', share: 9, color: '#a855f7' }, { label: 'Food', share: 7, color: '#22c55e' }, { label: 'Other', share: 6, color: '#64748b' }],
-  bab_el_mandeb:   [{ label: 'Energy', share: 32, color: '#f97316' }, { label: 'Machinery', share: 20, color: '#3b82f6' }, { label: 'Chemicals', share: 15, color: '#a855f7' }, { label: 'Food', share: 13, color: '#22c55e' }, { label: 'Other', share: 20, color: '#64748b' }],
-  panama:          [{ label: 'Bulk', share: 28, color: '#eab308' }, { label: 'Energy', share: 18, color: '#f97316' }, { label: 'Containers', share: 35, color: '#3b82f6' }, { label: 'Other', share: 19, color: '#64748b' }],
-  taiwan_strait:   [{ label: 'Electronics', share: 40, color: '#3b82f6' }, { label: 'Machinery', share: 22, color: '#6366f1' }, { label: 'Energy', share: 14, color: '#f97316' }, { label: 'Chemicals', share: 12, color: '#a855f7' }, { label: 'Other', share: 12, color: '#64748b' }],
-  cape_of_good_hope: [{ label: 'Bulk', share: 35, color: '#eab308' }, { label: 'Energy', share: 22, color: '#f97316' }, { label: 'Containers', share: 28, color: '#3b82f6' }, { label: 'Other', share: 15, color: '#64748b' }],
-  gibraltar:       [{ label: 'Containers', share: 30, color: '#3b82f6' }, { label: 'Energy', share: 25, color: '#f97316' }, { label: 'Bulk', share: 20, color: '#eab308' }, { label: 'Other', share: 25, color: '#64748b' }],
-  bosphorus:       [{ label: 'Energy', share: 58, color: '#f97316' }, { label: 'Bulk', share: 18, color: '#eab308' }, { label: 'Containers', share: 14, color: '#3b82f6' }, { label: 'Other', share: 10, color: '#64748b' }],
+  suez:            [{ label: 'Energy', share: 30, color: CATEGORY.orange }, { label: 'Machinery', share: 22, color: CATEGORY.violet }, { label: 'Chemicals', share: 16, color: CATEGORY.magenta }, { label: 'Food', share: 14, color: CATEGORY.green }, { label: 'Other', share: 18, color: NEUTRAL.slate }],
+  malacca_strait:  [{ label: 'Energy', share: 34, color: CATEGORY.orange }, { label: 'Electronics', share: 25, color: CATEGORY.aqua }, { label: 'Chemicals', share: 14, color: CATEGORY.magenta }, { label: 'Food', share: 12, color: CATEGORY.green }, { label: 'Other', share: 15, color: NEUTRAL.slate }],
+  hormuz_strait:   [{ label: 'Energy', share: 78, color: CATEGORY.orange }, { label: 'Chemicals', share: 9, color: CATEGORY.magenta }, { label: 'Food', share: 7, color: CATEGORY.green }, { label: 'Other', share: 6, color: NEUTRAL.slate }],
+  bab_el_mandeb:   [{ label: 'Energy', share: 32, color: CATEGORY.orange }, { label: 'Machinery', share: 20, color: CATEGORY.violet }, { label: 'Chemicals', share: 15, color: CATEGORY.magenta }, { label: 'Food', share: 13, color: CATEGORY.green }, { label: 'Other', share: 20, color: NEUTRAL.slate }],
+  panama:          [{ label: 'Bulk', share: 28, color: CATEGORY.gold }, { label: 'Energy', share: 18, color: CATEGORY.orange }, { label: 'Containers', share: 35, color: CATEGORY.blue }, { label: 'Other', share: 19, color: NEUTRAL.slate }],
+  taiwan_strait:   [{ label: 'Electronics', share: 40, color: CATEGORY.aqua }, { label: 'Machinery', share: 22, color: CATEGORY.violet }, { label: 'Energy', share: 14, color: CATEGORY.orange }, { label: 'Chemicals', share: 12, color: CATEGORY.magenta }, { label: 'Other', share: 12, color: NEUTRAL.slate }],
+  cape_of_good_hope: [{ label: 'Bulk', share: 35, color: CATEGORY.gold }, { label: 'Energy', share: 22, color: CATEGORY.orange }, { label: 'Containers', share: 28, color: CATEGORY.blue }, { label: 'Other', share: 15, color: NEUTRAL.slate }],
+  gibraltar:       [{ label: 'Containers', share: 30, color: CATEGORY.blue }, { label: 'Energy', share: 25, color: CATEGORY.orange }, { label: 'Bulk', share: 20, color: CATEGORY.gold }, { label: 'Other', share: 25, color: NEUTRAL.slate }],
+  bosphorus:       [{ label: 'Energy', share: 58, color: CATEGORY.orange }, { label: 'Bulk', share: 18, color: CATEGORY.gold }, { label: 'Containers', share: 14, color: CATEGORY.blue }, { label: 'Other', share: 10, color: NEUTRAL.slate }],
 };
 
 function renderSectorRing(sectors: Array<{ label: string; share: number; color: string }>): string {
@@ -83,7 +87,7 @@ function fmtUtcTime(utc: string | undefined): string {
 
 function fmtDelayMin(min: number | undefined): string {
   if (min === undefined || min === 0) return '';
-  return `<span style="color:${min > 0 ? '#f97316' : '#22c55e'};font-size:10px;margin-left:3px">${min > 0 ? '+' : ''}${min}m</span>`;
+  return `<span style="color:${min > 0 ? 'var(--status-warn)' : 'var(--status-good)'};font-size:10px;margin-left:3px">${min > 0 ? '+' : ''}${min}m</span>`;
 }
 
 export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'aircraft' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub' | 'iranEvent' | 'gpsJamming' | 'radiation';
@@ -408,14 +412,14 @@ export class MapPopup {
       WAR_RISK_TIER_NORMAL: 'Normal',
     };
     const tierColor: Record<string, string> = {
-      WAR_RISK_TIER_WAR_ZONE: '#ef4444', WAR_RISK_TIER_CRITICAL: '#ef4444',
-      WAR_RISK_TIER_HIGH: '#f59e0b', WAR_RISK_TIER_ELEVATED: '#f59e0b',
+      WAR_RISK_TIER_WAR_ZONE: 'var(--status-alert)', WAR_RISK_TIER_CRITICAL: 'var(--status-alert)',
+      WAR_RISK_TIER_HIGH: 'var(--status-warn)', WAR_RISK_TIER_ELEVATED: 'var(--status-warn)',
       WAR_RISK_TIER_NORMAL: 'var(--text-dim,#888)',
     };
 
     const tier = cp?.warRiskTier ?? 'WAR_RISK_TIER_NORMAL';
     const disruptionScore = cp?.disruptionScore ?? 0;
-    const scoreColor = disruptionScore > 70 ? '#ef4444' : disruptionScore > 30 ? '#f59e0b' : 'var(--text-dim,#888)';
+    const scoreColor = disruptionScore > 70 ? 'var(--status-alert)' : disruptionScore > 30 ? 'var(--status-warn)' : 'var(--text-dim,#888)';
 
     const topSectors = sectors.slice(0, 2);
     const sectorHtml = topSectors.length
@@ -896,7 +900,7 @@ export class MapPopup {
           ${dynamicScore?.history && dynamicScore.history.length >= 3 ? (() => {
             const vals = dynamicScore.history.slice(-20).map(h => h.score);
             const lastVal = vals[vals.length - 1] ?? 3;
-            const color = lastVal >= 4 ? '#f44336' : lastVal >= 3 ? '#ff9800' : '#4caf50';
+            const color = lastVal >= 4 ? getCSSColor('--status-alert') : lastVal >= 3 ? getCSSColor('--status-warn') : getCSSColor('--status-good');
             return sparkline(vals, color, 80, 24, 'opacity:0.9');
           })() : ''}
         </div>
@@ -1216,7 +1220,7 @@ export class MapPopup {
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const bookUrl = sanitizeUrl(`https://www.google.com/travel/flights/search?q=Flights+from+${encodeURIComponent(live.depIata)}+to+${encodeURIComponent(live.arrIata)}+on+${encodeURIComponent(todayStr)}`);
-        parts.push(`<a href="${bookUrl}" target="_blank" rel="noopener" style="display:block;margin-top:8px;padding:7px 12px;background:rgba(68,255,136,.06);border:1px solid rgba(68,255,136,.18);border-radius:6px;color:var(--green,#44ff88);text-decoration:none;font-size:12px;text-align:center">Book this route &rarr;</a>`);
+        parts.push(`<a href="${bookUrl}" target="_blank" rel="noopener" style="display:block;margin-top:8px;padding:7px 12px;background:${withAlpha(STATUS.good, 0.06)};border:1px solid ${withAlpha(STATUS.good, 0.18)};border-radius:6px;color:var(--status-good);text-decoration:none;font-size:12px;text-align:center">Book this route &rarr;</a>`);
       }
 
       // Enrichment stats row
@@ -2828,8 +2832,8 @@ ${isFeatureAvailable('wingbitsEnrichment') ? '<div class="wingbits-live-section"
       : '';
 
     const dataSourceBadge = vessel.usniSource
-      ? `<span class="popup-badge" style="background:rgba(255,170,50,0.15);border:1px solid rgba(255,170,50,0.5);color:#ffaa44;">${t('popups.militaryVessel.estPosition')}</span>`
-      : `<span class="popup-badge" style="background:rgba(68,255,136,0.15);border:1px solid rgba(68,255,136,0.5);color:#44ff88;">${t('popups.militaryVessel.aisLive')}</span>`;
+      ? `<span class="popup-badge" style="background:${withAlpha(STATUS.watch, 0.15)};border:1px solid ${withAlpha(STATUS.watch, 0.5)};color:var(--status-watch);">${t('popups.militaryVessel.estPosition')}</span>`
+      : `<span class="popup-badge" style="background:${withAlpha(STATUS.good, 0.15)};border:1px solid ${withAlpha(STATUS.good, 0.5)};color:var(--status-good);">${t('popups.militaryVessel.aisLive')}</span>`;
 
     // USNI deployment status badge
     const deploymentBadge = vessel.usniDeploymentStatus && vessel.usniDeploymentStatus !== 'unknown'
@@ -3169,8 +3173,10 @@ ${isFeatureAvailable('wingbitsEnrichment') ? '<div class="wingbits-live-section"
   }
 
   private renderTcDetails(event: NaturalEvent): string {
+    // Saffir–Simpson ladder onto the severity ramp: cat 1–5 → s1–s5; the
+    // below-hurricane tier (0, tropical storm/depression) recedes to slate.
     const TC_COLORS: Record<number, string> = {
-      0: '#5ebaff', 1: '#00faf4', 2: '#ffffcc', 3: '#ffe775', 4: '#ffc140', 5: '#ff6060',
+      0: NEUTRAL.slate, 1: SEVERITY.s1, 2: SEVERITY.s2, 3: SEVERITY.s3, 4: SEVERITY.s4, 5: SEVERITY.s5,
     };
     const cat = event.stormCategory ?? 0;
     const color = TC_COLORS[cat] || TC_COLORS[0];
@@ -3528,7 +3534,7 @@ ${isFeatureAvailable('wingbitsEnrichment') ? '<div class="wingbits-live-section"
   private renderGpsJammingPopup(data: GpsJammingPopupData): string {
     const isHigh = data.level === 'high';
     const badgeClass = isHigh ? 'critical' : 'medium';
-    const headerColor = isHigh ? '#ff5050' : '#ffb432';
+    const headerColor = isHigh ? 'var(--status-alert)' : 'var(--status-watch)';
     return `
       <div class="popup-header" style="background:${headerColor}">
         <span class="popup-title">${t('popups.gpsJamming.title')}</span>

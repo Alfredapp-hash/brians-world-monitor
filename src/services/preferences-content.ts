@@ -16,8 +16,8 @@ const SYNC_STATE_LABELS: Record<string, string> = {
   conflict: 'Conflict', offline: 'Offline', 'signed-out': 'Signed out', error: 'Error',
 };
 const SYNC_STATE_COLORS: Record<string, string> = {
-  synced: 'var(--color-ok, #34d399)', pending: 'var(--color-warn, #fbbf24)', syncing: 'var(--color-warn, #fbbf24)',
-  conflict: 'var(--color-error, #f87171)', offline: 'var(--text-faint, #888)', 'signed-out': 'var(--text-faint, #888)', error: 'var(--color-error, #f87171)',
+  synced: 'var(--status-good)', pending: 'var(--status-watch)', syncing: 'var(--status-watch)',
+  conflict: 'var(--status-alert)', offline: 'var(--text-dim)', 'signed-out': 'var(--text-dim)', error: 'var(--status-alert)',
 };
 import {
   loadFrameworkLibrary,

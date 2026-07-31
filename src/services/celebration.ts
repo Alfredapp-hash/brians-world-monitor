@@ -31,6 +31,8 @@ function fireConfetti(options: ConfettiOptions): void {
   void loadConfetti().then((confetti) => { confetti(options); }).catch(() => { /* best-effort */ });
 }
 
+import { BRAND, CATEGORY, STATUS } from '@/styles/tokens';
+
 // ---- Types ----
 
 export interface MilestoneData {
@@ -46,8 +48,9 @@ const REDUCED_MOTION = typeof window !== 'undefined'
   ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
   : false;
 
-/** Nature-inspired warm palette matching the happy theme. */
-const WARM_COLORS = ['#6B8F5E', '#C4A35A', '#7BA5C4', '#8BAF7A', '#E8B96E', '#7FC4C4'];
+/** Nature-inspired warm palette drawn from the token set (canvas-confetti
+ * renders to canvas, so raw constants — not var(--…) — are required). */
+const WARM_COLORS = [CATEGORY.green, CATEGORY.gold, CATEGORY.blue, STATUS.good, BRAND.accent, CATEGORY.aqua];
 
 /** Session-level dedup set. Stores milestone keys that have already been celebrated this session. */
 const celebrated = new Set<string>();

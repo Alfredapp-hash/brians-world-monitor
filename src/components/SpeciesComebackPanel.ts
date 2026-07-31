@@ -8,6 +8,7 @@
  */
 
 import { Panel } from './Panel';
+import { STATUS } from '@/styles/tokens';
 import * as d3 from 'd3';
 import type { SpeciesRecovery } from '@/services/conservation-data';
 import { getCSSColor } from '@/utils';
@@ -91,7 +92,7 @@ export class SpeciesComebackPanel extends Panel {
     // Render sparkline after card is in DOM (needs measurable width)
     // Use a microtask so the card is attached before we draw
     queueMicrotask(() => {
-      const color = getCSSColor('--green') || '#6B8F5E';
+      const color = getCSSColor('--green') || STATUS.good;
       this.renderSparkline(sparklineDiv, entry.populationData, color);
     });
 

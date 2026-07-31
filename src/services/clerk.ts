@@ -23,6 +23,7 @@
 
 import type { Clerk } from '@clerk/clerk-js';
 import { enqueueSentryCall } from '@/bootstrap/sentry-defer';
+import { BRAND, STATUS } from '@/styles/tokens';
 
 type ClerkInstance = Clerk;
 
@@ -49,56 +50,62 @@ function getAppearance() {
     ? document.documentElement.dataset.theme !== 'light'
     : true;
 
+  // Raw token constants (not var(--…) references): Clerk derives hover/
+  // shade variants from these values, which requires literal colors.
   return isDark
     ? {
         variables: {
-          colorBackground: '#0f0f0f',
-          colorInputBackground: '#141414',
-          colorInputText: '#e8e8e8',
-          colorText: '#e8e8e8',
-          colorTextSecondary: '#aaaaaa',
-          colorPrimary: '#44ff88',
-          colorNeutral: '#e8e8e8',
-          colorDanger: '#ff4444',
+          colorBackground: BRAND.bg,
+          colorInputBackground: BRAND.surface,
+          colorInputText: BRAND.text,
+          colorText: BRAND.text,
+          colorTextSecondary: BRAND.textDim,
+          colorPrimary: BRAND.accent,
+          colorNeutral: BRAND.text,
+          colorDanger: STATUS.alert,
           borderRadius: '4px',
           fontFamily: MONO_FONT,
           fontFamilyButtons: MONO_FONT,
         },
         elements: {
-          card: { backgroundColor: '#111111', border: '1px solid #2a2a2a', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' },
-          headerTitle: { color: '#e8e8e8' },
-          headerSubtitle: { color: '#aaaaaa' },
-          dividerLine: { backgroundColor: '#2a2a2a' },
-          dividerText: { color: '#666666' },
-          formButtonPrimary: { color: '#000000', fontWeight: '600' },
-          footerActionLink: { color: '#44ff88' },
-          identityPreviewEditButton: { color: '#44ff88' },
-          formFieldLabel: { color: '#cccccc' },
-          formFieldInput: { borderColor: '#2a2a2a' },
-          socialButtonsBlockButton: { borderColor: '#2a2a2a', color: '#e8e8e8', backgroundColor: '#141414' },
-          socialButtonsBlockButtonText: { color: '#e8e8e8' },
-          modalCloseButton: { color: '#888888' },
+          card: { backgroundColor: BRAND.surface, border: `1px solid ${BRAND.border}`, boxShadow: '0 8px 32px rgba(0,0,0,0.6)' },
+          headerTitle: { color: BRAND.text },
+          headerSubtitle: { color: BRAND.textDim },
+          dividerLine: { backgroundColor: BRAND.border },
+          dividerText: { color: BRAND.textDim },
+          formButtonPrimary: { color: BRAND.bg, fontWeight: '600' },
+          footerActionLink: { color: BRAND.accent },
+          identityPreviewEditButton: { color: BRAND.accent },
+          formFieldLabel: { color: BRAND.textSecondary },
+          formFieldInput: { borderColor: BRAND.border },
+          socialButtonsBlockButton: { borderColor: BRAND.border, color: BRAND.text, backgroundColor: BRAND.surface },
+          socialButtonsBlockButtonText: { color: BRAND.text },
+          modalCloseButton: { color: BRAND.textDim },
         },
       }
     : {
+        // Light-mode neutrals stay literal: the token set is dark-theme only
+        // (no light surface/border/text tokens exist), and mapping them onto
+        // the dark constants would invert the light theme. Brand hues
+        // (primary/danger/links) still come from the token constants.
         variables: {
           colorBackground: '#ffffff',
           colorInputBackground: '#f8f9fa',
           colorInputText: '#1a1a1a',
           colorText: '#1a1a1a',
           colorTextSecondary: '#555555',
-          colorPrimary: '#16a34a',
+          colorPrimary: BRAND.accent,
           colorNeutral: '#1a1a1a',
-          colorDanger: '#dc2626',
+          colorDanger: STATUS.alert,
           borderRadius: '4px',
           fontFamily: MONO_FONT,
           fontFamilyButtons: MONO_FONT,
         },
         elements: {
           card: { backgroundColor: '#ffffff', border: '1px solid #d4d4d4', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' },
-          formButtonPrimary: { color: '#ffffff', fontWeight: '600' },
-          footerActionLink: { color: '#16a34a' },
-          identityPreviewEditButton: { color: '#16a34a' },
+          formButtonPrimary: { color: BRAND.bg, fontWeight: '600' },
+          footerActionLink: { color: BRAND.accent },
+          identityPreviewEditButton: { color: BRAND.accent },
           socialButtonsBlockButton: { borderColor: '#d4d4d4' },
         },
       };

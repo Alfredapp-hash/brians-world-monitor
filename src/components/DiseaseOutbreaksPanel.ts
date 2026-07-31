@@ -6,12 +6,15 @@ import { renderFollowedOnlyChip, type FollowedOnlyChipHandle } from '@/utils/fol
 import { isFollowed, subscribe as subscribeFollowed } from '@/services/followed-countries';
 import { toIso2 } from '@/utils/country-codes';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
+import { STATUS, withAlpha } from '@/styles/tokens';
 
 
+// Raw STATUS constants (not CSS vars): the value is combined with a
+// hex-alpha suffix for the row badge tint, which var() can't do.
 function alertColor(level: string): string {
-  if (level === 'alert') return '#e74c3c';
-  if (level === 'warning') return '#e67e22';
-  return '#f1c40f';
+  if (level === 'alert') return STATUS.alert;
+  if (level === 'warning') return STATUS.warn;
+  return STATUS.watch;
 }
 
 function alertLabel(level: string): string {
@@ -170,9 +173,9 @@ export class DiseaseOutbreaksPanel extends Panel {
     }
 
     const filterBar = `<div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
-      ${counts.alert > 0 ? `<button data-filter="alert" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid rgba(231,76,60,0.4);background:${this._filter === 'alert' ? 'rgba(231,76,60,0.2)' : 'transparent'};color:#e74c3c;cursor:pointer">${escapeHtml(t('components.diseaseOutbreaks.filters.alert', { count: counts.alert }))}</button>` : ''}
-      ${counts.warning > 0 ? `<button data-filter="warning" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid rgba(230,126,34,0.4);background:${this._filter === 'warning' ? 'rgba(230,126,34,0.2)' : 'transparent'};color:#e67e22;cursor:pointer">${escapeHtml(t('components.diseaseOutbreaks.filters.warning', { count: counts.warning }))}</button>` : ''}
-      ${counts.watch > 0 ? `<button data-filter="watch" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid rgba(241,196,15,0.4);background:${this._filter === 'watch' ? 'rgba(241,196,15,0.2)' : 'transparent'};color:#f1c40f;cursor:pointer">${escapeHtml(t('components.diseaseOutbreaks.filters.watch', { count: counts.watch }))}</button>` : ''}
+      ${counts.alert > 0 ? `<button data-filter="alert" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${withAlpha(STATUS.alert, 0.4)};background:${this._filter === 'alert' ? withAlpha(STATUS.alert, 0.2) : 'transparent'};color:var(--status-alert);cursor:pointer">${escapeHtml(t('components.diseaseOutbreaks.filters.alert', { count: counts.alert }))}</button>` : ''}
+      ${counts.warning > 0 ? `<button data-filter="warning" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${withAlpha(STATUS.warn, 0.4)};background:${this._filter === 'warning' ? withAlpha(STATUS.warn, 0.2) : 'transparent'};color:var(--status-warn);cursor:pointer">${escapeHtml(t('components.diseaseOutbreaks.filters.warning', { count: counts.warning }))}</button>` : ''}
+      ${counts.watch > 0 ? `<button data-filter="watch" style="font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid ${withAlpha(STATUS.watch, 0.4)};background:${this._filter === 'watch' ? withAlpha(STATUS.watch, 0.2) : 'transparent'};color:var(--status-watch);cursor:pointer">${escapeHtml(t('components.diseaseOutbreaks.filters.watch', { count: counts.watch }))}</button>` : ''}
     </div>`;
 
     const rows = filtered.map(o => {

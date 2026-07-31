@@ -89,10 +89,10 @@ describe('AviationCommandBar — date chips', () => {
         );
     });
 
-    it('active chip uses green design-system token, not blue', () => {
+    it('active chip uses positive/good design-system token, not blue', () => {
         assert.ok(
-            cmd.includes('var(--green,#44ff88)') || cmd.includes("var(--green, #44ff88)"),
-            'active date chip must use --green token, not blue #60a5fa',
+            cmd.includes('var(--status-good)'),
+            'active date chip must use --status-good token, not blue #60a5fa',
         );
         assert.ok(
             !cmd.includes("'#60a5fa'"),
@@ -102,7 +102,7 @@ describe('AviationCommandBar — date chips', () => {
 
     it('inactive chip border uses --border token', () => {
         assert.ok(
-            cmd.includes('var(--border,#2a2a2a)'),
+            cmd.includes('var(--border)'),
             'inactive date chip border must use --border token matching design system',
         );
     });
@@ -150,18 +150,18 @@ describe('AviationCommandBar — intent parser keyword: fly', () => {
 // Price rows — design system colours
 // ---------------------------------------------------------------------------
 describe('AviationCommandBar — price row colours follow design system', () => {
-    it('price value uses --green token, not blue', () => {
+    it('price value uses --status-good token, not blue', () => {
         assert.ok(
-            cmd.includes("color:var(--green,#44ff88);font-weight:600"),
-            'price value must be coloured with --green, not #60a5fa',
+            cmd.includes("color:var(--status-good);font-weight:600"),
+            'price value must be coloured with --status-good, not #60a5fa',
         );
     });
 
-    it('nonstop label uses --green token', () => {
+    it('nonstop label uses --status-good token', () => {
         assert.match(
             cmd,
-            /stopColor = f\.stops === 0 \? 'var\(--green,#44ff88\)'/,
-            'nonstop stop label must use --green token',
+            /stopColor = f\.stops === 0 \? 'var\(--status-good\)'/,
+            'nonstop stop label must use --status-good token',
         );
     });
 });

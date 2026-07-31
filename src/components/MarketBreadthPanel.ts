@@ -1,6 +1,7 @@
 import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { CATEGORY, STATUS, withAlpha } from '@/styles/tokens';
 import { getHydratedData } from '@/services/bootstrap';
 
 interface BreadthSnapshot {
@@ -73,9 +74,9 @@ type NumericSeriesKey = 'pctAbove20d' | 'pctAbove50d' | 'pctAbove200d';
 type SeriesRun = Array<{ x: number; y: number }>;
 
 const SERIES: { key: NumericSeriesKey; color: string; label: string; fillOpacity: number }[] = [
-  { key: 'pctAbove20d',  color: '#3b82f6', label: '20-day SMA', fillOpacity: 0.08 },
-  { key: 'pctAbove50d',  color: '#f59e0b', label: '50-day SMA', fillOpacity: 0.06 },
-  { key: 'pctAbove200d', color: '#22c55e', label: '200-day SMA', fillOpacity: 0.04 },
+  { key: 'pctAbove20d',  color: CATEGORY.blue, label: '20-day SMA', fillOpacity: 0.08 },
+  { key: 'pctAbove50d',  color: CATEGORY.orange, label: '50-day SMA', fillOpacity: 0.06 },
+  { key: 'pctAbove200d', color: CATEGORY.aqua, label: '200-day SMA', fillOpacity: 0.04 },
 ];
 
 function xPos(i: number, total: number): number {
@@ -174,8 +175,8 @@ function buildChart(points: BreadthSnapshot[]): string {
 }
 
 function readingBadge(val: number, color: string): string {
-  const bg = val >= 60 ? 'rgba(34,197,94,0.12)' : val >= 40 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)';
-  const fg = val >= 60 ? '#22c55e' : val >= 40 ? '#f59e0b' : '#ef4444';
+  const bg = val >= 60 ? withAlpha(STATUS.good, 0.12) : val >= 40 ? withAlpha(STATUS.watch, 0.12) : withAlpha(STATUS.alert, 0.12);
+  const fg = val >= 60 ? 'var(--status-good)' : val >= 40 ? 'var(--status-watch)' : 'var(--status-alert)';
   return `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:${bg}">
     <span style="width:6px;height:6px;border-radius:50%;background:${color}"></span>
     <span style="font-size:14px;font-weight:600;color:${fg}">${val.toFixed(1)}%</span>

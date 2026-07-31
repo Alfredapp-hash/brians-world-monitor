@@ -18,6 +18,7 @@
 
 import { enqueueSentryCall } from '@/bootstrap/sentry-defer';
 import type { CheckoutEvent } from 'dodopayments-checkout';
+import { BRAND, withAlpha } from '@/styles/tokens';
 import { openBillingPortal, prereserveBillingPortalTab } from './billing';
 import { getCurrentClerkUser, getClerkToken, openSignIn } from './clerk';
 import { subscribeAuthState } from './auth-state';
@@ -709,26 +710,31 @@ export async function openCheckout(checkoutUrl: string): Promise<void> {
     checkoutUrl,
     options: {
       manualRedirect: true,
+      // Raw token constants: this config is consumed inside Dodo's iframe,
+      // where our CSS custom properties cannot resolve.
       themeConfig: {
         dark: {
-          bgPrimary: '#0d0d0d',
-          bgSecondary: '#1a1a1a',
-          borderPrimary: '#323232',
-          textPrimary: '#ffffff',
-          textSecondary: '#909090',
-          buttonPrimary: '#22c55e',
-          buttonPrimaryHover: '#16a34a',
-          buttonTextPrimary: '#0d0d0d',
+          bgPrimary: BRAND.bg,
+          bgSecondary: BRAND.surface,
+          borderPrimary: BRAND.borderStrong,
+          textPrimary: BRAND.text,
+          textSecondary: BRAND.textDim,
+          buttonPrimary: BRAND.accent,
+          buttonPrimaryHover: withAlpha(BRAND.accent, 0.85),
+          buttonTextPrimary: BRAND.bg,
         },
+        // Light-mode neutrals stay literal: the token set is dark-theme only
+        // (no light surface/border/text tokens exist). Brand hues come from
+        // the token constants.
         light: {
           bgPrimary: '#ffffff',
           bgSecondary: '#f8f9fa',
           borderPrimary: '#d4d4d4',
           textPrimary: '#1a1a1a',
           textSecondary: '#555555',
-          buttonPrimary: '#16a34a',
-          buttonPrimaryHover: '#15803d',
-          buttonTextPrimary: '#ffffff',
+          buttonPrimary: BRAND.accent,
+          buttonPrimaryHover: withAlpha(BRAND.accent, 0.85),
+          buttonTextPrimary: BRAND.bg,
         },
         radius: '4px',
       },
@@ -1116,8 +1122,8 @@ export function showCheckoutSuccess(
     right: '0',
     zIndex: '99999',
     padding: '14px 20px',
-    background: 'linear-gradient(135deg, #16a34a, #22c55e)',
-    color: '#fff',
+    background: 'var(--status-good)',
+    color: 'var(--bg)',
     fontWeight: '600',
     fontSize: '14px',
     textAlign: 'center',
@@ -1280,8 +1286,8 @@ function setBannerText(
   refreshBtn.type = 'button';
   refreshBtn.textContent = 'Refresh';
   Object.assign(refreshBtn.style, {
-    background: '#fff',
-    color: '#16a34a',
+    background: 'var(--bg)',
+    color: 'var(--status-good)',
     border: 'none',
     borderRadius: '4px',
     padding: '4px 12px',
