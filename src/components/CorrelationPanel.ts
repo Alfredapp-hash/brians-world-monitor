@@ -4,6 +4,7 @@ import type { ConvergenceCard, CorrelationDomain } from '@/services/correlation-
 import { h, replaceChildren } from '@/utils/dom-utils';
 import { readableTextColor } from '@/utils/contrast';
 import { getHydratedData } from '@/services/bootstrap';
+import { NEUTRAL, STATUS } from '@/styles/tokens';
 
 let correlationBootstrap: Record<string, ConvergenceCard[]> | null | undefined;
 function getCorrelationBootstrap(): Record<string, ConvergenceCard[]> | null {
@@ -15,19 +16,20 @@ function getCorrelationBootstrap(): Record<string, ConvergenceCard[]> | null {
 
 // Score-badge BACKGROUND colors. Badge text color is chosen per-background via
 // readableTextColor() so it clears WCAG AA on each: white on the dark `low`
-// badge, dark text on the light/mid critical/high/medium hues (white was 3.41 /
-// 2.39 / 1.51 on those). `low` was also darkened #888888 → #6f6f6f. (#4418/#4421)
+// badge, dark text on the light/mid critical/high/medium hues. Raw token
+// constants (not CSS vars) because readableTextColor() parses the hex to
+// pick the AA-clearing text color. (#4418/#4421)
 const SCORE_COLORS = {
-  critical: '#ff4444',
-  high: '#ff8800',
-  medium: '#ffcc00',
-  low: '#6f6f6f',
+  critical: STATUS.alert,
+  high: STATUS.warn,
+  medium: STATUS.watch,
+  low: NEUTRAL.slateDim,
 };
 
 const TREND_ICONS: Record<string, { symbol: string; color: string }> = {
-  escalating: { symbol: '\u2191', color: '#ff4444' },
-  stable: { symbol: '\u2192', color: '#888888' },
-  'de-escalating': { symbol: '\u2193', color: '#44cc44' },
+  escalating: { symbol: '\u2191', color: 'var(--status-alert)' },
+  stable: { symbol: '\u2192', color: 'var(--text-dim)' },
+  'de-escalating': { symbol: '\u2193', color: 'var(--status-good)' },
 };
 
 export class CorrelationPanel extends Panel {

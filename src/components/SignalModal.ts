@@ -5,6 +5,9 @@ import { getCSSColor } from '@/utils';
 import { getSignalContext, type SignalType } from '@/utils/analysis-constants';
 import { t } from '@/services/i18n';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
+// Raw STATUS constant (not var(--…)): the color is composed with hex alpha
+// suffixes (`${color}22`), which requires a literal #rrggbb value.
+import { STATUS } from '@/styles/tokens';
 
 function suppressTrendingTermLazy(term: string): void {
   void import('@/services/trending-keywords')
@@ -151,7 +154,7 @@ export class SignalModal {
     };
 
     const icon = typeIcons[alert.type] || '⚠️';
-    const color = priorityColors[alert.priority] || '#ff9944';
+    const color = priorityColors[alert.priority] || STATUS.warn;
 
     let detailsHtml = '';
 

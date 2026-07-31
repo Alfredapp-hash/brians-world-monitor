@@ -52,6 +52,7 @@ import { renderNotifyCountryLink } from '@/utils/notify-country-link';
 import { exportCountryEvidenceMarkdown } from '@/utils/export';
 import type { CountryEvidenceBundleInput } from '@/utils/export';
 import { ciiBandForLevel } from './CountryDeepDivePanel-cii';
+import { CATEGORY, NEUTRAL } from '@/styles/tokens';
 
 const DEPENDENCY_FLAG_LABELS: Record<string, { text: string; cls: string }> = {
   DEPENDENCY_FLAG_SINGLE_SOURCE_CRITICAL:   { text: 'Single Source',   cls: 'cdp-dep-critical' },
@@ -915,9 +916,9 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
    * (issue #2973 bug 4).
    */
   private static exposureScoreColor(score: number): string {
-    if (score >= 70) return 'var(--danger, #ef4444)';
-    if (score > 30) return 'var(--warning, #f59e0b)';
-    return 'var(--text-muted, #64748b)';
+    if (score >= 70) return 'var(--status-alert)';
+    if (score > 30) return 'var(--status-watch)';
+    return 'var(--text-dim)';
   }
 
   private formatPctTrend(pct: number | null | undefined): string {
@@ -947,15 +948,18 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     }
 
     if (data.mixAvailable) {
+      // Qualitative fuel identities — raw CATEGORY/NEUTRAL constants (not CSS
+      // vars) because they feed SVG stroke presentation attributes in
+      // buildDonutSvg(), where custom properties don't resolve.
       const segments: Array<{ label: string; color: string; value: number }> = [
-        { label: 'Coal', color: '#6b6b6b', value: data.coalShare },
-        { label: 'Oil', color: '#8B4513', value: data.oilShare },
-        { label: 'Gas', color: '#D2691E', value: data.gasShare },
-        { label: 'Nuclear', color: '#6A0DAD', value: data.nuclearShare },
-        { label: 'Hydro', color: '#1E90FF', value: data.hydroShare },
-        { label: 'Wind', color: '#87CEEB', value: data.windShare },
-        { label: 'Solar', color: '#FFD700', value: data.solarShare },
-        { label: 'Other renew', color: '#32CD32', value: Math.max(0, data.renewShare - data.windShare - data.solarShare - data.hydroShare) },
+        { label: 'Coal', color: NEUTRAL.slateDim, value: data.coalShare },
+        { label: 'Oil', color: CATEGORY.orange, value: data.oilShare },
+        { label: 'Gas', color: CATEGORY.magenta, value: data.gasShare },
+        { label: 'Nuclear', color: CATEGORY.violet, value: data.nuclearShare },
+        { label: 'Hydro', color: CATEGORY.blue, value: data.hydroShare },
+        { label: 'Wind', color: CATEGORY.aqua, value: data.windShare },
+        { label: 'Solar', color: CATEGORY.gold, value: data.solarShare },
+        { label: 'Other renew', color: CATEGORY.green, value: Math.max(0, data.renewShare - data.windShare - data.solarShare - data.hydroShare) },
       ];
 
       const total = segments.reduce((s, seg) => s + seg.value, 0);
@@ -983,16 +987,16 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
 
     if (data.mixAvailable) {
       const importPct = data.importShare;
-      const color = importPct > 60 ? '#ef4444'
-        : importPct >= 30 ? '#f59e0b'
-        : importPct > 0 ? '#22c55e'
-        : '#6b7280';
+      const color = importPct > 60 ? 'var(--status-alert)'
+        : importPct >= 30 ? 'var(--status-watch)'
+        : importPct > 0 ? 'var(--status-good)'
+        : NEUTRAL.slateDim;
       const labelText = importPct <= 0 ? 'Net exporter' : `${Math.round(importPct)}%`;
       const row = this.el('div', '');
       row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:6px';
       const label = this.el('span', 'cdp-economic-source', 'Import dependency:');
       const badge = this.el('span', '');
-      badge.style.cssText = `background:${color};color:#fff;padding:1px 6px;border-radius:3px;font-size:11px`;
+      badge.style.cssText = `background:${color};color:var(--bg);padding:1px 6px;border-radius:3px;font-size:11px`;
       badge.textContent = labelText;
       row.append(label, badge);
       this.energyBody.append(row);
@@ -1011,7 +1015,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       for (const h of ['Product', 'Demand', 'Imports']) {
         const th = this.el('th', '');
         th.textContent = h;
-        th.style.cssText = 'text-align:left;color:#aaa;padding:2px 4px';
+        th.style.cssText = 'text-align:left;color:var(--text-dim);padding:2px 4px';
         hr.append(th);
       }
       thead.append(hr);
@@ -1055,7 +1059,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       const totalBcm = Math.round(data.gasTotalDemandTj / 36000);
       const lngShare = data.gasLngShare;
       const pipeShare = Math.max(0, 100 - lngShare);
-      const lngColor = lngShare > 80 ? '#ef4444' : lngShare >= 40 ? '#f59e0b' : '#22c55e';
+      const lngColor = lngShare > 80 ? 'var(--status-alert)' : lngShare >= 40 ? 'var(--status-watch)' : 'var(--status-good)';
 
       const section = this.el('div', '');
       section.style.cssText = 'margin-top:10px';
@@ -1064,10 +1068,10 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
 
       const gasLabel = this.el('span', '', `Gas demand: ${totalBcm} BCM/yr`);
       const lngBadge = this.el('span', '');
-      lngBadge.style.cssText = `background:${lngColor};color:#fff;padding:1px 5px;border-radius:3px;font-size:11px`;
+      lngBadge.style.cssText = `background:${lngColor};color:var(--bg);padding:1px 5px;border-radius:3px;font-size:11px`;
       lngBadge.textContent = `LNG ${lngShare.toFixed(0)}%`;
       const pipeBadge = this.el('span', '');
-      pipeBadge.style.cssText = 'background:#6b7280;color:#fff;padding:1px 5px;border-radius:3px;font-size:11px';
+      pipeBadge.style.cssText = `background:${NEUTRAL.slateDim};color:var(--bg);padding:1px 5px;border-radius:3px;font-size:11px`;
       pipeBadge.textContent = `Pipeline ${pipeShare.toFixed(0)}%`;
 
       row.append(gasLabel, lngBadge, pipeBadge);
@@ -1081,7 +1085,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
 
       if (data.ieaNetExporter) {
         const msg = this.el('div', '');
-        msg.style.cssText = 'color:#22c55e;font-size:12px';
+        msg.style.cssText = 'color:var(--status-good);font-size:12px';
         msg.textContent = 'IEA oil stocks: Net Exporter';
         section.append(msg);
       } else {
@@ -1092,19 +1096,19 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
 
         if (data.ieaBelowObligation) {
           const warn = this.el('span', '');
-          warn.style.cssText = 'background:#ef4444;color:#fff;padding:1px 5px;border-radius:3px;font-size:11px';
+          warn.style.cssText = 'background:var(--status-alert);color:var(--bg);padding:1px 5px;border-radius:3px;font-size:11px';
           warn.textContent = 'Below 90-day obligation';
           coverLabel.append(warn);
         }
         section.append(coverLabel);
 
         const barOuter = this.el('div', '');
-        barOuter.style.cssText = 'position:relative;width:100%;height:8px;border-radius:4px;background:#374151;overflow:visible';
+        barOuter.style.cssText = 'position:relative;width:100%;height:8px;border-radius:4px;background:var(--border);overflow:visible';
         const fillPct = Math.min(data.ieaDaysOfCover / 180 * 100, 100);
         const fill = this.el('div', '');
-        fill.style.cssText = `width:${fillPct}%;height:100%;background:#3b82f6;border-radius:4px`;
+        fill.style.cssText = `width:${fillPct}%;height:100%;background:var(--status-info);border-radius:4px`;
         const marker = this.el('div', '');
-        marker.style.cssText = 'position:absolute;top:-2px;left:50%;width:2px;height:12px;background:#f59e0b;transform:translateX(-50%)';
+        marker.style.cssText = 'position:absolute;top:-2px;left:50%;width:2px;height:12px;background:var(--status-watch);transform:translateX(-50%)';
         barOuter.append(fill, marker);
         section.append(barOuter);
       }
@@ -1117,7 +1121,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       const row = this.el('div', '');
       row.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px';
       const badge = this.el('span', '');
-      badge.style.cssText = 'background:#3b82f6;color:#fff;padding:1px 6px;border-radius:3px;font-size:11px';
+      badge.style.cssText = 'background:var(--status-info);color:var(--bg);padding:1px 6px;border-radius:3px;font-size:11px';
       const capText = data.sprCapacityMb > 0 ? ` (${data.sprCapacityMb}Mb)` : '';
       badge.textContent = `Strategic Reserve: ${data.sprOperator || 'Government SPR'}${capText}`;
       row.append(badge);
@@ -1127,13 +1131,13 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       const section = this.el('div', '');
       section.style.cssText = 'margin-top:10px';
       const muted = this.el('div', '');
-      muted.style.cssText = 'color:#6b7280;font-size:11px';
+      muted.style.cssText = 'color:var(--text-dim);font-size:11px';
       muted.textContent = 'Spare capacity producer (no formal SPR)';
       section.append(muted);
       this.energyBody.append(section);
     } else if (data.sprAvailable && data.sprRegime === 'none') {
       const note = this.el('div', 'cdp-economic-source');
-      note.style.cssText += ';color:#ef4444;opacity:0.7';
+      note.style.cssText += ';color:var(--status-alert);opacity:0.7';
       note.textContent = 'No known strategic petroleum reserve program';
       this.energyBody.append(note);
     }
@@ -1167,10 +1171,12 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       const monthLabel = data.emberDataMonth || 'latest';
       section.append(this.el('div', 'cdp-subtitle', `Monthly Generation Mix (${monthLabel})`));
 
+      // Same CATEGORY assignment as the primary-energy donut above (SVG
+      // presentation-attribute context).
       const segments: Array<{ label: string; color: string; value: number }> = [
-        { label: 'Fossil', color: '#8B4513', value: data.emberFossilShare },
-        { label: 'Renewable', color: '#22c55e', value: data.emberRenewShare },
-        { label: 'Nuclear', color: '#6A0DAD', value: data.emberNuclearShare },
+        { label: 'Fossil', color: CATEGORY.orange, value: data.emberFossilShare },
+        { label: 'Renewable', color: CATEGORY.green, value: data.emberRenewShare },
+        { label: 'Nuclear', color: CATEGORY.violet, value: data.emberNuclearShare },
       ];
       const total = segments.reduce((acc, seg) => acc + seg.value, 0);
       const norm = total > 0 ? total : 1;
@@ -1193,7 +1199,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
 
       if (data.emberCoalShare > 0 || data.emberGasShare > 0) {
         const breakdown = this.el('div', '');
-        breakdown.style.cssText = 'font-size:11px;color:#aaa;margin-top:4px';
+        breakdown.style.cssText = 'font-size:11px;color:var(--text-dim);margin-top:4px';
         const parts: string[] = [];
         const fossilR = Math.round(data.emberFossilShare);
         let coalR = Math.round(data.emberCoalShare);
@@ -1217,7 +1223,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
 
       if (data.emberDemandTwh > 0) {
         const demand = this.el('div', '');
-        demand.style.cssText = 'font-size:11px;color:#aaa;margin-top:2px';
+        demand.style.cssText = 'font-size:11px;color:var(--text-dim);margin-top:2px';
         demand.textContent = `Total demand: ${data.emberDemandTwh.toFixed(1)} TWh`;
         section.append(demand);
       }
@@ -1402,7 +1408,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
   ): void {
     if (!this.energyBody || items.length === 0) return;
     const section = this.el('div', '');
-    section.style.cssText = 'margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)';
+    section.style.cssText = 'margin-top:10px;padding-top:8px;border-top:1px solid var(--border-subtle)';
     const header = this.el('div', '');
     header.style.cssText = 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px';
     header.append(this.el('div', 'cdp-subtitle', title));
@@ -1410,7 +1416,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     section.append(header);
     for (const it of items.slice(0, 5)) {
       const row = this.el('div', '');
-      row.style.cssText = 'font-size:11px;color:#ddd;padding:2px 0;cursor:pointer';
+      row.style.cssText = 'font-size:11px;color:var(--text-secondary);padding:2px 0;cursor:pointer';
       row.textContent = it.label || it.id;
       row.addEventListener('click', () => {
         if (!it.id) return;
@@ -1474,7 +1480,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
 
   private renderShockScenarioWidget(): HTMLElement {
     const wrapper = this.el('div', '');
-    wrapper.style.cssText = 'margin-top:12px;border-top:1px solid #374151;padding-top:10px';
+    wrapper.style.cssText = 'margin-top:12px;border-top:1px solid var(--border);padding-top:10px';
 
     const title = this.el('div', 'cdp-subtitle', 'Shock Scenario');
     wrapper.append(title);
@@ -1483,7 +1489,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     controls.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px';
 
     const chokepointSelect = this.el('select', '') as HTMLSelectElement;
-    chokepointSelect.style.cssText = 'background:#1f2937;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:3px 6px;font-size:11px';
+    chokepointSelect.style.cssText = 'background:var(--surface-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:11px';
     const chopkpts: Array<[string, string]> = [['hormuz_strait', 'Strait of Hormuz'], ['malacca_strait', 'Strait of Malacca'], ['suez', 'Suez Canal'], ['bab_el_mandeb', 'Bab el-Mandeb']];
     for (const [cpValue, cpLabel] of chopkpts) {
       const opt = this.el('option', '') as HTMLOptionElement;
@@ -1493,7 +1499,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     }
 
     const disruptionSelect = this.el('select', '') as HTMLSelectElement;
-    disruptionSelect.style.cssText = 'background:#1f2937;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:3px 6px;font-size:11px';
+    disruptionSelect.style.cssText = 'background:var(--surface-hover);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:11px';
     for (const pct of [25, 50, 75, 100]) {
       const opt = this.el('option', '') as HTMLOptionElement;
       opt.value = String(pct);
@@ -1547,9 +1553,9 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
           const lvl = result.coverageLevel ?? '';
           if (lvl) {
             const colors: Record<string, string> = {
-              full: 'background:#15803d;color:#dcfce7',
-              partial: 'background:#b45309;color:#fef3c7',
-              unsupported: 'background:#b91c1c;color:#fee2e2',
+              full: 'background:var(--status-good-bg);color:var(--status-good)',
+              partial: 'background:var(--status-warn-bg);color:var(--status-warn)',
+              unsupported: 'background:var(--status-alert-bg);color:var(--status-alert)',
             };
             coverageBadge.style.cssText = `display:inline-block;font-size:10px;padding:2px 5px;border-radius:3px;font-weight:600;${colors[lvl] ?? ''}`;
             coverageBadge.textContent = lvl;
@@ -1579,7 +1585,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
 
     if (result.degraded) {
       const warn = this.el('div', '');
-      warn.style.cssText = 'font-size:10px;color:#f59e0b;margin-bottom:6px;padding:3px 6px;background:#1c1400;border-radius:3px';
+      warn.style.cssText = 'font-size:10px;color:var(--status-watch);margin-bottom:6px;padding:3px 6px;background:var(--status-watch-bg);border-radius:3px';
       warn.textContent = 'Live flow data unavailable — using historical baseline';
       container.append(warn);
     }
@@ -1589,7 +1595,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       // as a note instead of repeating the same value across every row (see #2971).
       if (result.portwatchCoverage && result.liveFlowRatio != null) {
         const note = this.el('div', '');
-        note.style.cssText = 'font-size:10px;color:#aaa;margin-bottom:4px';
+        note.style.cssText = 'font-size:10px;color:var(--text-dim);margin-bottom:4px';
         note.textContent = `Current transit flow vs baseline: ${Math.round(result.liveFlowRatio * 100)}%`;
         container.append(note);
       }
@@ -1602,7 +1608,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       for (const h of headers) {
         const th = this.el('th', '');
         th.textContent = h;
-        th.style.cssText = 'text-align:left;color:#aaa;padding:2px 4px';
+        th.style.cssText = 'text-align:left;color:var(--text-dim);padding:2px 4px';
         hr.append(th);
       }
       thead.append(hr);
@@ -1611,7 +1617,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       const tbody = this.el('tbody', '');
       for (const p of result.products as ProductImpact[]) {
         const tr = this.el('tr', '');
-        const defColor = p.deficitPct > 30 ? '#ef4444' : p.deficitPct > 10 ? '#f59e0b' : '#22c55e';
+        const defColor = p.deficitPct > 30 ? 'var(--status-alert)' : p.deficitPct > 10 ? 'var(--status-watch)' : 'var(--status-good)';
         const cells = [
           p.product,
           `${p.demandKbd} kbd`,
@@ -1646,15 +1652,15 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     }
 
     const assessmentEl = this.el('div', '');
-    assessmentEl.style.cssText = 'font-size:11px;color:#d1d5db;line-height:1.4;margin-top:4px';
+    assessmentEl.style.cssText = 'font-size:11px;color:var(--text-secondary);line-height:1.4;margin-top:4px';
     assessmentEl.textContent = result.assessment;
     container.append(assessmentEl);
 
     if (result.limitations && result.limitations.length > 0) {
       const details = this.el('details', '') as HTMLDetailsElement;
-      details.style.cssText = 'margin-top:6px;font-size:10px;color:#9ca3af';
+      details.style.cssText = 'margin-top:6px;font-size:10px;color:var(--text-dim)';
       const summary = this.el('summary', '');
-      summary.style.cssText = 'cursor:pointer;color:#6b7280';
+      summary.style.cssText = 'cursor:pointer;color:var(--text-dim)';
       summary.textContent = 'Model assumptions';
       details.append(summary);
       const ul = this.el('ul', '');
@@ -1671,10 +1677,10 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     if (result.gasImpact?.dataAvailable) {
       const gi = result.gasImpact;
       const gasSection = this.el('div', '');
-      gasSection.style.cssText = 'margin-top:10px;border-top:1px solid #374151;padding-top:8px';
+      gasSection.style.cssText = 'margin-top:10px;border-top:1px solid var(--border);padding-top:8px';
 
       const gasTitle = this.el('div', '');
-      gasTitle.style.cssText = 'font-size:11px;font-weight:600;color:#e5e7eb;margin-bottom:4px';
+      gasTitle.style.cssText = 'font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px';
       gasTitle.textContent = 'Gas / LNG Impact';
       gasSection.append(gasTitle);
 
@@ -1691,12 +1697,12 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       }
 
       const srcBadge = this.el('div', '');
-      srcBadge.style.cssText = 'font-size:10px;color:#9ca3af;margin-top:2px';
+      srcBadge.style.cssText = 'font-size:10px;color:var(--text-dim);margin-top:2px';
       srcBadge.textContent = `Source: ${gi.dataSource === 'gie_daily' ? 'GIE (daily, Europe)' : 'JODI (monthly, global)'}`;
       gasSection.append(srcBadge);
 
       const gasAssess = this.el('div', '');
-      gasAssess.style.cssText = 'font-size:11px;color:#d1d5db;line-height:1.4;margin-top:4px';
+      gasAssess.style.cssText = 'font-size:11px;color:var(--text-secondary);line-height:1.4;margin-top:4px';
       gasAssess.textContent = gi.assessment;
       gasSection.append(gasAssess);
 
@@ -1948,7 +1954,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     setTrustedHtml(transitEl, trustedHtml(`Transit: <span>\u2014</span>`, "legacy direct innerHTML migration"));
     const riskEl = this.el('div');
     const riskScore = sector.exposureScore;
-    const riskColor = riskScore >= 70 ? '#ef4444' : riskScore > 30 ? '#f59e0b' : '#94a3b8';
+    const riskColor = riskScore >= 70 ? 'var(--status-alert)' : riskScore > 30 ? 'var(--status-watch)' : 'var(--text-dim)';
     setTrustedHtml(riskEl, trustedHtml(`Chokepoint Risk: <span style="color:${riskColor}">${riskScore.toFixed(0)}/100</span>`, "legacy direct innerHTML migration"));
     const routeCountEl = this.el('div');
     setTrustedHtml(routeCountEl, trustedHtml(`Routes via chokepoint: <span>${matchingRoutes.length}</span>`, "legacy direct innerHTML migration"));

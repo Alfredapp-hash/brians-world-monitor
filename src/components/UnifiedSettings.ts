@@ -34,6 +34,7 @@ import {
   type ApiPlanLimitNotice,
 } from '@/services/api-plan-limit-notices';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
+import { STATUS, withAlpha } from '@/styles/tokens';
 
 
 function showToast(msg: string): void {
@@ -642,9 +643,10 @@ export class UnifiedSettings {
     if (isEntitled()) {
       const sub = getSubscription();
       const planName = sub?.displayName ?? 'Pro';
-      const statusColor = sub?.status === 'active' ? '#22c55e' : sub?.status === 'on_hold' ? '#eab308' : '#ef4444';
-      const statusBorderColor = sub?.status === 'active' ? '#22c55e33' : sub?.status === 'on_hold' ? '#eab30833' : '#ef444433';
-      const statusBgColor = sub?.status === 'active' ? '#22c55e0a' : sub?.status === 'on_hold' ? '#eab3080a' : '#ef44440a';
+      const statusBase = sub?.status === 'active' ? STATUS.good : sub?.status === 'on_hold' ? STATUS.watch : STATUS.alert;
+      const statusColor = statusBase;
+      const statusBorderColor = withAlpha(statusBase, 0.2);
+      const statusBgColor = withAlpha(statusBase, 0.04);
 
       let statusLine = '';
       if (sub?.currentPeriodEnd) {

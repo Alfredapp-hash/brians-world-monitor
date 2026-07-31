@@ -1,4 +1,7 @@
 import { getRpcBaseUrl } from '@/services/rpc-client';
+// Raw token constants (not var(--…)): consumers append hex alpha digits
+// (e.g. `${color}33` in GlobeMap), which requires literal #rrggbb values.
+import { CATEGORY, NEUTRAL } from '@/styles/tokens';
 import type { WebcamEntry, WebcamCluster, ListWebcamsResponse, GetWebcamImageResponse } from '@/generated/client/worldmonitor/webcam/v1/service_client';
 import { WebcamServiceClient } from '@/services/generated-rpc-clients';
 
@@ -58,13 +61,13 @@ export async function fetchWebcamImage(webcamId: string): Promise<GetWebcamImage
 
 // Category mapping for marker rendering
 export const WEBCAM_CATEGORIES: Record<string, { color: string; emoji: string }> = {
-  traffic:   { color: '#ffd700', emoji: '\u{1F697}' },    // 🚗
-  city:      { color: '#00d4ff', emoji: '\u{1F3D9}\uFE0F' }, // 🏙️
-  landscape: { color: '#45b7d1', emoji: '\u{1F3D4}\uFE0F' }, // 🏔️
-  nature:    { color: '#96ceb4', emoji: '\u{1F33F}' },    // 🌿
-  beach:     { color: '#f4a460', emoji: '\u{1F3D6}\uFE0F' }, // 🏖️
-  water:     { color: '#4169e1', emoji: '\u{1F30A}' },    // 🌊
-  other:     { color: '#888888', emoji: '\u{1F4F7}' },    // 📷
+  traffic:   { color: CATEGORY.gold, emoji: '\u{1F697}' },    // 🚗
+  city:      { color: CATEGORY.blue, emoji: '\u{1F3D9}\uFE0F' }, // 🏙️
+  landscape: { color: CATEGORY.aqua, emoji: '\u{1F3D4}\uFE0F' }, // 🏔️
+  nature:    { color: CATEGORY.green, emoji: '\u{1F33F}' },    // 🌿
+  beach:     { color: CATEGORY.orange, emoji: '\u{1F3D6}\uFE0F' }, // 🏖️
+  water:     { color: CATEGORY.violet, emoji: '\u{1F30A}' },    // 🌊
+  other:     { color: NEUTRAL.slate, emoji: '\u{1F4F7}' },    // 📷
 };
 
 export function getClusterCellSize(zoom: number): number {

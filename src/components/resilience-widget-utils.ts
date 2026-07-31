@@ -166,12 +166,14 @@ export const LOCKED_PREVIEW: ResilienceScoreResponse = {
 
 export type ResilienceVisualLevel = 'very_high' | 'high' | 'moderate' | 'low' | 'very_low' | 'unknown';
 
+// Good→bad five-step ladder on the JSA status scale (colors render in the
+// DOM, so CSS custom properties keep theme switching working).
 export const RESILIENCE_VISUAL_LEVEL_COLORS: Record<ResilienceVisualLevel, string> = {
-  very_high: '#22c55e',
-  high: '#84cc16',
-  moderate: '#eab308',
-  low: '#f97316',
-  very_low: '#ef4444',
+  very_high: 'var(--status-good)',
+  high: 'var(--status-info)',
+  moderate: 'var(--status-watch)',
+  low: 'var(--status-warn)',
+  very_low: 'var(--status-alert)',
   unknown: 'var(--text-faint)',
 };
 

@@ -1,13 +1,16 @@
 import type { PizzIntStatus, GdeltTensionPair } from '@/types';
 import { t } from '@/services/i18n';
 import { h, replaceChildren } from '@/utils/dom-utils';
+import { NEUTRAL, SEVERITY } from '@/styles/tokens';
 
+// DEFCON readiness ladder on the ordered severity ramp:
+// DEFCON 5 (calm) → s1 … DEFCON 1 (maximum readiness) → s5.
 const DEFCON_COLORS: Record<number, string> = {
-  1: '#ff0040',
-  2: '#ff4400',
-  3: '#ffaa00',
-  4: '#00aaff',
-  5: '#2d8a6e',
+  1: SEVERITY.s5,
+  2: SEVERITY.s4,
+  3: SEVERITY.s3,
+  4: SEVERITY.s2,
+  5: SEVERITY.s1,
 };
 
 export class PizzIntIndicator {
@@ -76,11 +79,12 @@ export class PizzIntIndicator {
     const locationsEl = this.element.querySelector('.pizzint-locations') as HTMLElement;
     const updatedEl = this.element.querySelector('.pizzint-updated') as HTMLElement;
 
-    const color = DEFCON_COLORS[this.status.defconLevel] || '#888';
+    const color = DEFCON_COLORS[this.status.defconLevel] || NEUTRAL.slate;
     defconEl.textContent = t('components.pizzint.defcon', { level: String(this.status.defconLevel) });
     defconEl.style.background = color;
-    // Black on every DEFCON hue clears WCAG AA 4.5:1 (green #2d8a6e→4.97:1,
-    // blue #00aaff→8.2:1); white failed on levels 4–5 (4.22:1 / 2.56:1).
+    // Black on every DEFCON hue (severity ramp s1–s5) clears WCAG AA 4.5:1
+    // — worst step is s4 alert #e05252 at ≈5.5:1; white fails AA on the
+    // lighter steps. Guarded by tests/a11y-issue-4373-invariants.test.mjs.
     defconEl.style.color = '#000';
 
     scoreEl.textContent = `${this.status.aggregateActivity}%`;

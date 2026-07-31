@@ -1,5 +1,7 @@
 import type { StoryData } from './story-data';
 import { getLocale, t } from './i18n';
+// Canvas 2D cannot resolve CSS custom properties — raw token constants only.
+import { BRAND, CATEGORY, NEUTRAL, SEVERITY, STATUS, withAlpha } from '@/styles/tokens';
 
 const W = 1080;
 const H = 1920;
@@ -31,10 +33,10 @@ function humanizeSignalType(type: string): string {
 }
 
 const LEVEL_COLORS: Record<string, string> = {
-  critical: '#ef4444', high: '#f97316', elevated: '#eab308', normal: '#22c55e', low: '#3b82f6',
+  critical: STATUS.alert, high: STATUS.warn, elevated: STATUS.watch, normal: STATUS.good, low: STATUS.info,
 };
 const THREAT_COLORS: Record<string, string> = {
-  critical: '#ef4444', high: '#f97316', medium: '#eab308', low: '#22c55e', info: '#3b82f6',
+  critical: STATUS.alert, high: STATUS.warn, medium: STATUS.watch, low: STATUS.good, info: STATUS.info,
 };
 
 const LOGO_URL = '/favico/worldmonitor-icon-1024.png';
@@ -58,7 +60,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
   try { logoImg = await loadImage(LOGO_URL); } catch { /* proceed without logo */ }
 
   // Background — slightly lighter for better contrast
-  ctx.fillStyle = '#0c0c14';
+  ctx.fillStyle = BRAND.bg;
   ctx.fillRect(0, 0, W, H);
 
   let y = 0;
@@ -72,14 +74,14 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
     ctx.drawImage(logoImg, PAD, y - 4, LOGO_SIZE, LOGO_SIZE);
   }
   const textX = logoImg ? PAD + LOGO_SIZE + 14 : PAD;
-  ctx.fillStyle = '#666';
+  ctx.fillStyle = NEUTRAL.slateDim;
   ctx.font = '700 30px Inter, system-ui, sans-serif';
   ctx.letterSpacing = '6px';
   ctx.fillText('WORLDMONITOR.APP', textX, y + 26);
   ctx.letterSpacing = '0px';
   const dateStr = new Date().toLocaleDateString(getLocale(), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   ctx.font = '400 24px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#555';
+  ctx.fillStyle = NEUTRAL.slateDim;
   const dateW = ctx.measureText(dateStr).width;
   ctx.fillText(dateStr, RIGHT - dateW, y + 26);
 
@@ -88,7 +90,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
 
   // ── COUNTRY NAME ──
   y += 74;
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = BRAND.text;
   ctx.font = '800 86px Inter, system-ui, sans-serif';
   ctx.fillText(data.countryName.toUpperCase(), PAD, y);
 
@@ -96,35 +98,35 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
   ctx.font = '700 28px Inter, system-ui, sans-serif';
   const codeLabel = data.countryCode;
   const codeLabelW = ctx.measureText(codeLabel).width + 24;
-  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.fillStyle = withAlpha(BRAND.text, 0.1);
   roundRect(ctx, RIGHT - codeLabelW, y - 28, codeLabelW, 36, 6);
   ctx.fill();
-  ctx.fillStyle = '#888';
+  ctx.fillStyle = BRAND.textDim;
   ctx.fillText(codeLabel, RIGHT - codeLabelW + 12, y - 2);
 
   // ── CII SCORE ──
   y += 62;
   if (!data.cii) {
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = BRAND.textDim;
     ctx.font = '700 44px Inter, system-ui, sans-serif';
     ctx.fillText(t('common.unavailable'), PAD, y);
     y += 32;
   } else {
-    const levelColor = LEVEL_COLORS[data.cii.level] || '#888';
+    const levelColor = LEVEL_COLORS[data.cii.level] || BRAND.textDim;
     const score = data.cii.score;
 
     ctx.fillStyle = levelColor;
     ctx.font = '800 72px Inter, system-ui, sans-serif';
     ctx.fillText(`${score}`, PAD, y);
     const scoreNumW = ctx.measureText(`${score}`).width;
-    ctx.fillStyle = '#777';
+    ctx.fillStyle = BRAND.textDim;
     ctx.font = '400 38px Inter, system-ui, sans-serif';
     ctx.fillText('/100', PAD + scoreNumW + 4, y);
     const slashW = ctx.measureText('/100').width;
     if (data.cii.change24h) {
       const ch = data.cii.change24h;
       const chSign = ch > 0 ? '+' : '';
-      ctx.fillStyle = ch > 0 ? '#ef4444' : ch < 0 ? '#22c55e' : '#888';
+      ctx.fillStyle = ch > 0 ? STATUS.alert : ch < 0 ? STATUS.good : BRAND.textDim;
       ctx.font = '600 28px Inter, system-ui, sans-serif';
       ctx.fillText(`${chSign}${ch} 24h`, PAD + scoreNumW + 4 + slashW + 16, y);
     }
@@ -140,13 +142,13 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
     const badgeTextW = ctx.measureText(badgeText).width + 28;
     roundRect(ctx, RIGHT - badgeTextW, y - 26, badgeTextW, 34, 6);
     ctx.fill();
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = BRAND.text;
     ctx.fillText(badgeText, RIGHT - badgeTextW + 14, y - 3);
 
     ctx.font = '600 22px Inter, system-ui, sans-serif';
     const lvlW = ctx.measureText(levelLabel).width + 24;
     const lvlX = RIGHT - badgeTextW - lvlW - 12;
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillStyle = withAlpha(BRAND.text, 0.08);
     roundRect(ctx, lvlX, y - 24, lvlW, 30, 4);
     ctx.fill();
     ctx.fillStyle = levelColor;
@@ -155,7 +157,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
     // Score bar
     y += 32;
     const barW = W - PAD * 2;
-    ctx.fillStyle = '#1a1a2e';
+    ctx.fillStyle = BRAND.surfaceActive;
     roundRect(ctx, PAD, y, barW, 18, 9);
     ctx.fill();
     if (score > 0) {
@@ -167,15 +169,15 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
     // Component scores
     y += 44;
     const comps = [
-      { label: t('common.unrest').toUpperCase(), val: data.cii.components.unrest, color: '#f97316' },
-      { label: t('common.conflict').toUpperCase(), val: data.cii.components.conflict, color: '#dc2626' },
-      { label: t('common.security').toUpperCase(), val: data.cii.components.security, color: '#ef4444' },
-      { label: t('common.information').toUpperCase(), val: data.cii.components.information, color: '#8b5cf6' },
+      { label: t('common.unrest').toUpperCase(), val: data.cii.components.unrest, color: STATUS.warn },
+      { label: t('common.conflict').toUpperCase(), val: data.cii.components.conflict, color: STATUS.alert },
+      { label: t('common.security').toUpperCase(), val: data.cii.components.security, color: SEVERITY.s5 },
+      { label: t('common.information').toUpperCase(), val: data.cii.components.information, color: CATEGORY.violet },
     ];
     const compBarW = (barW - 24) / 3;
     for (const comp of comps) {
       const cx = PAD + comps.indexOf(comp) * (compBarW + 12);
-      ctx.fillStyle = '#777';
+      ctx.fillStyle = BRAND.textDim;
       ctx.font = '600 20px Inter, system-ui, sans-serif';
       ctx.fillText(comp.label, cx, y);
       ctx.fillStyle = comp.color;
@@ -183,7 +185,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
       const valStr = comp.val.toFixed(0);
       const valW = ctx.measureText(valStr).width;
       ctx.fillText(valStr, cx + compBarW - valW, y);
-      ctx.fillStyle = '#1a1a2e';
+      ctx.fillStyle = BRAND.surfaceActive;
       roundRect(ctx, cx, y + 8, compBarW, 8, 4);
       ctx.fill();
       ctx.fillStyle = comp.color;
@@ -203,10 +205,10 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
 
     y += 48;
     const sigItems = [
-      { icon: '📢', label: 'Protests', count: data.signals.protests, color: '#f97316' },
-      { icon: '✈', label: 'Military Aircraft', count: data.signals.militaryFlights, color: '#ef4444' },
-      { icon: '⚓', label: 'Military Vessels', count: data.signals.militaryVessels, color: '#3b82f6' },
-      { icon: '🌐', label: 'Internet Outages', count: data.signals.outages, color: '#8b5cf6' },
+      { icon: '📢', label: 'Protests', count: data.signals.protests, color: STATUS.warn },
+      { icon: '✈', label: 'Military Aircraft', count: data.signals.militaryFlights, color: STATUS.alert },
+      { icon: '⚓', label: 'Military Vessels', count: data.signals.militaryVessels, color: STATUS.info },
+      { icon: '🌐', label: 'Internet Outages', count: data.signals.outages, color: CATEGORY.violet },
     ].filter(s => s.count > 0);
 
     const colW = (RIGHT - PAD) / Math.min(sigItems.length, 4);
@@ -215,7 +217,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
       ctx.fillStyle = sig.color;
       ctx.font = '800 40px Inter, system-ui, sans-serif';
       ctx.fillText(`${sig.count}`, sx, y);
-      ctx.fillStyle = '#aaa';
+      ctx.fillStyle = BRAND.textSecondary;
       ctx.font = '400 20px Inter, system-ui, sans-serif';
       ctx.fillText(`${sig.icon} ${sig.label}`, sx, y + 28);
     }
@@ -231,25 +233,25 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
 
     y += 46;
     const convScore = Math.round(data.convergence.score);
-    const convColor = convScore >= 70 ? '#ef4444' : convScore >= 40 ? '#eab308' : '#22c55e';
+    const convColor = convScore >= 70 ? STATUS.alert : convScore >= 40 ? STATUS.watch : STATUS.good;
     ctx.fillStyle = convColor;
     ctx.font = '800 48px Inter, system-ui, sans-serif';
     ctx.fillText(`${convScore}`, PAD, y);
     const convScoreW = ctx.measureText(`${convScore}`).width;
-    ctx.fillStyle = '#777';
+    ctx.fillStyle = BRAND.textDim;
     ctx.font = '400 30px Inter, system-ui, sans-serif';
     ctx.fillText('/100 convergence', PAD + convScoreW + 10, y);
 
     if (data.convergence.signalTypes.length > 0) {
       y += 36;
-      ctx.fillStyle = '#999';
+      ctx.fillStyle = BRAND.textDim;
       ctx.font = '400 22px Inter, system-ui, sans-serif';
       ctx.fillText(data.convergence.signalTypes.map(humanizeSignalType).join('  ·  '), PAD, y);
     }
 
     for (const desc of data.convergence.regionalDescriptions.slice(0, 2)) {
       y += 34;
-      ctx.fillStyle = '#888';
+      ctx.fillStyle = BRAND.textDim;
       ctx.font = '400 22px Inter, system-ui, sans-serif';
       ctx.fillText(truncateText(ctx, desc, RIGHT - PAD), PAD, y);
     }
@@ -267,7 +269,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
     for (const item of data.news.slice(0, 5)) {
       if (y > FOOTER_Y - 80) break;
       y += 54;
-      const tc = THREAT_COLORS[item.threatLevel] || '#3b82f6';
+      const tc = THREAT_COLORS[item.threatLevel] || STATUS.info;
 
       // Threat badge
       const label = item.threatLevel.toUpperCase();
@@ -282,7 +284,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
       ctx.fillText(label, PAD + 9, y);
 
       // Title
-      ctx.fillStyle = '#e0e0e0';
+      ctx.fillStyle = BRAND.text;
       ctx.font = '400 26px Inter, system-ui, sans-serif';
       const titleX = PAD + labelW + 14;
       const maxTitleW = RIGHT - titleX;
@@ -290,7 +292,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
 
       // Source count
       if (item.sourceCount > 1) {
-        ctx.fillStyle = '#666';
+        ctx.fillStyle = NEUTRAL.slateDim;
         ctx.font = '400 18px Inter, system-ui, sans-serif';
         const srcText = `${item.sourceCount} sources`;
         const srcW = ctx.measureText(srcText).width;
@@ -301,7 +303,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
     y += 36;
     const totalSources = data.news.reduce((s, n) => s + (n.sourceCount || 1), 0);
     const alertCount = data.news.filter(n => n.threatLevel === 'critical' || n.threatLevel === 'high').length;
-    ctx.fillStyle = '#555';
+    ctx.fillStyle = NEUTRAL.slateDim;
     ctx.font = '400 22px Inter, system-ui, sans-serif';
     let statsText = `${totalSources} sources across ${data.news.length} stories`;
     if (alertCount > 0) statsText += `  ·  ${alertCount} high-priority alerts`;
@@ -315,11 +317,11 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
     y += 46;
     drawSectionHeader(ctx, 'MILITARY POSTURE', PAD, y);
 
-    const postureColor = data.theater.postureLevel === 'critical' ? '#ef4444'
-      : data.theater.postureLevel === 'elevated' ? '#f97316' : '#22c55e';
+    const postureColor = data.theater.postureLevel === 'critical' ? STATUS.alert
+      : data.theater.postureLevel === 'elevated' ? STATUS.warn : STATUS.good;
 
     y += 52;
-    ctx.fillStyle = '#e0e0e0';
+    ctx.fillStyle = BRAND.text;
     ctx.font = '600 32px Inter, system-ui, sans-serif';
     ctx.fillText(data.theater.theaterName, PAD, y);
 
@@ -330,19 +332,19 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
     ctx.fillStyle = postureColor;
     roundRect(ctx, RIGHT - pLabelW, y - 24, pLabelW, 34, 6);
     ctx.fill();
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = BRAND.text;
     ctx.fillText(pLabel, RIGHT - pLabelW + 12, y - 2);
 
     y += 48;
     ctx.font = '400 28px Inter, system-ui, sans-serif';
-    ctx.fillStyle = '#bbb';
+    ctx.fillStyle = BRAND.textSecondary;
     ctx.fillText(`✈ ${data.theater.totalAircraft} aircraft`, PAD, y);
     const acW = ctx.measureText(`✈ ${data.theater.totalAircraft} aircraft`).width;
     ctx.fillText(`⚓ ${data.theater.totalVessels} vessels`, PAD + acW + 40, y);
 
     if (data.theater.fighters || data.theater.tankers || data.theater.awacs) {
       y += 40;
-      ctx.fillStyle = '#888';
+      ctx.fillStyle = BRAND.textDim;
       ctx.font = '400 24px Inter, system-ui, sans-serif';
       const parts: string[] = [];
       if (data.theater.fighters) parts.push(`Fighters: ${data.theater.fighters}`);
@@ -353,7 +355,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
 
     if (data.theater.strikeCapable) {
       y += 40;
-      ctx.fillStyle = '#ef4444';
+      ctx.fillStyle = STATUS.alert;
       ctx.font = '700 24px Inter, system-ui, sans-serif';
       ctx.fillText('⚠ STRIKE CAPABLE', PAD, y);
     }
@@ -368,13 +370,13 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
 
     for (const m of data.markets.slice(0, 4)) {
       y += 50;
-      ctx.fillStyle = '#ddd';
+      ctx.fillStyle = BRAND.text;
       ctx.font = '400 26px Inter, system-ui, sans-serif';
       ctx.fillText(truncateText(ctx, m.title, RIGHT - PAD - 120), PAD, y);
 
       const pct = Math.round(m.yesPrice);
       const pctStr = `${pct}%`;
-      const pctColor = pct >= 70 ? '#ef4444' : pct >= 40 ? '#eab308' : '#22c55e';
+      const pctColor = pct >= 70 ? STATUS.alert : pct >= 40 ? STATUS.watch : STATUS.good;
       ctx.fillStyle = pctColor;
       ctx.font = '700 28px Inter, system-ui, sans-serif';
       const pctW = ctx.measureText(pctStr).width;
@@ -392,9 +394,9 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
 
     y += 48;
     const threatBars = [
-      { label: 'Critical', count: data.threats.critical, color: '#ef4444' },
-      { label: 'High', count: data.threats.high, color: '#f97316' },
-      { label: 'Medium', count: data.threats.medium, color: '#eab308' },
+      { label: 'Critical', count: data.threats.critical, color: STATUS.alert },
+      { label: 'High', count: data.threats.high, color: STATUS.warn },
+      { label: 'Medium', count: data.threats.medium, color: STATUS.watch },
     ].filter(t => t.count > 0);
 
     const maxCount = Math.max(...threatBars.map(t => t.count));
@@ -402,7 +404,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
       ctx.fillStyle = t.color;
       ctx.font = '700 26px Inter, system-ui, sans-serif';
       ctx.fillText(`${t.count}`, PAD, y);
-      ctx.fillStyle = '#bbb';
+      ctx.fillStyle = BRAND.textSecondary;
       ctx.font = '400 26px Inter, system-ui, sans-serif';
       const numW = ctx.measureText(`${t.count}`).width;
       ctx.fillText(` ${t.label}`, PAD + numW, y);
@@ -420,7 +422,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
 
     if (data.threats.categories.length > 0) {
       y += 6;
-      ctx.fillStyle = '#888';
+      ctx.fillStyle = BRAND.textDim;
       ctx.font = '400 24px Inter, system-ui, sans-serif';
       ctx.fillText(data.threats.categories.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join('  ·  '), PAD, y);
     }
@@ -428,7 +430,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
 
   // ── FOOTER ──
   const timeStr = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
-  ctx.strokeStyle = '#222';
+  ctx.strokeStyle = BRAND.border;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(PAD, H - 90);
@@ -440,7 +442,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
     ctx.drawImage(logoImg, PAD, H - 78, footerLogoSize, footerLogoSize);
   }
   const footerTextX = logoImg ? PAD + footerLogoSize + 12 : PAD;
-  ctx.fillStyle = '#444';
+  ctx.fillStyle = NEUTRAL.slateDim;
   ctx.font = '600 24px Inter, system-ui, sans-serif';
   ctx.letterSpacing = '2px';
   ctx.fillText('WORLDMONITOR.APP', footerTextX, H - 55);
@@ -449,7 +451,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
   ctx.fillText('Real-time global intelligence monitoring', footerTextX, H - 30);
 
   ctx.font = '400 22px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#555';
+  ctx.fillStyle = NEUTRAL.slateDim;
   const tw = ctx.measureText(timeStr).width;
   ctx.fillText(timeStr, RIGHT - tw, H - 55);
 
@@ -457,7 +459,7 @@ export async function renderStoryToCanvas(data: StoryData): Promise<HTMLCanvasEl
 }
 
 function drawSeparator(ctx: CanvasRenderingContext2D, y: number, pad: number): void {
-  ctx.strokeStyle = '#222';
+  ctx.strokeStyle = BRAND.border;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(pad, y);
@@ -466,7 +468,7 @@ function drawSeparator(ctx: CanvasRenderingContext2D, y: number, pad: number): v
 }
 
 function drawSectionHeader(ctx: CanvasRenderingContext2D, text: string, x: number, y: number): void {
-  ctx.fillStyle = '#777';
+  ctx.fillStyle = BRAND.textDim;
   ctx.font = '700 26px Inter, system-ui, sans-serif';
   ctx.letterSpacing = '4px';
   ctx.fillText(text, x, y);

@@ -130,7 +130,7 @@ describe('UI consumers handle the "unknown" severity (#3707)', () => {
     // The map type is Record<FlightDelaySeverity, string> — TS would reject
     // omission at compile time, but assert the presence explicitly so a
     // future relax of the type doesn't silently drop the entry.
-    assert.match(panel, /unknown:\s*['"]#9ca3af['"]/);
+    assert.match(panel, /unknown:\s*['"]var\(--text-dim\)['"]/);
   });
 
   it('DeckGLMap createFlightDelaysLayer branches on severity === "unknown"', () => {

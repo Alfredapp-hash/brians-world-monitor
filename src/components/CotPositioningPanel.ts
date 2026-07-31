@@ -33,7 +33,7 @@ function toNum(v: string | number): number {
 function renderPositionBar(netPct: number, label: string): string {
   const clamped = Math.max(-100, Math.min(100, netPct));
   const halfWidth = Math.abs(clamped) / 100 * 50;
-  const color = clamped >= 0 ? '#2ecc71' : '#e74c3c';
+  const color = clamped >= 0 ? 'var(--status-good)' : 'var(--status-alert)';
   const leftPct = clamped >= 0 ? 50 : 50 - halfWidth;
   const sign = clamped >= 0 ? '+' : '';
   return `

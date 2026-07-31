@@ -185,9 +185,23 @@ describe('color-contrast — DEFCON badge', () => {
   it('badge text is black, which clears AA on every DEFCON hue', () => {
     assert.match(pizzint, /defconEl\.style\.color\s*=\s*'#000'/);
     assert.doesNotMatch(pizzint, /defconEl\.style\.color\s*=\s*[^\n]*'#fff'/,
-      'white text failed on DEFCON 4 (blue) and 5 (green)');
+      'white text fails AA on the lighter severity-ramp steps');
+    // DEFCON_COLORS is sourced from the SEVERITY ramp in the design tokens;
+    // resolve each step (s1–s5, incl. STATUS.* references) back to its hex.
     const colors = pizzint.match(/DEFCON_COLORS[^}]*}/)[0];
-    for (const hex of colors.match(/#[0-9a-fA-F]{6}/g)) {
+    assert.match(colors, /SEVERITY\.s[1-5]/,
+      'DEFCON badge colors must come from the SEVERITY ramp tokens');
+    const tokens = read('src', 'styles', 'tokens.ts');
+    const statusBlock = tokens.match(/export const STATUS = \{[\s\S]*?\n\}/)[0];
+    const statusHex = Object.fromEntries(
+      [...statusBlock.matchAll(/(\w+):\s*'(#[0-9a-fA-F]{6})'/g)].map((m) => [m[1], m[2]]),
+    );
+    const severityBlock = tokens.match(/export const SEVERITY = \{[\s\S]*?\n\}/)[0];
+    const hexes = [...severityBlock.matchAll(/s\d:\s*(?:STATUS\.(\w+)|'(#[0-9a-fA-F]{6})')/g)]
+      .map((m) => (m[1] ? statusHex[m[1]] : m[2]));
+    assert.equal(hexes.length, 5, 'SEVERITY ramp must resolve to five hex steps');
+    for (const hex of hexes) {
+      assert.ok(hex, 'every SEVERITY step must resolve to a hex value');
       assert.ok(contrastRatio('#000000', hex) >= 4.5,
         `black on DEFCON color ${hex} must clear 4.5:1`);
     }

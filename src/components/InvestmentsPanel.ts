@@ -9,6 +9,7 @@ import type {
 } from '@/types';
 import { toUniqueSorted } from '@/utils';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { CATEGORY, NEUTRAL } from '@/styles/tokens';
 import { t } from '@/services/i18n';
 
 interface InvestmentFilters {
@@ -38,12 +39,12 @@ function getSectorLabel(sector: GulfInvestmentSector): string {
 }
 
 const STATUS_COLORS: Record<GulfInvestmentStatus, string> = {
-  'operational':         '#22c55e',
-  'under-construction':  '#f59e0b',
-  'announced':           '#60a5fa',
-  'rumoured':            '#a78bfa',
-  'cancelled':           '#ef4444',
-  'divested':            '#6b7280',
+  'operational':         'var(--status-good)',
+  'under-construction':  'var(--status-watch)',
+  'announced':           'var(--status-info)',
+  'rumoured':            CATEGORY.violet,
+  'cancelled':           'var(--status-alert)',
+  'divested':            NEUTRAL.slateDim,
 };
 
 const FLAG: Record<string, string> = {
@@ -125,7 +126,7 @@ export class InvestmentsPanel extends Panel {
       || this.filters.status !== 'ALL';
 
     const rows = filtered.map(inv => {
-      const statusColor = STATUS_COLORS[inv.status] || '#6b7280';
+      const statusColor = STATUS_COLORS[inv.status] || NEUTRAL.slateDim;
       const flag = FLAG[inv.investingCountry] || '';
       const sectorLabel = getSectorLabel(inv.sector);
       const year = inv.yearAnnounced ?? inv.yearOperational ?? '—';

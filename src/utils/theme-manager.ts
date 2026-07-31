@@ -1,4 +1,5 @@
 import { invalidateColorCache } from './theme-colors';
+import { BRAND } from '@/styles/tokens';
 
 export type Theme = 'dark' | 'light';
 export type ThemePreference = 'auto' | 'dark' | 'light';
@@ -6,9 +7,17 @@ export type ThemePreference = 'auto' | 'dark' | 'light';
 const STORAGE_KEY = 'worldmonitor-theme';
 const DEFAULT_THEME: Theme = 'dark';
 
+// Browser-chrome <meta name="theme-color"> values. The default dark theme
+// mirrors the JSA background token; the 'happy' variant and the light theme
+// are deliberate art-directed one-offs with no counterpart in the (dark-only)
+// token set, so they stay file-local.
+const HAPPY_DARK_THEME_COLOR = '#1A2332';
+const HAPPY_LIGHT_THEME_COLOR = '#FAFAF5';
+const LIGHT_THEME_COLOR = '#f8f9fa';
+
 function resolveThemeColor(theme: Theme, variant: string | undefined): string {
-  if (theme === 'dark') return variant === 'happy' ? '#1A2332' : '#0a0f0a';
-  return variant === 'happy' ? '#FAFAF5' : '#f8f9fa';
+  if (theme === 'dark') return variant === 'happy' ? HAPPY_DARK_THEME_COLOR : BRAND.bg;
+  return variant === 'happy' ? HAPPY_LIGHT_THEME_COLOR : LIGHT_THEME_COLOR;
 }
 
 function updateThemeMetaColor(theme: Theme, variant = document.documentElement.dataset.variant): void {

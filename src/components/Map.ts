@@ -4,6 +4,7 @@
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { escapeHtml } from '@/utils/sanitize';
+import { BRAND, CATEGORY, NEUTRAL, SEVERITY, withAlpha } from '@/styles/tokens';
 import { getCSSColor } from '@/utils';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import type { Feature, Geometry } from 'geojson';
@@ -843,11 +844,11 @@ export class MapComponent {
     if (SITE_VARIANT === 'tech') {
       // Tech variant legend
       setTrustedHtml(legend, trustedHtml(`
-        <div class="map-legend-item"><span class="legend-dot" style="background:#8b5cf6"></span>${escapeHtml(t('components.deckgl.layers.techHQs').toUpperCase())}</div>
-        <div class="map-legend-item"><span class="legend-dot" style="background:#06b6d4"></span>${escapeHtml(t('components.deckgl.layers.startupHubs').toUpperCase())}</div>
-        <div class="map-legend-item"><span class="legend-dot" style="background:#f59e0b"></span>${escapeHtml(t('components.deckgl.layers.cloudRegions').toUpperCase())}</div>
-        <div class="map-legend-item"><span class="map-legend-icon" style="color:#a855f7">📅</span>${escapeHtml(t('components.deckgl.layers.techEvents').toUpperCase())}</div>
-        <div class="map-legend-item"><span class="map-legend-icon" style="color:#4ecdc4">💾</span>${escapeHtml(t('components.deckgl.layers.aiDataCenters').toUpperCase())}</div>
+        <div class="map-legend-item"><span class="legend-dot" style="background:var(--cat-blue)"></span>${escapeHtml(t('components.deckgl.layers.techHQs').toUpperCase())}</div>
+        <div class="map-legend-item"><span class="legend-dot" style="background:var(--cat-green)"></span>${escapeHtml(t('components.deckgl.layers.startupHubs').toUpperCase())}</div>
+        <div class="map-legend-item"><span class="legend-dot" style="background:var(--cat-violet)"></span>${escapeHtml(t('components.deckgl.layers.cloudRegions').toUpperCase())}</div>
+        <div class="map-legend-item"><span class="legend-dot" style="background:var(--cat-magenta)"></span>${escapeHtml(t('components.deckgl.layers.techEvents').toUpperCase())}</div>
+        <div class="map-legend-item"><span class="legend-dot" style="background:var(--status-info)"></span>${escapeHtml(t('components.deckgl.layers.aiDataCenters').toUpperCase())}</div>
       `, "legacy direct innerHTML migration"));
     } else if (SITE_VARIANT === 'happy') {
       // Happy variant legend — natural events only
@@ -2003,7 +2004,7 @@ export class MapComponent {
         if (!pos) return;
 
         const div = document.createElement('div');
-        const color = observation.severity === 'spike' ? '#ff3030' : '#ffaa00';
+        const color = observation.severity === 'spike' ? SEVERITY.s5 : SEVERITY.s3;
         div.className = `radiation-watch-marker radiation-watch-marker-${observation.severity}`;
         div.style.left = `${pos[0]}px`;
         div.style.top = `${pos[1]}px`;
@@ -2832,7 +2833,7 @@ export class MapComponent {
         div.style.top = `${pt[1]}px`;
         div.style.transform = `rotate(${ac.trackDeg}deg)`;
         div.style.fontSize = '12px';
-        div.style.color = ac.onGround ? '#888' : '#a064ff';
+        div.style.color = ac.onGround ? NEUTRAL.slate : CATEGORY.violet;
         div.style.lineHeight = '1';
         div.style.pointerEvents = 'auto';
         div.style.cursor = 'pointer';
@@ -3129,9 +3130,11 @@ export class MapComponent {
 
     // Webcam markers (colored circles, gated by zoom >= 2)
     if (this.state.layers.webcams && this.webcamData.length > 0 && this.state.zoom >= 2) {
+      // Mirrors WEBCAM_CATEGORIES in @/services/webcams (kept inline —
+      // that module is loaded lazily and must stay out of the eager chunk).
       const CATEGORY_COLORS: Record<string, string> = {
-        traffic: '#ffd700', city: '#00d4ff', landscape: '#45b7d1',
-        nature: '#96ceb4', beach: '#f4a460', water: '#4169e1', other: '#888888',
+        traffic: CATEGORY.gold, city: CATEGORY.blue, landscape: CATEGORY.aqua,
+        nature: CATEGORY.green, beach: CATEGORY.orange, water: CATEGORY.violet, other: NEUTRAL.slate,
       };
       this.webcamData.forEach((cam) => {
         const pos = projection([cam.lng, cam.lat]);
@@ -3139,7 +3142,7 @@ export class MapComponent {
         const isCluster = 'count' in cam;
         const radius = isCluster ? Math.min(4 + Math.sqrt((cam as WebcamCluster).count), 12) : 3;
         const size = radius * 2;
-        const color = isCluster ? '#00d4ff' : (CATEGORY_COLORS[(cam as WebcamEntry).category] ?? '#888888');
+        const color = isCluster ? BRAND.accent : (CATEGORY_COLORS[(cam as WebcamEntry).category] ?? NEUTRAL.slate);
         const dot = document.createElement('div');
         dot.className = 'webcam-dot';
         dot.style.left = `${pos[0]}px`;
@@ -3232,12 +3235,12 @@ export class MapComponent {
     tooltip.style.cssText = [
       'position:absolute',
       'background:rgba(10,12,16,0.95)',
-      'border:1px solid rgba(60,120,60,0.6)',
+      `border:1px solid ${withAlpha(BRAND.borderStrong, 0.6)}`,
       'padding:8px 12px',
       'border-radius:3px',
       'font-size:11px',
       'font-family:var(--font-mono)',
-      'color:#d4d4d4',
+      'color:var(--text-secondary)',
       'max-width:240px',
       'z-index:1000',
       'pointer-events:auto',
@@ -3268,7 +3271,7 @@ export class MapComponent {
     const { tooltip } = this.makeWebcamTooltipShell();
 
     const title = document.createElement('div');
-    title.style.cssText = 'font-weight:bold;color:#00d4ff;padding-right:18px;';
+    title.style.cssText = 'font-weight:bold;color:var(--accent);padding-right:18px;';
     title.textContent = `\u{1F4F7} ${cam.title || cam.category || 'Webcam'}`;
     tooltip.appendChild(title);
 
@@ -3290,7 +3293,7 @@ export class MapComponent {
       link.href = `https://www.windy.com/webcams/${cam.webcamId}`;
       link.target = '_blank';
       link.rel = 'noopener';
-      link.style.cssText = 'display:block;margin-top:4px;color:#00d4ff;font-size:11px;text-decoration:none;';
+      link.style.cssText = 'display:block;margin-top:4px;color:var(--accent);font-size:11px;text-decoration:none;';
       link.textContent = 'Open on Windy \u2197';
       tooltip.appendChild(link);
     }
@@ -3352,7 +3355,7 @@ export class MapComponent {
     const { tooltip } = this.makeWebcamTooltipShell();
 
     const header = document.createElement('div');
-    header.style.cssText = 'font-weight:bold;color:#00d4ff;padding-right:18px;';
+    header.style.cssText = 'font-weight:bold;color:var(--accent);padding-right:18px;';
     header.textContent = `\u{1F4F7} ${cam.count} webcams — loading...`;
     tooltip.appendChild(header);
 
@@ -3373,7 +3376,7 @@ export class MapComponent {
         list.style.cssText = 'max-height:200px;overflow-y:auto;margin-top:6px;';
         for (const webcam of webcams) {
           const item = document.createElement('div');
-          item.style.cssText = 'padding:3px 2px;cursor:pointer;color:#aaa;border-bottom:1px solid rgba(255,255,255,0.08);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+          item.style.cssText = 'padding:3px 2px;cursor:pointer;color:var(--text-dim);border-bottom:1px solid rgba(255,255,255,0.08);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
           const nameSpan = document.createElement('span');
           nameSpan.textContent = webcam.title || webcam.category || 'Webcam';
           item.appendChild(nameSpan);
@@ -3383,8 +3386,8 @@ export class MapComponent {
             cc.textContent = webcam.country;
             item.appendChild(cc);
           }
-          item.addEventListener('mouseenter', () => { item.style.color = '#00d4ff'; });
-          item.addEventListener('mouseleave', () => { item.style.color = '#aaa'; });
+          item.addEventListener('mouseenter', () => { item.style.color = 'var(--accent)'; });
+          item.addEventListener('mouseleave', () => { item.style.color = 'var(--text-dim)'; });
           item.addEventListener('click', (e) => {
             e.stopPropagation();
             this.showWebcamTooltip(webcam, e.clientX, e.clientY);

@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { readableTextColor, contrastRatio, relativeLuminance } from '../src/utils/contrast.ts';
+import { NEUTRAL, STATUS } from '../src/styles/tokens.ts';
 
 describe('contrast util', () => {
   it('computes WCAG contrast ratio at the extremes', () => {
@@ -15,12 +16,13 @@ describe('contrast util', () => {
   });
 
   it('picks white text only when it clears AA, else dark — for every correlation score color', () => {
-    // The CorrelationPanel score-badge backgrounds (#4421 / #4418).
+    // The CorrelationPanel score-badge backgrounds (#4421 / #4418), now
+    // sourced from the design tokens (token migration).
     const cases: Array<[string, '#ffffff' | '#1a1a1a']> = [
-      ['#6f6f6f', '#ffffff'], // low (dark bg → white)
-      ['#ff4444', '#1a1a1a'], // critical (white was 3.41 → dark)
-      ['#ff8800', '#1a1a1a'], // high (white was 2.39 → dark)
-      ['#ffcc00', '#1a1a1a'], // medium (white was 1.51 → dark)
+      [NEUTRAL.slateDim, '#ffffff'], // low (dark bg → white)
+      [STATUS.alert, '#1a1a1a'],     // critical (dark text clears AA)
+      [STATUS.warn, '#1a1a1a'],      // high
+      [STATUS.watch, '#1a1a1a'],     // medium
     ];
     for (const [bg, expected] of cases) {
       const text = readableTextColor(bg);

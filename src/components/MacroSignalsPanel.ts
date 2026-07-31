@@ -1,6 +1,7 @@
 import { Panel } from './Panel';
 import { createLazyClient, getRpcBaseUrl, rpcFetch } from '@/services/rpc-client';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { BRAND, CATEGORY, withAlpha } from '@/styles/tokens';
 import { t } from '@/services/i18n';
 
 import type { GetMacroSignalsResponse } from '@/generated/client/worldmonitor/economic/v1/service_client';
@@ -78,7 +79,7 @@ function mapProtoToData(r: GetMacroSignalsResponse): MacroSignalData {
   };
 }
 
-function sparklineSvg(data: number[], width = 80, height = 24, color = '#4fc3f7'): string {
+function sparklineSvg(data: number[], width = 80, height = 24, color = 'var(--status-info)'): string {
   if (!data || data.length < 2) return '';
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -97,10 +98,10 @@ function donutGaugeSvg(value: number | null, size = 48): string {
   const r = (size - 6) / 2;
   const circumference = 2 * Math.PI * r;
   const offset = circumference - (v / 100) * circumference;
-  let color = '#f44336';
-  if (v >= 75) color = '#4caf50';
-  else if (v >= 50) color = '#ff9800';
-  else if (v >= 25) color = '#ff5722';
+  let color = 'var(--status-alert)';
+  if (v >= 75) color = 'var(--status-good)';
+  else if (v >= 50) color = 'var(--status-watch)';
+  else if (v >= 25) color = 'var(--status-warn)';
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="fg-donut">
     <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="5"/>
     <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="5" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round" transform="rotate(-90 ${size / 2} ${size / 2})"/>
@@ -110,9 +111,9 @@ function donutGaugeSvg(value: number | null, size = 48): string {
 
 function fgSparklineColor(status: string): string {
   const s = status.toUpperCase();
-  if (['GREED', 'EXTREME GREED'].includes(s)) return '#4caf50';
-  if (['FEAR', 'EXTREME FEAR'].includes(s)) return '#f44336';
-  return '#4fc3f7';
+  if (['GREED', 'EXTREME GREED'].includes(s)) return 'var(--status-good)';
+  if (['FEAR', 'EXTREME FEAR'].includes(s)) return 'var(--status-alert)';
+  return 'var(--status-info)';
 }
 
 function statusBadgeClass(status: string): string {
@@ -201,15 +202,15 @@ export class MacroSignalsPanel extends Panel {
       <div class="macro-signals-container">
         <div class="macro-verdict ${verdictClass}">
           <span class="verdict-label">${t('components.macroSignals.overall')}</span>
-          <span style="font-size:9px;background:rgba(247,147,26,0.15);color:#f7931a;border:1px solid rgba(247,147,26,0.3);padding:1px 5px;border-radius:3px;font-weight:700;letter-spacing:0.04em;vertical-align:middle">&#x20bf; BTC</span>
+          <span style="font-size:9px;background:${withAlpha(BRAND.accent, 0.15)};color:var(--accent);border:1px solid ${withAlpha(BRAND.accent, 0.3)};padding:1px 5px;border-radius:3px;font-weight:700;letter-spacing:0.04em;vertical-align:middle">&#x20bf; BTC</span>
           <span class="verdict-value">${d.verdict === 'BUY' ? t('components.macroSignals.verdict.buy') : d.verdict === 'CASH' ? t('components.macroSignals.verdict.cash') : escapeHtml(d.verdict)}</span>
           <span class="verdict-detail">${t('components.macroSignals.bullish', { count: String(d.bullishCount), total: String(d.totalCount) })}</span>
         </div>
         <div class="signals-grid">
-          ${this.renderSignalCard(t('components.macroSignals.signals.liquidity'), s.liquidity.status, formatNum(s.liquidity.value), sparklineSvg(s.liquidity.sparkline, 60, 20, '#4fc3f7'), 'JPY 30d ROC', 'https://www.tradingview.com/symbols/JPYUSD/')}
+          ${this.renderSignalCard(t('components.macroSignals.signals.liquidity'), s.liquidity.status, formatNum(s.liquidity.value), sparklineSvg(s.liquidity.sparkline, 60, 20, CATEGORY.blue), 'JPY 30d ROC', 'https://www.tradingview.com/symbols/JPYUSD/')}
           ${this.renderSignalCard(t('components.macroSignals.signals.flow'), s.flowStructure.status, `BTC ${formatNum(s.flowStructure.btcReturn5)} / QQQ ${formatNum(s.flowStructure.qqqReturn5)}`, '', '5d returns', null)}
-          ${this.renderSignalCard(t('components.macroSignals.signals.regime'), s.macroRegime.status, `QQQ ${formatNum(s.macroRegime.qqqRoc20)} / XLP ${formatNum(s.macroRegime.xlpRoc20)}`, sparklineSvg(d.meta.qqqSparkline, 60, 20, '#ab47bc'), '20d ROC', 'https://www.tradingview.com/symbols/QQQ/')}
-          ${this.renderSignalCard(t('components.macroSignals.signals.btcTrend'), s.technicalTrend.status, `$${s.technicalTrend.btcPrice?.toLocaleString() ?? 'N/A'}`, sparklineSvg(s.technicalTrend.sparkline, 60, 20, '#ff9800'), `SMA50: $${s.technicalTrend.sma50?.toLocaleString() ?? '-'} | VWAP: $${s.technicalTrend.vwap30d?.toLocaleString() ?? '-'} | Mayer: ${s.technicalTrend.mayerMultiple ?? '-'}`, 'https://www.tradingview.com/symbols/BTCUSD/')}
+          ${this.renderSignalCard(t('components.macroSignals.signals.regime'), s.macroRegime.status, `QQQ ${formatNum(s.macroRegime.qqqRoc20)} / XLP ${formatNum(s.macroRegime.xlpRoc20)}`, sparklineSvg(d.meta.qqqSparkline, 60, 20, CATEGORY.violet), '20d ROC', 'https://www.tradingview.com/symbols/QQQ/')}
+          ${this.renderSignalCard(t('components.macroSignals.signals.btcTrend'), s.technicalTrend.status, `$${s.technicalTrend.btcPrice?.toLocaleString() ?? 'N/A'}`, sparklineSvg(s.technicalTrend.sparkline, 60, 20, CATEGORY.orange), `SMA50: $${s.technicalTrend.sma50?.toLocaleString() ?? '-'} | VWAP: $${s.technicalTrend.vwap30d?.toLocaleString() ?? '-'} | Mayer: ${s.technicalTrend.mayerMultiple ?? '-'}`, 'https://www.tradingview.com/symbols/BTCUSD/')}
           ${this.renderSignalCard(t('components.macroSignals.signals.hashRate'), s.hashRate.status, formatNum(s.hashRate.change30d), '', '30d change', 'https://mempool.space/mining')}
           ${this.renderSignalCard(t('components.macroSignals.signals.momentum'), s.priceMomentum.status, '', '', 'Mayer Multiple', null)}
           ${this.renderFearGreedCard(s.fearGreed)}

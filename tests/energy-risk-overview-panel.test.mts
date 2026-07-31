@@ -29,30 +29,30 @@ import { buildOverviewState, countDegradedTiles } from '../src/components/_energ
 
 function hormuzColor(status: string): string {
   const map: Record<string, string> = {
-    closed:     '#e74c3c',
-    disrupted:  '#e74c3c',
-    restricted: '#f39c12',
-    open:       '#27ae60',
+    closed:     'var(--status-alert)',
+    disrupted:  'var(--status-alert)',
+    restricted: 'var(--status-watch)',
+    open:       'var(--status-good)',
   };
-  return map[status] ?? '#7f8c8d';
+  return map[status] ?? 'var(--text-dim)';
 }
 
 function euGasColor(fillPct: number): string {
-  if (fillPct < 30) return '#e74c3c';
-  if (fillPct < 50) return '#f39c12';
-  return '#27ae60';
+  if (fillPct < 30) return 'var(--status-alert)';
+  if (fillPct < 50) return 'var(--status-watch)';
+  return 'var(--status-good)';
 }
 
 function brentColor(change: number): string {
   // Atlas reader is energy-importer-leaning: oil price UP = red (bad);
   // DOWN = green (relief). Inverted from a default market panel.
-  return change >= 0 ? '#e74c3c' : '#27ae60';
+  return change >= 0 ? 'var(--status-alert)' : 'var(--status-good)';
 }
 
 function activeDisruptionsColor(n: number): string {
-  if (n === 0) return '#27ae60';
-  if (n < 5) return '#f39c12';
-  return '#e74c3c';
+  if (n === 0) return 'var(--status-good)';
+  if (n < 5) return 'var(--status-watch)';
+  return 'var(--status-alert)';
 }
 
 function freshnessLabel(youngestMs: number, nowMs: number): string {
@@ -71,79 +71,79 @@ function crisisDayLabel(crisisStartMs: number, nowMs: number): string {
 
 describe('EnergyRiskOverviewPanel — Hormuz status color', () => {
   test("'closed' and 'disrupted' both render red (severity equivalent)", () => {
-    assert.equal(hormuzColor('closed'), '#e74c3c');
-    assert.equal(hormuzColor('disrupted'), '#e74c3c');
+    assert.equal(hormuzColor('closed'), 'var(--status-alert)');
+    assert.equal(hormuzColor('disrupted'), 'var(--status-alert)');
   });
 
-  test("'restricted' renders amber", () => {
-    assert.equal(hormuzColor('restricted'), '#f39c12');
+  test("'restricted' renders watch amber", () => {
+    assert.equal(hormuzColor('restricted'), 'var(--status-watch)');
   });
 
-  test("'open' renders green", () => {
-    assert.equal(hormuzColor('open'), '#27ae60');
+  test("'open' renders good green", () => {
+    assert.equal(hormuzColor('open'), 'var(--status-good)');
   });
 
-  test('unknown status falls back to neutral gray (degraded sentinel)', () => {
+  test('unknown status falls back to neutral dim (degraded sentinel)', () => {
     // If the upstream enum ever drifts (e.g. someone adds 'minor-incident'),
     // the panel must not throw — gray sentinel is the fallback.
-    assert.equal(hormuzColor('weird-new-state'), '#7f8c8d');
+    assert.equal(hormuzColor('weird-new-state'), 'var(--text-dim)');
   });
 
   test('rejects the wrong-cased triplet from earlier drafts', () => {
     // 'normal'|'reduced'|'critical' was the WRONG enum. None of those values
     // are valid; all should fall to gray sentinel.
-    assert.equal(hormuzColor('normal'), '#7f8c8d');
-    assert.equal(hormuzColor('reduced'), '#7f8c8d');
-    assert.equal(hormuzColor('critical'), '#7f8c8d');
+    assert.equal(hormuzColor('normal'), 'var(--text-dim)');
+    assert.equal(hormuzColor('reduced'), 'var(--text-dim)');
+    assert.equal(hormuzColor('critical'), 'var(--text-dim)');
   });
 });
 
 describe('EnergyRiskOverviewPanel — EU Gas color thresholds', () => {
   test('< 30% fill → red', () => {
-    assert.equal(euGasColor(28), '#e74c3c');
-    assert.equal(euGasColor(0), '#e74c3c');
-    assert.equal(euGasColor(29.9), '#e74c3c');
+    assert.equal(euGasColor(28), 'var(--status-alert)');
+    assert.equal(euGasColor(0), 'var(--status-alert)');
+    assert.equal(euGasColor(29.9), 'var(--status-alert)');
   });
 
   test('30%–49% fill → amber', () => {
-    assert.equal(euGasColor(30), '#f39c12');
-    assert.equal(euGasColor(42), '#f39c12');
-    assert.equal(euGasColor(49.9), '#f39c12');
+    assert.equal(euGasColor(30), 'var(--status-watch)');
+    assert.equal(euGasColor(42), 'var(--status-watch)');
+    assert.equal(euGasColor(49.9), 'var(--status-watch)');
   });
 
   test('≥ 50% fill → green', () => {
-    assert.equal(euGasColor(50), '#27ae60');
-    assert.equal(euGasColor(90), '#27ae60');
-    assert.equal(euGasColor(100), '#27ae60');
+    assert.equal(euGasColor(50), 'var(--status-good)');
+    assert.equal(euGasColor(90), 'var(--status-good)');
+    assert.equal(euGasColor(100), 'var(--status-good)');
   });
 });
 
 describe('EnergyRiskOverviewPanel — Brent color (importer-leaning inversion)', () => {
   test('positive change → red (oil up = bad for importers)', () => {
-    assert.equal(brentColor(0.5), '#e74c3c');
-    assert.equal(brentColor(10), '#e74c3c');
-    assert.equal(brentColor(0), '#e74c3c'); // exact zero → red (no-change is neutral-bearish)
+    assert.equal(brentColor(0.5), 'var(--status-alert)');
+    assert.equal(brentColor(10), 'var(--status-alert)');
+    assert.equal(brentColor(0), 'var(--status-alert)'); // exact zero → red (no-change is neutral-bearish)
   });
 
   test('negative change → green', () => {
-    assert.equal(brentColor(-0.5), '#27ae60');
-    assert.equal(brentColor(-12), '#27ae60');
+    assert.equal(brentColor(-0.5), 'var(--status-good)');
+    assert.equal(brentColor(-12), 'var(--status-good)');
   });
 });
 
 describe('EnergyRiskOverviewPanel — active disruptions color', () => {
   test('0 active → green', () => {
-    assert.equal(activeDisruptionsColor(0), '#27ae60');
+    assert.equal(activeDisruptionsColor(0), 'var(--status-good)');
   });
 
   test('1-4 active → amber', () => {
-    assert.equal(activeDisruptionsColor(1), '#f39c12');
-    assert.equal(activeDisruptionsColor(4), '#f39c12');
+    assert.equal(activeDisruptionsColor(1), 'var(--status-watch)');
+    assert.equal(activeDisruptionsColor(4), 'var(--status-watch)');
   });
 
   test('5+ active → red', () => {
-    assert.equal(activeDisruptionsColor(5), '#e74c3c');
-    assert.equal(activeDisruptionsColor(50), '#e74c3c');
+    assert.equal(activeDisruptionsColor(5), 'var(--status-alert)');
+    assert.equal(activeDisruptionsColor(50), 'var(--status-alert)');
   });
 });
 

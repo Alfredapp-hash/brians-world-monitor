@@ -1,34 +1,30 @@
 /**
  * Canvas 2D renderer for branded happy story share cards.
- * Generates a 1080x1080 PNG from a NewsItem with warm gradient,
- * category badge, headline, source, date, and HappyMonitor watermark.
+ * Generates a 1080x1080 PNG from a NewsItem with branded charcoal
+ * gradient, category badge, headline, source, date, and HappyMonitor
+ * watermark.
  */
 import type { NewsItem } from '@/types';
 import type { HappyContentCategory } from '@/services/positive-classifier';
 import { HAPPY_CATEGORY_LABELS } from '@/services/positive-classifier';
+// Canvas 2D cannot resolve CSS custom properties — raw token constants only.
+import { BRAND, CATEGORY } from '@/styles/tokens';
 
 const SIZE = 1080;
 const PAD = 80;
 const CONTENT_W = SIZE - PAD * 2;
 
-/** Category-specific gradient stops (light, warm palettes) */
-const CATEGORY_GRADIENTS: Record<HappyContentCategory, [string, string]> = {
-  'science-health': ['#E8F4FD', '#C5DFF8'],
-  'nature-wildlife': ['#E8F5E4', '#C5E8BE'],
-  'humanity-kindness': ['#FDE8EE', '#F5C5D5'],
-  'innovation-tech': ['#FDF5E8', '#F5E2C0'],
-  'climate-wins': ['#E4F5E8', '#BEE8C5'],
-  'culture-community': ['#F0E8FD', '#D8C5F5'],
-};
+/** Brand background gradient stops (charcoal surfaces, shared across categories) */
+const CARD_GRADIENT: [string, string] = [BRAND.bgSecondary, BRAND.surface];
 
-/** Category accent colors for badges and decorative line */
+/** Category accent colors for badges and decorative line (CATEGORY hues, one meaning per hue) */
 const CATEGORY_ACCENTS: Record<HappyContentCategory, string> = {
-  'science-health': '#7BA5C4',
-  'nature-wildlife': '#6B8F5E',
-  'humanity-kindness': '#C48B9F',
-  'innovation-tech': '#C4A35A',
-  'climate-wins': '#2d9a4e',
-  'culture-community': '#8b5cf6',
+  'science-health': CATEGORY.blue,
+  'nature-wildlife': CATEGORY.green,
+  'humanity-kindness': CATEGORY.magenta,
+  'innovation-tech': CATEGORY.gold,
+  'climate-wins': CATEGORY.aqua,
+  'culture-community': CATEGORY.violet,
 };
 
 const DEFAULT_CATEGORY: HappyContentCategory = 'humanity-kindness';
@@ -91,7 +87,7 @@ export async function renderHappyShareCard(item: NewsItem): Promise<HTMLCanvasEl
   const ctx = canvas.getContext('2d')!;
 
   const category: HappyContentCategory = item.happyCategory || DEFAULT_CATEGORY;
-  const [gradStart, gradEnd] = CATEGORY_GRADIENTS[category];
+  const [gradStart, gradEnd] = CARD_GRADIENT;
   const accent = CATEGORY_ACCENTS[category];
 
   // -- Background gradient --
@@ -115,14 +111,14 @@ export async function renderHappyShareCard(item: NewsItem): Promise<HTMLCanvasEl
   ctx.fillStyle = accent;
   roundRect(ctx, PAD, y, badgeW, badgeH, badgeH / 2);
   ctx.fill();
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = BRAND.bg;
   ctx.fillText(categoryLabel, PAD + badgePadX, y + badgeH - badgePadY - 4);
 
   y += badgeH + 48;
 
   // -- Headline text (word-wrapped, max ~6 lines) --
   ctx.font = '700 48px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = '#2D3748';
+  ctx.fillStyle = BRAND.text;
   const headlineLines = wrapText(ctx, item.title, CONTENT_W);
   const maxLines = 6;
   const displayLines = headlineLines.slice(0, maxLines);
@@ -146,14 +142,14 @@ export async function renderHappyShareCard(item: NewsItem): Promise<HTMLCanvasEl
 
   // -- Source attribution --
   ctx.font = '400 26px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = '#718096';
+  ctx.fillStyle = BRAND.textSecondary;
   ctx.fillText(item.source, PAD, y);
 
   y += 36;
 
   // -- Date --
   ctx.font = '400 22px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = '#A0AEC0';
+  ctx.fillStyle = BRAND.textDim;
   const dateStr = item.pubDate
     ? item.pubDate.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     : new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -171,11 +167,11 @@ export async function renderHappyShareCard(item: NewsItem): Promise<HTMLCanvasEl
   // -- HappyMonitor branding --
   const brandY = SIZE - 120;
   ctx.font = '700 28px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = '#C4A35A'; // gold
+  ctx.fillStyle = BRAND.accent;
   ctx.fillText('\u2600 HappyMonitor', PAD, brandY); // sun emoji (Unicode escape)
 
   ctx.font = '400 22px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = '#A0AEC0';
+  ctx.fillStyle = BRAND.textDim;
   ctx.fillText('happy.worldmonitor.app', PAD, brandY + 34);
 
   return canvas;

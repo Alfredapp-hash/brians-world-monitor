@@ -4,14 +4,16 @@ import type { ThreatLevel, EventCategory, ThreatClassification } from '@/types';
 import { getCSSColor } from '@/utils';
 import { getRpcBaseUrl, getRpcErrorStatusCode } from '@/services/rpc-client';
 import { premiumFetch } from '@/services/premium-fetch';
+import { SEVERITY } from '@/styles/tokens';
 
 /** @deprecated Use getThreatColor() instead for runtime CSS variable reads */
 export const THREAT_COLORS: Record<ThreatLevel, string> = {
-  critical: '#ef4444',
-  high: '#f97316',
-  medium: '#eab308',
-  low: '#22c55e',
-  info: '#3b82f6',
+  // Five-tier threat ladder on the ordered severity ramp (s1 calm … s5 critical).
+  critical: SEVERITY.s5,
+  high: SEVERITY.s4,
+  medium: SEVERITY.s3,
+  low: SEVERITY.s2,
+  info: SEVERITY.s1,
 };
 
 const THREAT_VAR_MAP: Record<ThreatLevel, string> = {

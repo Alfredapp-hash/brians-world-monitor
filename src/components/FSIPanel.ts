@@ -5,6 +5,7 @@ import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
 import { getHydratedData } from '@/services/bootstrap';
 import { CISS_STALE_THRESHOLD_MS } from '@/shared/ciss-staleness';
+import { STATUS, withAlpha } from '@/styles/tokens';
 
 let _marketClient: MarketServiceClient | null = null;
 async function getMarketClient(): Promise<MarketServiceClient> {
@@ -27,10 +28,10 @@ async function getEconomicClient(): Promise<EconomicServiceClient> {
 }
 
 function fsiLabelColor(label: string): string {
-  if (label === 'Low Stress') return '#27ae60';
-  if (label === 'Moderate Stress') return '#f39c12';
-  if (label === 'Elevated Stress') return '#e67e22';
-  return '#c0392b';
+  if (label === 'Low Stress') return 'var(--status-good)';
+  if (label === 'Moderate Stress') return 'var(--status-watch)';
+  if (label === 'Elevated Stress') return 'var(--status-warn)';
+  return 'var(--status-alert)';
 }
 
 function fsiInterpretation(label: string): string {
@@ -57,10 +58,10 @@ function cissLabelDisplay(label: string): string {
 }
 
 function cissLabelColor(label: string): string {
-  if (label === 'Low') return '#27ae60';
-  if (label === 'Moderate') return '#f39c12';
-  if (label === 'Elevated') return '#e67e22';
-  return '#c0392b';
+  if (label === 'Low') return 'var(--status-good)';
+  if (label === 'Moderate') return 'var(--status-watch)';
+  if (label === 'Elevated') return 'var(--status-warn)';
+  return 'var(--status-alert)';
 }
 
 // CISS staleness guard — uses the shared CISS content-age budget. When ECB
@@ -171,12 +172,12 @@ export class FSIPanel extends Panel {
             <div style="font-size:28px;font-weight:700;color:${cissLabelColor(euFsi.label)};line-height:1">${euFsi.latestValue.toFixed(4)}</div>
             <div>
               <div style="font-size:12px;font-weight:600;color:${cissLabelColor(euFsi.label)}">${escapeHtml(cissLabelDisplay(euFsi.label))}</div>
-              <div style="font-size:10px;color:${cissStale ? '#e67e22' : 'var(--text-dim)'}">${escapeHtml(euFsi.latestDate ? new Date(euFsi.latestDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '')}</div>
+              <div style="font-size:10px;color:${cissStale ? 'var(--status-warn)' : 'var(--text-dim)'}">${escapeHtml(euFsi.latestDate ? new Date(euFsi.latestDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '')}</div>
             </div>
           </div>
-          ${cissStale ? `<div style="font-size:9px;color:#e67e22;background:rgba(230,126,34,0.1);border-radius:4px;padding:4px 6px;margin-bottom:8px">⚠ ${escapeHtml(t('components.fsi.cissStale'))}</div>` : ''}
+          ${cissStale ? `<div style="font-size:9px;color:var(--status-warn);background:${withAlpha(STATUS.warn, 0.1)};border-radius:4px;padding:4px 6px;margin-bottom:8px">⚠ ${escapeHtml(t('components.fsi.cissStale'))}</div>` : ''}
           <div style="background:rgba(255,255,255,0.07);border-radius:4px;height:6px;overflow:hidden">
-            <div style="height:100%;width:${(euFsi.latestValue * 100).toFixed(1)}%;background:linear-gradient(90deg,#27ae60,#f39c12,#c0392b);border-radius:4px"></div>
+            <div style="height:100%;width:${(euFsi.latestValue * 100).toFixed(1)}%;background:linear-gradient(90deg,var(--status-good),var(--status-watch),var(--status-alert));border-radius:4px"></div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-dim);margin-top:3px">
             <span>${escapeHtml(t('components.fsi.scale.noStress'))}</span><span>${escapeHtml(t('components.fsi.scale.extremeStress'))}</span>
@@ -195,7 +196,7 @@ export class FSIPanel extends Panel {
           <span>${escapeHtml(t('components.fsi.scale.highStress'))}</span><span>${escapeHtml(t('components.fsi.scale.lowStress'))}</span>
         </div>
         <div style="background:rgba(255,255,255,0.07);border-radius:4px;height:8px;overflow:hidden">
-          <div style="height:100%;width:${fillPct.toFixed(1)}%;background:linear-gradient(90deg,#c0392b,#f39c12,#27ae60);border-radius:4px"></div>
+          <div style="height:100%;width:${fillPct.toFixed(1)}%;background:linear-gradient(90deg,var(--status-alert),var(--status-watch),var(--status-good));border-radius:4px"></div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px">

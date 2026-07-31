@@ -65,13 +65,13 @@ export function showCheckoutConfirmDialog(options: CheckoutConfirmDialogOptions)
 
   const card = document.createElement('div');
   Object.assign(card.style, {
-    background: '#141414',
-    border: '1px solid #2a2a2a',
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
     borderRadius: '8px',
     padding: '20px 22px',
     maxWidth: '440px',
     width: '100%',
-    color: '#e8e8e8',
+    color: 'var(--text)',
     fontFamily: "'SF Mono', Monaco, 'Cascadia Code', 'Fira Code', monospace",
     boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
   });
@@ -83,7 +83,7 @@ export function showCheckoutConfirmDialog(options: CheckoutConfirmDialogOptions)
     fontSize: '16px',
     fontWeight: '600',
     margin: '0 0 10px 0',
-    color: '#ffffff',
+    color: 'var(--text)',
   });
 
   const body = document.createElement('p');
@@ -92,7 +92,7 @@ export function showCheckoutConfirmDialog(options: CheckoutConfirmDialogOptions)
     fontSize: '13px',
     lineHeight: '1.5',
     margin: '0 0 18px 0',
-    color: '#c8c8c8',
+    color: 'var(--text-secondary)',
   });
 
   const row = document.createElement('div');
@@ -107,8 +107,8 @@ export function showCheckoutConfirmDialog(options: CheckoutConfirmDialogOptions)
   dismissBtn.textContent = options.dismissLabel;
   Object.assign(dismissBtn.style, {
     background: 'transparent',
-    color: '#aaaaaa',
-    border: '1px solid #2a2a2a',
+    color: 'var(--text-dim)',
+    border: '1px solid var(--border)',
     borderRadius: '4px',
     padding: '8px 14px',
     fontSize: '12px',
@@ -121,8 +121,8 @@ export function showCheckoutConfirmDialog(options: CheckoutConfirmDialogOptions)
   confirmBtn.type = 'button';
   confirmBtn.textContent = options.confirmLabel;
   Object.assign(confirmBtn.style, {
-    background: '#44ff88',
-    color: '#0a0a0a',
+    background: 'var(--accent)',
+    color: 'var(--bg)',
     border: 'none',
     borderRadius: '4px',
     padding: '8px 14px',

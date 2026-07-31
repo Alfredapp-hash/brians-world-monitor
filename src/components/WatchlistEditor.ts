@@ -80,7 +80,7 @@ export class WatchlistEditor {
     this.dropdown.setAttribute('role', 'listbox');
     this.dropdown.style.cssText =
       'position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;margin:0;padding:4px;list-style:none;' +
-      'max-height:240px;overflow-y:auto;background:var(--bg,#0b0b0b);border:1px solid var(--border);' +
+      'max-height:240px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);' +
       'border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.5);display:none';
 
     searchWrap.append(this.input, this.dropdown);

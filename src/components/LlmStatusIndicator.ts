@@ -19,7 +19,7 @@ export class LlmStatusIndicator {
 
   constructor() {
     this.dot = h('span', {
-      style: 'display:inline-block;width:6px;height:6px;border-radius:50%;background:#ff4444;margin-right:4px;',
+      style: 'display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--status-alert);margin-right:4px;',
     });
     this.label = h('span', {
       style: 'font-size:9px;letter-spacing:0.5px;opacity:0.7;',
@@ -70,7 +70,7 @@ export class LlmStatusIndicator {
   }
 
   private setStatus(available: boolean, labelText: string, tooltip: string): void {
-    this.dot.style.background = available ? '#44ff88' : '#ff4444';
+    this.dot.style.background = available ? 'var(--status-good)' : 'var(--status-alert)';
     this.label.textContent = labelText;
     this.element.title = tooltip;
   }

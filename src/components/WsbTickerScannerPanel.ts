@@ -24,10 +24,10 @@ function formatCompact(n: number): string {
 }
 
 function velocityColor(score: number): string {
-  if (score >= 80) return '#e74c3c';
-  if (score >= 50) return '#e67e22';
-  if (score >= 25) return '#f1c40f';
-  return '#27ae60';
+  if (score >= 80) return 'var(--status-alert)';
+  if (score >= 50) return 'var(--status-warn)';
+  if (score >= 25) return 'var(--status-watch)';
+  return 'var(--status-good)';
 }
 
 export class WsbTickerScannerPanel extends Panel {

@@ -3,6 +3,7 @@ import type { HyperliquidAssetFlow } from '@/generated/client/worldmonitor/marke
 import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { STATUS, withAlpha } from '@/styles/tokens';
 import { getHydratedData } from '@/services/bootstrap';
 
 let _client: MarketServiceClient | null = null;
@@ -88,13 +89,13 @@ function gaugeColor(score: number, funding: number | null): string {
   if (score < 15) return 'var(--text-dim)';
   const bearish = funding != null && funding < 0;
   if (bearish) {
-    if (score >= 60) return '#e74c3c';
-    if (score >= 40) return '#e67e22';
-    return '#c0392b88';
+    if (score >= 60) return 'var(--status-alert)';
+    if (score >= 40) return 'var(--status-warn)';
+    return withAlpha(STATUS.alert, 0.53);
   }
-  if (score >= 60) return '#2ecc71';
-  if (score >= 40) return '#27ae60';
-  return '#2ecc7188';
+  if (score >= 60) return 'var(--status-good)';
+  if (score >= 40) return withAlpha(STATUS.good, 0.8);
+  return withAlpha(STATUS.good, 0.53);
 }
 
 function renderArcGauge(score: number, color: string, size = 56): string {

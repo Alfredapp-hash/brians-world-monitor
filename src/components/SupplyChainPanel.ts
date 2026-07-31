@@ -12,6 +12,7 @@ import { SCENARIO_TEMPLATES } from '@/config/scenario-templates';
 import { TransitChart } from '@/utils/transit-chart';
 import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { STATUS, withAlpha } from '@/styles/tokens';
 import { isFeatureAvailable } from '@/services/runtime-config';
 import { isDesktopRuntime } from '@/services/runtime';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
@@ -435,10 +436,10 @@ export class SupplyChainPanel extends Panel {
           && projectedScore != null
           && projectedScore > cp.disruptionScore;
         const badgeHtml = showProjection
-          ? `<span class="trade-badge">${cp.disruptionScore}/100</span> <span class="trade-badge trade-badge--projected" style="background:#7f1d1d;color:#fff;margin-left:4px">\u2192 ${projectedScore}/100</span>`
+          ? `<span class="trade-badge">${cp.disruptionScore}/100</span> <span class="trade-badge trade-badge--projected" style="background:${withAlpha(STATUS.alert, 0.35)};color:var(--text);margin-left:4px">\u2192 ${projectedScore}/100</span>`
           : `<span class="trade-badge">${cp.disruptionScore}/100</span>`;
 
-        return `<div class="trade-restriction-card${expanded ? ' expanded' : ''}${isAffectedByScenario ? ' scenario-affected' : ''}" data-cp-id="${escapeHtml(cp.name)}" style="cursor:pointer${isAffectedByScenario ? ';border-left:3px solid #dc2626' : ''}">
+        return `<div class="trade-restriction-card${expanded ? ' expanded' : ''}${isAffectedByScenario ? ' scenario-affected' : ''}" data-cp-id="${escapeHtml(cp.name)}" style="cursor:pointer${isAffectedByScenario ? ';border-left:3px solid var(--status-alert)' : ''}">
           <div class="trade-restriction-header">
             <span class="trade-country">${escapeHtml(cp.name)}</span>
             <span class="sc-status-dot ${statusDot}"></span>
@@ -447,7 +448,7 @@ export class SupplyChainPanel extends Panel {
           </div>
           <div class="trade-restriction-body">
             ${isAffectedByScenario && scenarioResult?.template ? `<div class="sc-metric-row" style="background:#7f1d1d22;padding:4px 6px;border-radius:3px;margin-bottom:4px;font-size:11px">
-              <span style="color:#fca5a5;font-weight:600">\u26A0 Projected under scenario: ${scenarioResult.template.disruptionPct}% closure for ${scenarioResult.template.durationDays} days${scenarioResult.template.costShockMultiplier > 1 ? ` (+${Math.round((scenarioResult.template.costShockMultiplier - 1) * 100)}% cost)` : ''}</span>
+              <span style="color:var(--status-alert);font-weight:600">\u26A0 Projected under scenario: ${scenarioResult.template.disruptionPct}% closure for ${scenarioResult.template.durationDays} days${scenarioResult.template.costShockMultiplier > 1 ? ` (+${Math.round((scenarioResult.template.costShockMultiplier - 1) * 100)}% cost)` : ''}</span>
             </div>` : ''}
             <div class="sc-metric-row">
               <span>${cp.activeWarnings} ${t('components.supplyChain.warnings')} · ${aisDisruptions} ${t('components.supplyChain.aisDisruptions')}</span>
@@ -467,9 +468,9 @@ export class SupplyChainPanel extends Panel {
             ${cp.flowEstimate ? (() => {
               const fe = cp.flowEstimate;
               const pct = Math.round(fe.flowRatio * 100);
-              const flowColor = fe.disrupted || pct < 85 ? '#ef4444' : pct < 95 ? '#f59e0b' : 'var(--text-dim,#888)';
+              const flowColor = fe.disrupted || pct < 85 ? 'var(--status-alert)' : pct < 95 ? 'var(--status-watch)' : 'var(--text-dim)';
               const hazardBadge = fe.hazardAlertLevel && fe.hazardAlertName
-                ? ` <span style="background:#ea580c;color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px">&#9888; ${escapeHtml(fe.hazardAlertName.toUpperCase())}</span>`
+                ? ` <span style="background:var(--status-warn);color:var(--text);font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px">&#9888; ${escapeHtml(fe.hazardAlertName.toUpperCase())}</span>`
                 : '';
               return `<div class="sc-metric-row" style="color:${flowColor}">
                 <span>~${fe.currentMbd} mb/d <span style="opacity:0.7">(${pct}% of ${fe.baselineMbd} baseline)</span>${hazardBadge}</span>
@@ -628,16 +629,16 @@ export class SupplyChainPanel extends Panel {
     }
 
     const { stressScore, stressLevel, carriers } = this.stressData;
-    const levelColor = stressLevel === 'critical' ? '#e74c3c'
-      : stressLevel === 'elevated' ? '#e67e22'
-      : stressLevel === 'moderate' ? '#f1c40f'
-      : '#27ae60';
+    const levelColor = stressLevel === 'critical' ? 'var(--status-alert)'
+      : stressLevel === 'elevated' ? 'var(--status-warn)'
+      : stressLevel === 'moderate' ? 'var(--status-watch)'
+      : 'var(--status-good)';
 
     const gaugeWidth = Math.round(Math.min(100, Math.max(0, stressScore)));
-    const gaugeBg = stressLevel === 'critical' ? 'rgba(231,76,60,0.15)'
-      : stressLevel === 'elevated' ? 'rgba(230,126,34,0.15)'
-      : stressLevel === 'moderate' ? 'rgba(241,196,15,0.15)'
-      : 'rgba(39,174,96,0.15)';
+    const gaugeBg = stressLevel === 'critical' ? withAlpha(STATUS.alert, 0.15)
+      : stressLevel === 'elevated' ? withAlpha(STATUS.warn, 0.15)
+      : stressLevel === 'moderate' ? withAlpha(STATUS.watch, 0.15)
+      : withAlpha(STATUS.good, 0.15);
 
     const header = `<div style="margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -689,7 +690,7 @@ export class SupplyChainPanel extends Panel {
     ` : '';
 
     return `<svg width="${w}" height="${totalH}" viewBox="0 0 ${w} ${totalH}" style="display:block;margin:4px 0">
-      <polyline points="${points}" fill="none" stroke="var(--accent-primary, #4fc3f7)" stroke-width="1.5" />
+      <polyline points="${points}" fill="none" stroke="var(--accent-primary, ${STATUS.info})" stroke-width="1.5" />
       ${dateLabels}
     </svg>`;
   }

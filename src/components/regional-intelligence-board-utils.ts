@@ -249,7 +249,7 @@ export function buildScenariosBlock(scenarioSets: ScenarioSet[]): string {
     base: 'var(--text-dim)',
     escalation: 'var(--danger)',
     containment: 'var(--accent)',
-    fragmentation: 'var(--warning, #e0a020)',
+    fragmentation: 'var(--status-watch)',
   };
   const cols = sorted.map((set) => {
     const lanes = [...(set.lanes ?? [])].sort((a, b) => b.probability - a.probability);
@@ -287,7 +287,7 @@ function severityColor(severity: string): string {
   switch ((severity ?? '').toLowerCase()) {
     case 'critical': return 'var(--danger)';
     case 'high': return 'var(--danger)';
-    case 'medium': return 'var(--warning, #e0a020)';
+    case 'medium': return 'var(--status-watch)';
     case 'low': return 'var(--text-dim)';
     default: return 'var(--text-dim)';
   }
