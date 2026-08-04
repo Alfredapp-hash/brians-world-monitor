@@ -109,6 +109,15 @@ function updateAiStatus(container: HTMLElement): void {
   }
 }
 
+// Holds the most recently fetched agentskills.io preview pending save. Scoped
+// per renderPreferences() call via closure (see `attach`) rather than stashed
+// as a non-standard property on the preview DOM element.
+interface PendingFwData {
+  name: string;
+  description: string;
+  instructions: string;
+}
+
 export function renderPreferences(host: PreferencesHost): PreferencesResult {
   const settings = getAiFlowSettings();
   const currentLang = getCurrentLanguage();
@@ -257,10 +266,10 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
 
   // Per-panel active framework display
   const panelIds: Array<{ id: AnalysisPanelId; label: string }> = [
-    { id: 'insights', label: 'Insights' },
-    { id: 'country-brief', label: 'Country Brief' },
-    { id: 'daily-market-brief', label: 'Market Brief' },
-    { id: 'deduction', label: 'Deduction' },
+    { id: 'insights', label: t('components.insights.analysisFrameworksPanelInsights') },
+    { id: 'country-brief', label: t('components.insights.analysisFrameworksPanelCountryBrief') },
+    { id: 'daily-market-brief', label: t('components.insights.analysisFrameworksPanelMarketBrief') },
+    { id: 'deduction', label: t('components.insights.analysisFrameworksPanelDeduction') },
   ];
   html += `<div class="ai-flow-section-label">${t('components.insights.analysisFrameworksActivePerPanel')}</div>`;
   html += `<div class="fw-panel-status-list" id="fwPanelStatusList">`;
@@ -286,10 +295,10 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
 
   // Import modal (hidden by default)
   html += `<div class="fw-import-modal-backdrop" id="fwImportModalBackdrop" style="display:none">
-    <div class="fw-import-modal" role="dialog" aria-modal="true" aria-label="Import framework">
+    <div class="fw-import-modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(t('components.insights.analysisFrameworksImportTitle'))}">
       <div class="fw-import-modal-header">
         <span class="fw-import-modal-title">${t('components.insights.analysisFrameworksImportTitle')}</span>
-        <button type="button" class="fw-import-modal-close" id="fwImportModalClose" aria-label="Close">&times;</button>
+        <button type="button" class="fw-import-modal-close" id="fwImportModalClose" aria-label="${escapeHtml(t('components.insights.analysisFrameworksCloseAriaLabel'))}">&times;</button>
       </div>
       <div class="fw-import-tabs">
         <button type="button" class="fw-import-tab active" data-fw-tab="agentskills" id="fwTabAgentskills">${t('components.insights.analysisFrameworksFromAgentskills')}</button>
@@ -297,10 +306,10 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
       </div>
       <div class="fw-import-tab-panel active" id="fwTabPanelAgentskills">
         <div class="fw-import-field">
-          <label class="fw-import-label">agentskills.io URL or ID</label>
+          <label class="fw-import-label">${t('components.insights.analysisFrameworksUrlLabel')}</label>
           <input type="text" class="fw-import-input" id="fwAgentskillsUrl" placeholder="https://agentskills.io/skills/..." />
         </div>
-        <button type="button" class="btn btn-secondary" id="fwFetchBtn">Fetch</button>
+        <button type="button" class="btn btn-secondary" id="fwFetchBtn">${t('components.insights.analysisFrameworksFetchBtn')}</button>
         <div class="fw-import-preview" id="fwAgentskillsPreview" style="display:none">
           <div class="fw-import-preview-name" id="fwPreviewName"></div>
           <div class="fw-import-preview-desc" id="fwPreviewDesc"></div>
@@ -406,6 +415,7 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
     attach(container: HTMLElement): () => void {
       const ac = new AbortController();
       const { signal } = ac;
+      let pendingFwData: PendingFwData | null = null;
 
       container.addEventListener('change', (e) => {
         const target = e.target as HTMLInputElement;
@@ -540,7 +550,7 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
           if (preview) preview.style.display = 'none';
           const urlVal = urlInput.value.trim();
           if (!urlVal.includes('agentskills.io')) {
-            showImportError(errEl, 'Only agentskills.io URLs are supported.');
+            showImportError(errEl, t('components.insights.analysisFrameworksErrUnsupportedUrl'));
             return;
           }
           const fetchBtn = container.querySelector<HTMLButtonElement>('#fwFetchBtn');
@@ -556,17 +566,17 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
             return res.json() as Promise<{ name?: string; description?: string; instructions?: string }>;
           }).then((data) => {
             if (!data.instructions) {
-              showImportError(errEl, 'This skill has no instructions — it may use tools only (not supported).');
+              showImportError(errEl, t('components.insights.analysisFrameworksErrNoInstructions'));
               return;
             }
             const nameEl = container.querySelector<HTMLElement>('#fwPreviewName');
             const descEl = container.querySelector<HTMLElement>('#fwPreviewDesc');
-            if (nameEl) nameEl.textContent = data.name ?? 'Unnamed skill';
+            if (nameEl) nameEl.textContent = data.name ?? t('components.insights.analysisFrameworksUnnamedSkill');
             if (descEl) descEl.textContent = data.instructions.slice(0, 200) + (data.instructions.length > 200 ? '…' : '');
             if (preview) {
               preview.style.display = 'block';
-              (preview as HTMLElement & { _fwData?: { name: string; description: string; instructions: string } })._fwData = {
-                name: data.name ?? 'Unnamed skill',
+              pendingFwData = {
+                name: data.name ?? t('components.insights.analysisFrameworksUnnamedSkill'),
                 description: data.description ?? '',
                 instructions: data.instructions,
               };
@@ -574,9 +584,9 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
           }).catch((err: Error) => {
             if (err.name === 'AbortError') return;
             if (err.message === 'rate-limit') {
-              showImportError(errEl, 'Too many import requests. Try again in an hour.');
+              showImportError(errEl, t('components.insights.analysisFrameworksErrRateLimit'));
             } else {
-              showImportError(errEl, 'Could not reach agentskills.io. Check your connection.');
+              showImportError(errEl, t('components.insights.analysisFrameworksErrNetwork'));
             }
           }).finally(() => {
             if (fetchBtn) fetchBtn.disabled = false;
@@ -585,12 +595,12 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
         }
 
         if (target.closest('#fwAgentskillsSaveBtn')) {
-          const preview = container.querySelector<HTMLElement>('#fwAgentskillsPreview');
           const errEl = container.querySelector<HTMLElement>('#fwAgentskillsError');
-          const fwData = (preview as HTMLElement & { _fwData?: { name: string; description: string; instructions: string } } | null)?._fwData;
+          const fwData = pendingFwData;
           if (!fwData) return;
           try {
             saveImportedFramework({ id: crypto.randomUUID(), name: fwData.name, description: fwData.description, systemPromptAppend: fwData.instructions });
+            pendingFwData = null;
             refreshFrameworkLibrary(container);
             const backdrop = container.querySelector<HTMLElement>('#fwImportModalBackdrop');
             if (backdrop) backdrop.style.display = 'none';
@@ -609,17 +619,17 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
           try {
             parsed = JSON.parse(textarea.value) as typeof parsed;
           } catch {
-            showImportError(errEl, 'Could not parse skill definition. Paste valid JSON.');
+            showImportError(errEl, t('components.insights.analysisFrameworksErrInvalidJson'));
             return;
           }
           if (!parsed.instructions) {
-            showImportError(errEl, 'This skill has no instructions — it may use tools only (not supported).');
+            showImportError(errEl, t('components.insights.analysisFrameworksErrNoInstructions'));
             return;
           }
           try {
             saveImportedFramework({
               id: crypto.randomUUID(),
-              name: parsed.name ?? 'Imported skill',
+              name: parsed.name ?? t('components.insights.analysisFrameworksImportedSkill'),
               description: parsed.description ?? '',
               systemPromptAppend: parsed.instructions,
             });
@@ -645,7 +655,7 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
           const fwId = renameBtn.dataset.fwId;
           const current = renameBtn.closest('.fw-library-item')?.querySelector('.fw-library-item-name');
           const currentName = current?.childNodes[0]?.textContent?.trim() ?? '';
-          const newName = prompt('Rename framework:', currentName);
+          const newName = prompt(t('components.insights.analysisFrameworksRenamePrompt'), currentName);
           if (newName && newName.trim() && newName.trim() !== currentName) {
             renameImportedFramework(fwId, newName.trim());
             refreshFrameworkLibrary(container);
@@ -681,17 +691,17 @@ export function renderPreferences(host: PreferencesHost): PreferencesResult {
 
 function renderFrameworkLibraryHtml(): string {
   const frameworks = loadFrameworkLibrary();
-  if (frameworks.length === 0) return '<div class="fw-library-empty">No frameworks in library.</div>';
+  if (frameworks.length === 0) return `<div class="fw-library-empty">${t('components.insights.analysisFrameworksEmptyLibrary')}</div>`;
   return frameworks.map(fw => `
     <div class="fw-library-item" data-fw-id="${escapeHtml(fw.id)}">
       <div class="fw-library-item-info">
-        <div class="fw-library-item-name">${escapeHtml(fw.name)}${fw.isBuiltIn ? ' <span class="fw-builtin-badge">built-in</span>' : ''}</div>
+        <div class="fw-library-item-name">${escapeHtml(fw.name)}${fw.isBuiltIn ? ` <span class="fw-builtin-badge">${t('components.insights.analysisFrameworksBuiltInBadge')}</span>` : ''}</div>
         <div class="fw-library-item-desc">${escapeHtml(fw.description)}</div>
       </div>
       ${!fw.isBuiltIn ? `
         <div class="fw-library-item-actions">
-          <button type="button" class="fw-lib-btn fw-rename-btn" data-fw-id="${escapeHtml(fw.id)}">Rename</button>
-          <button type="button" class="fw-lib-btn fw-lib-btn-danger fw-delete-btn" data-fw-id="${escapeHtml(fw.id)}">Delete</button>
+          <button type="button" class="fw-lib-btn fw-rename-btn" data-fw-id="${escapeHtml(fw.id)}">${t('components.insights.analysisFrameworksRenameBtn')}</button>
+          <button type="button" class="fw-lib-btn fw-lib-btn-danger fw-delete-btn" data-fw-id="${escapeHtml(fw.id)}">${t('components.insights.analysisFrameworksDeleteBtn')}</button>
         </div>
       ` : ''}
     </div>

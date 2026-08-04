@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 187
 tags: [code-review, phase-0, regional-intelligence, dead-code, convention]
@@ -52,6 +52,8 @@ Files:
 - [ ] Or document why the mirror must exist forward-compatibly
 
 ## Work Log
+
+- undefined: Already resolved / not reproducible — doc's premise doesn't hold against the current tree. `scripts/shared/geography.js` has its own relative import `import iso2ToRegionData from './iso2-to-region.json'`, which resolves to the mirror (`scripts/shared/iso2-to-region.json`) itself, not to `shared/iso2-to-region.json`. Since `scripts/seed-regional-snapshots.mjs` imports `REGIONS`/`GEOGRAPHY_VERSION` from `./shared/geography.js` (the scripts/shared copy), the mirror IS a real Phase 0 runtime consumer. Also confirmed `tests/edge-functions.test.mjs` has no `iso2-to-region` reference at all — the mirror is actually enforced by `tests/scripts-shared-mirror.test.mjs`, not that file (doc referenced the wrong test). No files deleted; grepped whole repo for `iso2-to-region` to confirm.
 
 ## Resources
 - PR #2940

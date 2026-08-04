@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "016"
 tags: [code-review, deep-forecast, simulation-package, quality]
@@ -70,3 +70,4 @@ Effort: Small | Risk: Low
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:code-simplicity-reviewer in PR #2204 review
+- undefined: Fixed items 1, 2, 3, 5, 6 — added `buildCandidateByIdMap` helper (backward-compatible with array or Map input) and threaded a single `candidateById` Map from `buildSimulationPackageFromDeepSnapshot` into `buildSimulationPackageEventSeeds`/`buildSimulationPackageConstraints`/`buildSimulationPackageEvaluationTargets`, replacing repeated `.find()` calls with `.get()`; extracted `simulationEntitySlug()` and `SIMULATION_MAX_SEED_SUMMARY` constants to remove the duplicated slugify/`.slice(0, 200)` patterns; `buildImpactExpansionDebugPayload`'s `gateDetails.secondOrderMappedFloor`/`secondOrderMultiplier` now read live from `getImpactValidationFloors('second_order')`; added a `console.debug` log when the evidence-table actor regex misses. Skipped item 4 (data-driven `FALLBACK_ANCHOR_DEFS` refactor) as an optional simplification outside the doc's acceptance criteria, to keep the diff surgical.

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 185
 tags: [code-review, phase-0, regional-intelligence, triggers]
@@ -39,6 +39,8 @@ Related issue: #171 (isCloseToThreshold inverted for lt operators)
 - [ ] Test: delta_gt trigger never appears in watching list during Phase 0
 
 ## Work Log
+
+- undefined: Already resolved / not reproducible — the same fix that addressed #171 (commit c82f827e, PR #3656) added explicit `delta_gt`/`delta_lt` cases to `isCloseToThreshold` that unconditionally return `false`, so delta-gated triggers can never be elevated to "watching" regardless of value; `evaluateTriggers`'s watching branch therefore already behaves as if guarded. Covered by `tests/regional-snapshot.test.mjs` (delta_lt/delta_gt cases). No further change needed.
 
 ## Resources
 - PR #2940

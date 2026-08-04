@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "045"
 tags: [code-review, security, caching, analytical-frameworks]
@@ -47,3 +47,4 @@ Store framework-aware summaries under a different key prefix (e.g., `wm-sum-fw:v
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by code-simplicity-reviewer
+- undefined: Already resolved / not reproducible — `summarize-article.ts` already passes `systemAppend` as the 6th argument to `getCacheKey(...)`, and `buildSummaryCacheKey` in `src/utils/summary-cache-key.ts` already appends a `:fw<hash>` segment derived from it when non-empty. No code change needed.

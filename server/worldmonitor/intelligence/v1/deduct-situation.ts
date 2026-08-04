@@ -102,8 +102,12 @@ export async function deductSituation(
 
     const query = typeof req.query === 'string' ? req.query.slice(0, MAX_QUERY_LEN).trim() : '';
     const geoContext = typeof req.geoContext === 'string' ? req.geoContext.slice(0, MAX_GEO_LEN).trim() : '';
-    const isPremium = await isCallerPremium(ctx.request);
-    const framework = isPremium && typeof req.framework === 'string' ? req.framework.slice(0, MAX_FRAMEWORK_LEN) : '';
+    // Only pay the isCallerPremium() entitlement check (Clerk lookup on cold
+    // isolates) when a framework was actually supplied — the result is
+    // discarded otherwise anyway (#4995 perf review).
+    const rawFramework = typeof req.framework === 'string' ? req.framework.slice(0, MAX_FRAMEWORK_LEN) : '';
+    const isPremium = rawFramework ? await isCallerPremium(ctx.request) : false;
+    const framework = isPremium ? rawFramework : '';
 
     if (!query) return { analysis: '', model: '', provider: 'skipped' };
 

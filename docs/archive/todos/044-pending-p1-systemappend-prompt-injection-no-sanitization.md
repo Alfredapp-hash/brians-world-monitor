@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "044"
 tags: [code-review, security, prompt-injection, analytical-frameworks]
@@ -56,3 +56,4 @@ Strip `<`, `>`, `{`, `}` and control characters from `systemAppend`. Leave direc
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by security-sentinel
+- undefined: Already resolved / not reproducible — `server/_shared/llm.ts` now runs `systemAppend` through `sanitizeForPrompt()` centrally before appending it to the system message in both `callLlm` (used by `get-country-intel-brief.ts` and, via `callLlmReasoning`, `deduct-situation.ts`) and `callLlmReasoningStream`; `summarize-article.ts` (which bypasses `callLlm`) separately calls `sanitizeForPrompt(systemAppend)` before building its own request. All three call sites are covered. No code change needed.

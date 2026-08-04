@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "049"
 tags: [code-review, security, health, seeding, pr-2375]
@@ -46,3 +46,4 @@ Keep in STANDALONE_KEYS but add staleness checks. This is a non-fix; STANDALONE_
 ## Work Log
 
 - 2026-03-27: Identified by code-review agents during PR #2375 review.
+- undefined: Already resolved / not reproducible — `shippingStress`, `diseaseOutbreaks`, and `socialVelocity` are already present in `BOOTSTRAP_KEYS` (api/health.js:155-158) with matching `SEED_META` entries (api/health.js:526-530), and are not present anywhere in `STANDALONE_KEYS`; no code change was needed.

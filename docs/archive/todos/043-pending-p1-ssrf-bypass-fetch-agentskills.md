@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "043"
 tags: [code-review, security, ssrf, analytical-frameworks]
@@ -56,3 +56,4 @@ Rely on Vercel's network-level protection to block fetches to internal IPs.
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by security-sentinel
+- undefined: Already resolved / not reproducible — the current code already implements Option A exactly: `ALLOWED_AGENTSKILLS_HOSTS` is an exact-match Set (no `endsWith`), and `fetch()` uses `redirect: 'manual'` with a check that rejects `opaqueredirect`/3xx responses. No code change was needed.

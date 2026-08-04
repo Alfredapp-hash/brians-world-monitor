@@ -7,6 +7,7 @@ Run the full World Monitor stack locally with Docker/Podman.
 - **Docker** or **Podman** (rootless works fine)
 - **Docker Compose** or **podman-compose** (`pip install podman-compose` or `uvx podman-compose`)
 - **Node.js 22+** (for running seed scripts on the host)
+- **bash 4.3+** (for `./scripts/run-seeders.sh`'s bounded-concurrency seeding — macOS ships bash 3.2 by default; `brew install bash` if needed)
 
 ## 🚀 Quick Start
 
@@ -119,8 +120,16 @@ To automate, add a cron job:
 */30 * * * * cd /path/to/worldmonitor && ./scripts/run-seeders.sh >> /tmp/wm-seeders.log 2>&1
 ```
 
+**Concurrency (`SEED_CONCURRENCY`):** seeders run with bounded concurrency instead
+of strictly one at a time — up to `SEED_CONCURRENCY` (default `8`) run
+simultaneously, which is what keeps 150+ seed scripts inside a reasonable wall
+clock. Override with `SEED_CONCURRENCY=<n>`. `run-seeders.sh` requires **bash
+4.3+** for this (`wait -n`) — macOS ships bash 3.2 by default; if you hit the
+version check, install a newer one (`brew install bash`) and re-run.
+
 **Per-seeder timeout (`SEED_TIMEOUT`):** standalone seeders are each wrapped in a
-wall-clock cap so one hung upstream can't starve the rest of the run. It defaults
+wall-clock cap so one hung upstream can't starve the other seeders — a stuck
+seeder occupies only its own concurrency slot, not the whole run. It defaults
 to `1800` (30 min); override with `SEED_TIMEOUT=<seconds>`, or `SEED_TIMEOUT=0` to
 disable. Bundle seeders (`seed-bundle-*.mjs`) are exempt — they already bound each
 section internally. Requires the `timeout` command (GNU coreutils); if it's absent

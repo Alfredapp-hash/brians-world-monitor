@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "015"
 tags: [code-review, deep-forecast, simulation-package, correctness]
@@ -74,3 +74,4 @@ Effort: Small | Risk: Low
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:kieran-typescript-reviewer in PR #2204 review
+- undefined: Fixed — items 1 (`console.warn` guard in `buildSimulationPackageEvaluationTargets`) and 2 (`label: c.candidateStateLabel || c.dominantRegion || 'unknown theater'` fallback) were already present in the code. Implemented the remaining gap, item 3: `buildSimulationStructuralWorld`'s `touchingSignals` filter now handles `s.macroRegion` as either a singular string or an array, matching against `theaterRegions` in both cases.

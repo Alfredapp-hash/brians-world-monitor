@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "047"
 tags: [code-review, quality, analytical-frameworks, insights-panel]
@@ -44,3 +44,4 @@ Restructure `updateInsights` to accept an optional gen parameter.
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by kieran-typescript-reviewer and performance-oracle
+- undefined: Already resolved / not reproducible — the `subscribeFrameworkChange('insights', ...)` handler in `src/components/InsightsPanel.ts` (constructor) already only calls `void this.updateInsights(this.lastClusters)` with no manual `updateGeneration++`; the single increment inside `updateInsights()` (Option A) is the only one. No code change needed.

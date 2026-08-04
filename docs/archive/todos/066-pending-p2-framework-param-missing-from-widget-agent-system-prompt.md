@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "066"
 tags: [code-review, agent-native, analytical-frameworks]
@@ -27,3 +27,4 @@ Add `framework` to the param documentation for `get-country-intel-brief` in `WID
 
 ## Work Log
 - 2026-03-28: Identified by agent-native-reviewer during PR #2386 review
+- undefined: Fixed — added `framework` param documentation to `get-country-intel-brief` in `WIDGET_PRO_SYSTEM_PROMPT` only; `WIDGET_SYSTEM_PROMPT` (basic) left unchanged.

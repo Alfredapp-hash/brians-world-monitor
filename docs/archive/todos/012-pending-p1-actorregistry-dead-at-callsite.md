@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "012"
 tags: [code-review, deep-forecast, simulation-package, correctness]
@@ -68,3 +68,4 @@ Effort: Tiny | Risk: Medium (grows snapshot payload)
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:research:learnings-researcher in PR #2204 review
+- undefined: Already resolved / not reproducible — `fetchForecasts()` already returns `priorWorldState` on `data`, and the seed-path call site already threads `priorWorldState: data.priorWorldState || null` into `writeSimulationPackage`'s `context`, which passes it to `buildSimulationPackageFromDeepSnapshot`; `actorRegistry` is populated from `priorWorldState?.actorRegistry` in production. No code change needed.

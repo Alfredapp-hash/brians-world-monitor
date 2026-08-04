@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: 190
 tags: [code-review, phase-0, regional-intelligence, performance, dry]
@@ -50,6 +50,8 @@ The fallback chain must be normalized across all callers.
 - [ ] Single consistent definition of what fields contribute to the searchable text
 
 ## Work Log
+- undefined: Partially fixed — within scripts/regional-snapshot/{actor-scoring,balance-vector,scenario-builder}.mjs, added a shared per-file `caseFileText(f)` helper that reads `f._caseFileText` when present and otherwise falls back to a single normalized `JSON.stringify(f?.caseFile ?? f?.signals ?? {}).toLowerCase()` (wrapped in try/catch), removing the `caseFile`-only vs `caseFile ?? signals` inconsistency between actor-scoring/scenario-builder and balance-vector's computeAllianceCohesion. Left status `pending`: the actual precompute-once step (`_caseFileText` attached per forecast before the region loop in `main()`) belongs in scripts/seed-regional-snapshots.mjs, which is outside this workstream's ownership (scripts/regional-snapshot/actor-scoring.mjs, balance-vector.mjs, evidence-collector.mjs, scenario-builder.mjs only). Modules are now ready to consume `_caseFileText` as soon as the orchestrator sets it, with no code change needed on this side.
+- 2026-08-03: Closed the loop — added the precompute step in `scripts/seed-regional-snapshots.mjs`'s `main()`, right after `readAllInputs()` and before the `Promise.allSettled(REGIONS.map(...))` fan-out: iterates `sources['forecast:predictions:v2'].predictions` once and sets `f._caseFileText = JSON.stringify(f?.caseFile ?? f?.signals ?? {}).toLowerCase()` (try/catch, falls back to `'{}'') on each forecast object in place. Since `sources` is a single object shared by reference across every `processRegion()` call, all 8 regions' calls into `scoreActors`/`computeAllianceCohesion`/`buildScenarioSets` now see the field pre-populated and the modules' existing `caseFileText(f)` helpers short-circuit on `f._caseFileText` — collapsing the ~560 redundant per-region-per-module stringifies down to 1-per-forecast (14). All 3 acceptance criteria now met. Verified: `npx biome lint scripts/seed-regional-snapshots.mjs` clean; `tests/regional-snapshot*.test.mjs` + `tests/scripts-shared-mirror.test.mjs` (303/303) and `tests/get-regional-snapshot.test.mts` (30/30) all pass.
 
 ## Resources
 - PR #2940

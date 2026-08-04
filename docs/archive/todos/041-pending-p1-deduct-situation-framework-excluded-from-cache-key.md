@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "041"
 tags: [code-review, security, caching, analytical-frameworks]
@@ -44,3 +44,4 @@ Same as A but bump version to `v3` to invalidate all existing deduction cache en
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by 5 independent agents
+- undefined: Already resolved / not reproducible — current `deduct-situation.ts` (line ~110-122) already computes `frameworkHash` via `sha256Hex(framework)` and folds it into the cache key as `:fw${frameworkHash}`, mirroring `get-country-intel-brief.ts`; no code change needed.

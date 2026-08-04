@@ -140,9 +140,8 @@ export class FrameworkSelector {
 
   refresh(): void {
     if (!this.select) return;
-    const current = this.select.value;
     this.populateOptions(this.select);
-    this.select.value = getActiveFrameworkForPanel(this.panelId)?.id ?? current;
+    this.select.value = getActiveFrameworkForPanel(this.panelId)?.id ?? '';
     this.updateBtnTitle();
   }
 

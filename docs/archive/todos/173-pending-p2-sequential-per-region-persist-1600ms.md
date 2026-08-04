@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 173
 tags: [code-review, phase-0, regional-intelligence, performance, redis]
@@ -55,6 +55,8 @@ Each region's dedup key is namespaced by region, so there is no cross-region wri
 - [ ] Existing tests still pass.
 
 ## Work Log
+
+- undefined: Fixed — replaced the sequential `for (const region of REGIONS) { ... await persistSnapshot ... }` loop in `scripts/seed-regional-snapshots.mjs` `main()` with `Promise.allSettled(REGIONS.map(region => processRegion(...)))`, where `processRegion` wraps compute+persist+alerts+history for one region and never rejects (errors are caught and returned as a `'failed'` outcome); per-region failures no longer block other regions and no longer serialize the write round-trips.
 
 ## Resources
 

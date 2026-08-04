@@ -1279,7 +1279,26 @@
       "sources_many": "{{count}} fontes",
       "provenanceTitle": "Proveniência de cobertura: quantas histórias ingeridas e fontes distintas foram selecionadas para este resumo",
       "compiledFrom": "Compilado de {{stories}} histórias em {{sources}} fontes",
-      "briefFreshness": "Gerado há {{minutes}}m · fonte mais recente com {{hours}}h"
+      "briefFreshness": "Gerado há {{minutes}}m · fonte mais recente com {{hours}}h",
+      "analysisFrameworksPanelInsights": "Insights",
+      "analysisFrameworksPanelCountryBrief": "Country Brief",
+      "analysisFrameworksPanelMarketBrief": "Market Brief",
+      "analysisFrameworksPanelDeduction": "Deduction",
+      "analysisFrameworksCloseAriaLabel": "Close",
+      "analysisFrameworksUrlLabel": "agentskills.io URL or ID",
+      "analysisFrameworksFetchBtn": "Fetch",
+      "analysisFrameworksErrUnsupportedUrl": "Only agentskills.io URLs are supported.",
+      "analysisFrameworksErrNoInstructions": "This skill has no instructions — it may use tools only (not supported).",
+      "analysisFrameworksErrInvalidJson": "Could not parse skill definition. Paste valid JSON.",
+      "analysisFrameworksErrRateLimit": "Too many import requests. Try again in an hour.",
+      "analysisFrameworksErrNetwork": "Could not reach agentskills.io. Check your connection.",
+      "analysisFrameworksEmptyLibrary": "No frameworks in library.",
+      "analysisFrameworksBuiltInBadge": "built-in",
+      "analysisFrameworksRenameBtn": "Rename",
+      "analysisFrameworksDeleteBtn": "Delete",
+      "analysisFrameworksRenamePrompt": "Rename framework:",
+      "analysisFrameworksUnnamedSkill": "Unnamed skill",
+      "analysisFrameworksImportedSkill": "Imported skill"
     },
     "techHubs": {
       "infoTooltip": "<strong>Atividade do Tech Hub</strong><br>Mostra os hubs de tecnologia com mais atividade de notícias.<br><br><em>Níveis de atividade:</em><br>• <span style=\"color: {{highColor}}\">Alto</span> — Notícias de última hora ou pontuação acima de 50<br>• <span style=\"color: {{elevatedColor}}\">Elevado</span> — Pontuação 20-49<br>• <span style=\"color: {{lowColor}}\">Baixo</span> — Pontuação abaixo de 20<br><br>Clique em um hub para ampliar sua localização."

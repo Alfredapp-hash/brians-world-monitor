@@ -21,6 +21,11 @@ name: Seed Data
 #      Vercel project (Settings → Environment Variables) so the app reads the
 #      same cache this workflow writes.
 #
+# run-seeders.sh runs seed-*.mjs scripts with bounded concurrency (default 8
+# at once; tune with SEED_CONCURRENCY) instead of one at a time, so 150+
+# seeders comfortably fit inside timeout-minutes below. It requires bash
+# (invoked explicitly below, not `sh`) for `wait -n`.
+#
 # Triggers: every 30 min, on manual dispatch, and once on push of this file.
 on:
   schedule:
@@ -83,4 +88,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           # Per-seeder wall-clock cap (seconds); bundle seeders self-bound.
           SEED_TIMEOUT: '600'
-        run: sh ./scripts/run-seeders.sh
+          # How many seeders run at once (default 8 if unset). Uncomment to override:
+          # SEED_CONCURRENCY: '8'
+        run: bash ./scripts/run-seeders.sh

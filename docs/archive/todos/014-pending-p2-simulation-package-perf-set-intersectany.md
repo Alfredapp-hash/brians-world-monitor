@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "014"
 tags: [code-review, deep-forecast, simulation-package, performance]
@@ -65,3 +65,4 @@ Effort: Tiny | Risk: Low
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:performance-oracle in PR #2204 review
+- undefined: Already resolved / not reproducible — CRITICAL-1 is already fixed (`allForecastIdSet` is a `Set` built once before the actor-registry loop in `buildSimulationPackageEntities`, with `.some((id) => allForecastIdSet.has(id))` lookups). CRITICAL-2's `isMaritimeChokeEnergyCandidate` function no longer exists in the codebase — the `marketBucketIds` check in `buildSimulationPackageConstraints` already uses a plain array with `.includes()`, not `new Set(...)`. No code change needed.
