@@ -751,11 +751,25 @@ let _checkoutInFlight = false;
  * (which relays to Convex). Returns true if the overlay opened successfully.
  * Falls back to /pro page on any failure.
  */
+const PRO_CHECKOUT_DISABLED = true;
+
 export async function startCheckout(
   productId: string,
   options?: { discountCode?: string; referralCode?: string; bypassPendingGuard?: boolean },
   behavior?: { fallbackToPricingPage?: boolean; analyticsSurface?: 'dashboard' | 'dashboard-resume' },
 ): Promise<boolean> {
+  // Funnel kill switch: this fork has no payment processor connected and
+  // does not control the live Dodo/Pro product at worldmonitor.app. Every
+  // dashboard "Upgrade to Pro" CTA routes through this one function (see
+  // the file-level doc comment), so gating here — before trackCheckoutStart,
+  // before touching Clerk, before any network call — neutralizes the whole
+  // funnel without needing to hide each individual UI component. Reuses the
+  // existing toast surface rather than inventing a new UI path.
+  if (PRO_CHECKOUT_DISABLED) {
+    showCheckoutErrorToast("Pro upgrades aren't available yet.");
+    return false;
+  }
+
   if (_checkoutInFlight) return false;
   const fallbackToPricingPage = behavior?.fallbackToPricingPage ?? true;
 
@@ -1067,7 +1081,10 @@ function renderCheckoutErrorSurface(
   fallbackToPricingPage: boolean,
 ): void {
   if (fallbackToPricingPage) {
-    window.location.assign('https://worldmonitor.app/pro');
+    // Relative path — vercel.json routes /pro -> /pro/index.html to this
+    // fork's own locally-built pricing page. Must NOT point at
+    // worldmonitor.app, a separate product this fork does not control.
+    window.location.assign('/pro');
     return;
   }
   showCheckoutErrorToast(error.userMessage);

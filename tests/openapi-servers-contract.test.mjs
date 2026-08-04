@@ -13,7 +13,7 @@ import { load as loadYaml } from 'js-yaml';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const apiDir = resolve(root, 'docs/api');
 
-const EXPECTED_URL = 'https://api.worldmonitor.app';
+const EXPECTED_URL = 'https://brians-world-monitor.vercel.app';
 
 const serviceJsonSpecs = readdirSync(apiDir)
   .filter((f) => /Service\.openapi\.json$/.test(f))

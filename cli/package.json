@@ -12,13 +12,13 @@
     "mcp",
     "agent"
   ],
-  "homepage": "https://worldmonitor.app/docs/cli",
-  "bugs": "https://github.com/koala73/worldmonitor/issues",
+  "homepage": "https://brians-world-monitor.vercel.app/docs/cli",
+  "bugs": "https://github.com/Alfredapp-hash/brians-world-monitor/issues",
   "license": "MIT",
   "author": "World Monitor",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/koala73/worldmonitor.git",
+    "url": "git+https://github.com/Alfredapp-hash/brians-world-monitor.git",
     "directory": "cli"
   },
   "type": "module",

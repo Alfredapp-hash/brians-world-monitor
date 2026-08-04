@@ -16,9 +16,9 @@ function restoreEnv() {
 }
 
 function makeRequest(query) {
-  return new Request(`https://api.worldmonitor.app/api/bootstrap?${query}`, {
+  return new Request(`https://brians-world-monitor.vercel.app/api/bootstrap?${query}`, {
     headers: {
-      origin: 'https://worldmonitor.app',
+      origin: 'https://brians-world-monitor.vercel.app',
       'x-vercel-id': 'iad1::abc-123',
     },
   });

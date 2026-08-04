@@ -87,9 +87,10 @@ describe('consentPage — Pro CTA structure (U4)', () => {
     // re-render round-trip).
     assert.match(html, /<form id="cf"[^>]*style="display:none[^"]*"/);
     assert.match(html, /<input type="password" id="api_key"/);
-    // Existing POST action target must be preserved (nothing about the
-    // legacy submit path is changed by U4).
-    assert.match(html, /method="POST" action="https:\/\/api\.worldmonitor\.app\/oauth\/authorize"/);
+    // No-JS fallback POSTs same-origin (previously hardcoded to an
+    // api.worldmonitor.app subdomain this fork doesn't control — a real
+    // API-key exfiltration bug for any client with JS disabled).
+    assert.match(html, /method="POST" action="\/oauth\/authorize"/);
   });
 
   it('inline script wires the disclosure click handler + #api-key fragment + errorMsg auto-show', async () => {
@@ -199,9 +200,13 @@ describe('consentPage — preserved invariants (regression guard for U6+)', () =
     assert.match(html, /stocks, commodities/);
   });
 
-  it('legacy "Get an API key" footer link is preserved', async () => {
+  it('footer no longer links a "Get an API key" CTA to an unavailable Pro signup — honest copy instead', async () => {
     const html = await renderHtml(BASE_PARAMS, NONCE);
-    assert.match(html, /href="https:\/\/www\.worldmonitor\.app\/pro"/);
+    // This fork has no way to issue a paid API key right now, so the CTA
+    // must not link anywhere (worldmonitor.app is a separate product this
+    // fork does not control).
+    assert.doesNotMatch(html, /worldmonitor\.app\/pro/);
+    assert.match(html, /Pro API access isn't available yet/);
   });
 
   it('PAGE_HEADERS contract preserved: text/html + DENY + no-store + Pragma', async () => {

@@ -40,7 +40,7 @@ describe('mcp registry publication artifacts', () => {
       serverCard.url,
       'registry remote must match the server card MCP endpoint',
     );
-    assert.equal(serverJson.websiteUrl, 'https://www.worldmonitor.app');
+    assert.equal(serverJson.websiteUrl, 'https://brians-world-monitor.vercel.app');
   });
 
   it('server.json version tracks the server card (bump both + republish on SERVER_VERSION change)', () => {

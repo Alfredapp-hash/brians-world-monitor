@@ -17,10 +17,14 @@ const panelLayoutSrc = readFileSync(
 );
 
 describe('blocked-storage event handlers', () => {
-  it('reloads local variant navigation after a guarded storage write', () => {
+  it('reloads local variant navigation after a storage write', () => {
+    // JSA's Monitor fork: variant switches always happen locally via storage
+    // (there are no more upstream *.worldmonitor.app variant domains to
+    // navigate to), so this is unconditional rather than guarded by
+    // isDesktopApp/isLocalDev.
     assert.match(
       eventHandlersSrc,
-      /if \(this\.ctx\.isDesktopApp \|\| options\.isLocalDev\) \{\s*writeStorageValue\('worldmonitor-variant', variant\);\s*window\.location\.reload\(\);/,
+      /writeStorageValue\('worldmonitor-variant', variant\);\s*window\.location\.reload\(\);/,
     );
   });
 

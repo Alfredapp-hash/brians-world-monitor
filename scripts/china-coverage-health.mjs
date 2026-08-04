@@ -242,7 +242,7 @@ export async function readChinaCoverageInputs(entries = CHINA_COVERAGE_ENTRIES) 
     headers: {
       Authorization: `Bearer ${credentials.token}`,
       'Content-Type': 'application/json',
-      'User-Agent': 'worldmonitor-ops/1.0 (+https://worldmonitor.app)',
+      'User-Agent': 'worldmonitor-ops/1.0 (+https://brians-world-monitor.vercel.app)',
     },
     body: JSON.stringify(chinaCoverageReadCommands(ordered)),
     signal: AbortSignal.timeout(15_000),

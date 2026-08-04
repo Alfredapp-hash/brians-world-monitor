@@ -156,7 +156,7 @@ test.describe('public map embed', () => {
       if (!trackedPublicEmbedApiPaths.includes(key)) return;
       statuses.set(key, [...(statuses.get(key) ?? []), response.status()]);
     });
-    await page.route('https://api.worldmonitor.app/api/**', async (route) => {
+    await page.route('https://brians-world-monitor.vercel.app/api/**', async (route) => {
       const request = route.request();
       const url = new URL(request.url());
       const localUrl = new URL(`${url.pathname}${url.search}`, localBaseUrl).toString();

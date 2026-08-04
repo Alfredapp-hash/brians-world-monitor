@@ -45,7 +45,7 @@ describe('nlweb: /ask endpoint', () => {
       for (const field of ['url', 'name', 'site', 'score', 'description', 'schema_object']) {
         assert.ok(field in r, `result missing ${field}`);
       }
-      assert.equal(r.site, 'worldmonitor.app');
+      assert.equal(r.site, 'brians-world-monitor.vercel.app');
     }
   });
 
@@ -59,7 +59,7 @@ describe('nlweb: /ask endpoint', () => {
     const res = await post({ query: 'zzzqx unmatchable gibberish' });
     const body = await res.json();
     assert.equal(body.results.length, 1);
-    assert.equal(body.results[0].url, 'https://worldmonitor.app/llms.txt');
+    assert.equal(body.results[0].url, 'https://brians-world-monitor.vercel.app/llms.txt');
     assert.equal(body.results[0].score, 0);
   });
 

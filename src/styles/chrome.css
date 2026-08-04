@@ -506,6 +506,43 @@
   display: none;
 }
 
+/* Hamburger-collapsed state for the DeckGL/Globe layer panel — same idea as
+   the SVG pill above (collapse to just the toggle button) but for the panel
+   that has its own toggle-header/search/list, not the grouped pill. Boots
+   collapsed by default (see bindLayerPanelCollapse in layer-groups.ts) so
+   the map isn't cluttered by a full layers list on first paint. */
+.deckgl-layer-toggles.layer-panel-collapsed {
+  max-width: none;
+  min-width: 0;
+}
+
+.deckgl-layer-toggles.layer-panel-collapsed .toggle-header {
+  border-bottom: none;
+  padding: 4px;
+  justify-content: center;
+}
+
+.deckgl-layer-toggles.layer-panel-collapsed .toggle-header > span,
+.deckgl-layer-toggles.layer-panel-collapsed .layer-search,
+.deckgl-layer-toggles.layer-panel-collapsed .toggle-list,
+.deckgl-layer-toggles.layer-panel-collapsed .map-author-badge {
+  display: none;
+}
+
+.deckgl-layer-toggles .toggle-collapse {
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: var(--radius-sm, 3px);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.deckgl-layer-toggles .toggle-collapse:hover,
+.deckgl-layer-toggles .toggle-collapse:focus-visible {
+  color: var(--accent, #f0a832);
+  background: color-mix(in srgb, var(--accent, #f0a832) 12%, transparent);
+}
+
 /* Mobile: the grouped panel is short enough to be usable — surface it as a
    dismissible LAYERS pill (layer-groups.ts boots it collapsed <=768px).
    main.css hides .layer-toggles with !important inside @layer base, so this

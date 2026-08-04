@@ -129,15 +129,17 @@ function shouldSuppressCspViolation(
   // ships no http:// subresource loads, and every fetch directive we DO use
   // (connect-src, img-src, script-src, media-src) is set explicitly, so a genuine
   // first-party mixed-content fetch surfaces under its specific directive — never
-  // this default-src fallback. Preserve first-party worldmonitor.app http blocks
-  // so a real mixed-content regression on our own assets still surfaces
-  // (WORLDMONITOR-S0 — http://www.euronews.com article prefetch, 1 user/775 ev).
+  // this default-src fallback. Preserve first-party http blocks on our own
+  // deployment host so a real mixed-content regression on our own assets
+  // still surfaces (WORLDMONITOR-S0 — http://www.euronews.com article
+  // prefetch, 1 user/775 ev). Fork: this app only ever runs on the Vercel
+  // project domain (no custom domain / subdomains yet) — do NOT scope this
+  // to worldmonitor.app, which this fork does not own or control.
   if (directive === 'default-src') {
     try {
       const u = new URL(blockedURI);
       if (u.protocol === 'http:'
-          && u.hostname !== 'worldmonitor.app'
-          && !u.hostname.endsWith('.worldmonitor.app')) return true;
+          && u.hostname !== 'brians-world-monitor.vercel.app') return true;
     } catch { /* scheme-only values fall through */ }
   }
   // First-party Convex backend: corporate proxies / privacy extensions that mutate the
@@ -158,13 +160,14 @@ function shouldSuppressCspViolation(
   // CloudSOC, school content-filters) can strip both `'self'` and `https:` from img-src
   // in the user's effective policy, causing our own favicon and panel icons to be
   // CSP-blocked even though our policy (`img-src 'self' data: blob: https:`) allows
-  // them. Scope to `worldmonitor.app` and its subdomains — img-src blocks to foreign
-  // hosts (a third-party CDN we never load, attacker-controlled host) still surface
-  // (WORLDMONITOR-JP). Suffix check uses a leading `.` so lookalikes like
-  // `worldmonitor.app.evil.com` do NOT match.
+  // them. Scope to our own deployment host — img-src blocks to foreign hosts
+  // (a third-party CDN we never load, attacker-controlled host) still surface
+  // (WORLDMONITOR-JP). Fork: single Vercel project domain, no custom domain /
+  // subdomains yet — do NOT scope this to worldmonitor.app, which this fork
+  // does not own or control.
   //
   // REQUIRE https: protocol — our CSP only allows https: for img-src, so a real
-  // mixed-content regression (`<img src="http://worldmonitor.app/...">`) would be
+  // mixed-content regression (`<img src="http://...">`) would be
   // blocked by the browser. Suppressing http: blocks on first-party hosts would mask
   // that regression in Sentry. The `cspConnectSrcAllowsHttps` block above uses the
   // same protocol gate for connect-src.
@@ -172,7 +175,7 @@ function shouldSuppressCspViolation(
     try {
       const url = new URL(blockedURI);
       if (url.protocol === 'https:'
-          && (url.hostname === 'worldmonitor.app' || url.hostname.endsWith('.worldmonitor.app'))) return true;
+          && url.hostname === 'brians-world-monitor.vercel.app') return true;
     } catch { /* scheme-only values fall through */ }
   }
   // YouTube IFrame API loader: explicitly allowed by our script-src
@@ -392,7 +395,7 @@ initMetaTags();
 
 // In desktop mode, route /api/* calls to the local Tauri sidecar backend.
 installRuntimeFetchPatch();
-// In web production, route RPC calls through api.worldmonitor.app (Cloudflare edge).
+// In web production, route RPC calls through our own same-origin /api/* routes.
 installWebApiRedirect();
 // Force-reload tabs running a stale bundle (catches the class of bug where
 // users keep a tab open across a wire-shape change). Skips when build-hash

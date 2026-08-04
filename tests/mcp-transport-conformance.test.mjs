@@ -513,15 +513,15 @@ describe('api/mcp.ts — /.well-known/mcp dual-role alias', () => {
     // Endpoint must be readable under EVERY manifest dialect scanners parse:
     // top-level `url` + `kind` (ora.ai /.well-known/mcp.json convention),
     // `serverUrl` (SEP-1649 server card), and registry-style `remotes`.
-    assert.equal(card.url, 'https://worldmonitor.app/mcp');
+    assert.equal(card.url, 'https://brians-world-monitor.vercel.app/mcp');
     assert.equal(card.kind, 'product');
-    assert.equal(card.serverUrl, 'https://worldmonitor.app/mcp');
-    assert.equal(card.remotes?.[0]?.url, 'https://worldmonitor.app/mcp');
+    assert.equal(card.serverUrl, 'https://brians-world-monitor.vercel.app/mcp');
+    assert.equal(card.remotes?.[0]?.url, 'https://brians-world-monitor.vercel.app/mcp');
     const cardFetch = staticFetchCalls.find(({ href }) => href.endsWith('/.well-known/mcp/server-card.json'));
     assert.ok(cardFetch, 'server card must be loaded through the deployment self-fetch');
     assert.equal(
       new Headers(cardFetch.init?.headers).get('user-agent'),
-      'WorldMonitor-MCP/1.0 (+https://worldmonitor.app)',
+      'WorldMonitor-MCP/1.0 (+https://brians-world-monitor.vercel.app)',
       'server-side fetches must identify WorldMonitor to the deployment edge',
     );
     // The manifest is a static, immutable-per-deploy asset — it must stay
@@ -537,7 +537,7 @@ describe('api/mcp.ts — /.well-known/mcp dual-role alias', () => {
     const res = await fetch(`${aliasUrl}.json`, { headers: { Accept: 'application/json' } });
     assert.equal(res.status, 200);
     const card = await res.json();
-    assert.equal(card.url, 'https://worldmonitor.app/mcp');
+    assert.equal(card.url, 'https://brians-world-monitor.vercel.app/mcp');
   });
 
   it('plain GET /mcp serves the human-readable server guide (crawler-accessible discovery)', async () => {
@@ -548,8 +548,8 @@ describe('api/mcp.ts — /.well-known/mcp dual-role alias', () => {
     assert.match(res.headers.get('content-type') ?? '', /text\/markdown/i);
     const body = await res.text();
     assert.match(body, /# World Monitor MCP Server/, 'must be the mcp-server.md guide, not the JSON card');
-    assert.match(body, /https:\/\/worldmonitor\.app\/mcp/, 'guide must advertise the apex transport URL');
-    assert.match(res.headers.get('link') ?? '', /<https:\/\/worldmonitor\.app\/mcp>;\s*rel="canonical"/,
+    assert.match(body, /https:\/\/brians-world-monitor\.vercel\.app\/mcp/, 'guide must advertise the apex transport URL');
+    assert.match(res.headers.get('link') ?? '', /<https:\/\/brians-world-monitor\.vercel\.app\/mcp>;\s*rel="canonical"/,
       'discovery representation must declare the apex endpoint canonical');
   });
 
@@ -666,7 +666,7 @@ describe('api/mcp.ts — /.well-known/mcp dual-role alias', () => {
     assert.match(discovery.headers.get('cache-control') ?? '', /\bno-store\b/i);
     assert.match(discovery.headers.get('vary') ?? '', /\bAccept\b(?!-)/i);
     assert.match(discovery.headers.get('vary') ?? '', /\bLast-Event-ID\b/i);
-    assert.match(discovery.headers.get('link') ?? '', /<https:\/\/worldmonitor\.app\/mcp>;\s*rel="canonical"/,
+    assert.match(discovery.headers.get('link') ?? '', /<https:\/\/brians-world-monitor\.vercel\.app\/mcp>;\s*rel="canonical"/,
       'HEAD must retain the matching guide GET canonical link');
 
     const manifest = await fetch(aliasUrl, { method: 'HEAD', headers: { Accept: 'application/json' } });

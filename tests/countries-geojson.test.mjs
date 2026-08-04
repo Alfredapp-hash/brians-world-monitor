@@ -1,20 +1,19 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const COUNTRY_GEOJSON_URL = 'https://maps.worldmonitor.app/countries.geojson';
+// Validate the committed file the app actually serves (public/data/countries.geojson,
+// same-origin via src/services/country-geometry.ts's COUNTRY_GEOJSON_URL) rather than
+// fetching a third-party CDN this fork doesn't control.
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const COUNTRY_GEOJSON_PATH = join(__dirname, '..', 'public', 'data', 'countries.geojson');
 
-let features;
-let fetchError;
-try {
-  const response = await fetch(COUNTRY_GEOJSON_URL, { signal: AbortSignal.timeout(5_000) });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const geojson = await response.json();
-  features = geojson.features;
-} catch (err) {
-  fetchError = err;
-}
+const geojson = JSON.parse(readFileSync(COUNTRY_GEOJSON_PATH, 'utf8'));
+const features = geojson.features;
 
-describe('countries.geojson data integrity', { skip: fetchError ? `CDN unreachable: ${fetchError.message}` : undefined }, () => {
+describe('countries.geojson data integrity', () => {
   it('all feature names are unique', () => {
     const names = features.map(f => f.properties.name);
     const dupes = names.filter((n, i) => names.indexOf(n) !== i);

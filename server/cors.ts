@@ -6,13 +6,11 @@
  */
 
 const PRODUCTION_PATTERNS: RegExp[] = [
-  /^https:\/\/(.*\.)?worldmonitor\.app$/,
-  // Vercel preview deployments under the "eliewm" team scope, e.g.
-  //   worldmonitor-git-<branch>-eliewm.vercel.app  (git-branch alias)
-  //   worldmonitor-<hash>-eliewm.vercel.app        (deployment URL)
-  // Tight on purpose: never a bare *.vercel.app (this is a security allowlist).
-  /^https:\/\/worldmonitor-[a-z0-9-]+-eliewm\.vercel\.app$/,
   // JSA's Monitor fork deployment(s): this project's own Vercel domains.
+  // Tight on purpose: never a bare *.vercel.app (this is a security allowlist).
+  // worldmonitor.app (and the "eliewm" Vercel team's preview scope) is a
+  // different, separately-owned deployment this fork doesn't control —
+  // never trusted as a first-party origin.
   /^https:\/\/brians-world-monitor(-[a-z0-9-]+)?\.vercel\.app$/,
   ...(process.env.ALLOWED_ORIGIN
     ? [new RegExp('^' + process.env.ALLOWED_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$')]

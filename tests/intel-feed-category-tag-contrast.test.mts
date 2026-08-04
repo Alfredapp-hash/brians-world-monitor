@@ -8,6 +8,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const newsPanelSource = readFileSync(resolve(root, 'src/components/NewsPanel.ts'), 'utf8');
 const mainCss = readFileSync(resolve(root, 'src/styles/main.css'), 'utf8');
 const happyCss = readFileSync(resolve(root, 'src/styles/happy-theme.css'), 'utf8');
+const brandCss = readFileSync(resolve(root, 'src/styles/brians-theme.css'), 'utf8');
 
 function cssBlock(source: string, selector: string): string {
   const start = source.indexOf(selector);
@@ -21,10 +22,27 @@ function cssBlock(source: string, selector: string): string {
   throw new Error(`unterminated ${selector} block`);
 }
 
-function cssVars(...blocks: string[]): Record<string, string> {
+// Some vars are declared as `var(--other, #fallback)` indirection rather than
+// a literal hex (e.g. brians-theme.css's token layer). Capture the raw
+// declarations too so those can be resolved against the same cascade.
+function rawCssVars(...blocks: string[]): Record<string, string> {
   return Object.assign({}, ...blocks.map(block => Object.fromEntries(
-    [...block.matchAll(/(--[\w-]+):\s*(#[0-9a-fA-F]{3,6})\b/g)].map(([, name, value]) => [name!, value!]),
+    [...block.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(--[\w-]+):\s*([^;]+);/g)]
+      .map(([, name, value]) => [name!, value!.trim()]),
   )));
+}
+
+function resolveHex(raw: string, context: Record<string, string>, seen = new Set<string>()): string | undefined {
+  const hexMatch = /^#[0-9a-fA-F]{3,6}$/.exec(raw);
+  if (hexMatch) return raw;
+  const varMatch = /^var\(\s*(--[\w-]+)\s*(?:,\s*(.+))?\)$/.exec(raw);
+  if (!varMatch) return undefined;
+  const [, name, fallback] = varMatch;
+  if (name && context[name] !== undefined && !seen.has(name)) {
+    return resolveHex(context[name]!, context, new Set(seen).add(name));
+  }
+  if (fallback) return resolveHex(fallback.trim(), context, seen);
+  return undefined;
 }
 
 function rgb(hex: string): [number, number, number] {
@@ -52,9 +70,10 @@ function contrastRatio(a: string | [number, number, number], b: string | [number
 }
 
 function requiredHexColor(vars: Record<string, string>, name: string, theme: string): string {
-  const value = vars[name];
+  const raw = vars[name];
+  const value = raw !== undefined ? resolveHex(raw, vars) : undefined;
   assert.ok(value, `${theme} must define ${name} as a hex color for contrast verification`);
-  return value;
+  return value!;
 }
 
 describe('Intel Feed category-tag contrast (#5166)', () => {
@@ -72,16 +91,27 @@ describe('Intel Feed category-tag contrast (#5166)', () => {
   });
 
   it('keeps every category threat color AA-safe on each panel surface', () => {
-    const rootBlocks = [...mainCss.matchAll(/:root\s*\{/g)].map(match => cssBlock(mainCss.slice(match.index), ':root'));
-    const base = cssVars(rootBlocks[0]!, rootBlocks[1]!);
-    const light = { ...base, ...cssVars(cssBlock(mainCss, '[data-theme="light"]')) };
-    const happyLight = cssVars(cssBlock(happyCss, ':root[data-variant="happy"]'));
-    const happyDark = cssVars(cssBlock(happyCss, ':root[data-variant="happy"][data-theme="dark"]'));
+    const mainRootBlocks = [...mainCss.matchAll(/:root\s*\{/g)].map(match => cssBlock(mainCss.slice(match.index), ':root'));
+    const mainDarkRaw = rawCssVars(...mainRootBlocks);
+    const mainLightRaw = rawCssVars(cssBlock(mainCss, '[data-theme="light"]'));
+
+    // brians-theme.css is @import-ed unlayered (base-layer.css) after main.css's
+    // layer(base), so its declarations win the cascade for every var they repeat —
+    // including the semantic --threat-* repoint, which points at --status-watch
+    // via var() indirection rather than a literal hex.
+    const brandRootBlocks = [...brandCss.matchAll(/:root\s*\{/g)].map(match => cssBlock(brandCss.slice(match.index), ':root'));
+    const brandDarkRaw = rawCssVars(...brandRootBlocks);
+    const brandLightRaw = rawCssVars(cssBlock(brandCss, '[data-theme="light"]'));
+
+    const darkRaw = { ...mainDarkRaw, ...brandDarkRaw };
+    const lightRaw = { ...darkRaw, ...mainLightRaw, ...brandLightRaw };
+    const happyLightRaw = rawCssVars(cssBlock(happyCss, ':root[data-variant="happy"]'));
+    const happyDarkRaw = rawCssVars(cssBlock(happyCss, ':root[data-variant="happy"][data-theme="dark"]'));
     const themes = [
-      ['dark', base],
-      ['light', light],
-      ['happy light', happyLight],
-      ['happy dark', happyDark],
+      ['dark', darkRaw],
+      ['light', lightRaw],
+      ['happy light', happyLightRaw],
+      ['happy dark', happyDarkRaw],
     ] as const;
     const threatVars = ['--threat-critical', '--threat-high', '--threat-medium', '--threat-low', '--threat-info'];
 

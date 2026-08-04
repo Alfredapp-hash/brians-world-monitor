@@ -3,7 +3,7 @@
 // the process — every export is unit-testable in isolation, and the thin
 // network/IO wrapper lives in ./run.mjs.
 //
-// The CLI is MCP-first. The MCP server (https://worldmonitor.app/mcp) is the
+// The CLI is MCP-first. The MCP server (https://brians-world-monitor.vercel.app/mcp) is the
 // live, documented agent surface: `tools/list` is public, and `tools/call`
 // (used by the curated data commands) authenticates with a user API key. A
 // small REST escape hatch (`health`, `get <path>`) and an OpenAPI listing
@@ -13,11 +13,11 @@ export const VERSION = '0.1.3';
 
 // Cloudflare's WAF challenges generic library User-Agents (node, curl,
 // python-requests, empty) on the API edge, so we always identify ourselves.
-export const USER_AGENT = `worldmonitor-cli/${VERSION} (+https://worldmonitor.app)`;
+export const USER_AGENT = `worldmonitor-cli/${VERSION} (+https://brians-world-monitor.vercel.app)`;
 
-export const DEFAULT_BASE_URL = 'https://api.worldmonitor.app';
-export const DEFAULT_MCP_URL = 'https://worldmonitor.app/mcp';
-export const DEFAULT_SPEC_URL = 'https://worldmonitor.app/openapi.json';
+export const DEFAULT_BASE_URL = 'https://brians-world-monitor.vercel.app';
+export const DEFAULT_MCP_URL = 'https://brians-world-monitor.vercel.app/mcp';
+export const DEFAULT_SPEC_URL = 'https://brians-world-monitor.vercel.app/openapi.json';
 
 // Header the API accepts for a user-issued key (alias: X-Api-Key).
 export const API_KEY_HEADER = 'X-WorldMonitor-Key';
@@ -28,7 +28,7 @@ export const MCP_AUTH_ERROR_CODE = -32001;
 // Shown on any auth failure (MCP -32001 or a REST 401) so the fix is always one
 // hint away, whichever surface the user hit.
 export const AUTH_HINT =
-  'Hint: this call needs a key — pass --api-key or set WORLDMONITOR_API_KEY (get one at https://worldmonitor.app/pro).';
+  'Hint: this call needs a key — pass --api-key or set WORLDMONITOR_API_KEY (get one at https://brians-world-monitor.vercel.app/pro).';
 
 // Thrown for bad invocations so run.mjs can exit with a distinct status (2) and
 // print usage rather than a stack trace.
@@ -386,4 +386,4 @@ Any other --key value pair becomes a tool/request parameter, e.g.
   worldmonitor call get_market_data --asset_class crypto --api-key wm_xxx
   worldmonitor tools
 
-Get an API key at https://worldmonitor.app/pro · docs https://worldmonitor.app/docs/cli`;
+Get an API key at https://brians-world-monitor.vercel.app/pro · docs https://brians-world-monitor.vercel.app/docs/cli`;

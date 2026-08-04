@@ -31,9 +31,9 @@ const RATE_LIMIT_MAX = RATE_LIMIT_POLICY.limit;
 const RATE_LIMIT_WINDOW = RATE_LIMIT_POLICY.window;
 
 const NLWEB_VERSION = '0.1';
-const SITE = 'worldmonitor.app';
-const TOOLS_DOC_URL = 'https://www.worldmonitor.app/docs/mcp-tools-reference';
-const MCP_ENDPOINT = 'https://worldmonitor.app/mcp';
+const SITE = 'brians-world-monitor.vercel.app';
+const TOOLS_DOC_URL = 'https://brians-world-monitor.vercel.app/docs/mcp-tools-reference';
+const MCP_ENDPOINT = 'https://brians-world-monitor.vercel.app/mcp';
 const MAX_QUERY_CHARS = 2048;
 
 const CORS_HEADERS: Record<string, string> = {
@@ -79,14 +79,14 @@ export function buildResults(query: string): NlwebResult[] {
       documentation: TOOLS_DOC_URL,
       // The actionable endpoint: call the tool via MCP tools/call.
       url: MCP_ENDPOINT,
-      provider: { '@type': 'Organization', name: 'World Monitor', url: 'https://www.worldmonitor.app' },
+      provider: { '@type': 'Organization', name: 'World Monitor', url: 'https://brians-world-monitor.vercel.app' },
     },
   }));
   if (results.length === 0) {
     // Honest fallback: point the asker at the discovery surfaces instead of
     // fabricating a match.
     results.push({
-      url: 'https://worldmonitor.app/llms.txt',
+      url: 'https://brians-world-monitor.vercel.app/llms.txt',
       name: 'World Monitor agent guidance (llms.txt)',
       site: SITE,
       score: 0,
@@ -96,7 +96,7 @@ export function buildResults(query: string): NlwebResult[] {
         '@context': 'https://schema.org',
         '@type': 'WebSite',
         name: 'World Monitor',
-        url: 'https://www.worldmonitor.app',
+        url: 'https://brians-world-monitor.vercel.app',
       },
     });
   }

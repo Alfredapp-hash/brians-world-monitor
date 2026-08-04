@@ -245,7 +245,15 @@ async function loadCheckoutModule(): Promise<{
 // Let the fire-and-forget onConfirm re-call settle.
 const flush = () => new Promise((r) => setTimeout(r, 25));
 
-describe('checkout pending-payment dialog wiring (#4438)', () => {
+// Pro checkout is disabled: startCheckout() now short-circuits at the very
+// top (PRO_CHECKOUT_DISABLED in src/services/checkout.ts) before it ever
+// reaches the HTTP call whose 409 PAYMENT_IN_PROGRESS response this suite
+// exercises. The dialog-wiring code itself is untouched and stays dormant
+// behind the gate (same pattern as the Dodo overlay SDK machinery in the
+// same file) — this suite is skipped rather than deleted so it documents
+// the expected behavior and can be re-enabled if Pro checkout ever comes
+// back online.
+describe('checkout pending-payment dialog wiring (#4438)', { skip: 'Pro checkout is disabled — see PRO_CHECKOUT_DISABLED in src/services/checkout.ts' }, () => {
   it('shows the dialog and does NOT navigate on a PAYMENT_IN_PROGRESS block', async () => {
     resetHarness();
     const checkout = await loadCheckoutModule();

@@ -16,6 +16,7 @@
  */
 
 import type { MapLayers } from '@/types';
+import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 
 export interface LayerGroupDef {
   id: string;
@@ -25,6 +26,59 @@ export interface LayerGroupDef {
 
 /** localStorage key for per-group collapsed/expanded persistence. */
 export const LAYER_GROUPS_OPEN_STORAGE_KEY = 'jsam-layer-groups-open';
+
+/** localStorage key for the whole-panel (hamburger) collapsed/expanded state. */
+export const LAYER_PANEL_COLLAPSED_STORAGE_KEY = 'jsam-layer-panel-collapsed';
+
+const HAMBURGER_ICON = '&#9776;'; // ☰
+const CLOSE_ICON = '&#10005;'; // ✕
+
+function loadPanelCollapsed(): boolean | null {
+  try {
+    const raw = localStorage.getItem(LAYER_PANEL_COLLAPSED_STORAGE_KEY);
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function savePanelCollapsed(collapsed: boolean): void {
+  try {
+    localStorage.setItem(LAYER_PANEL_COLLAPSED_STORAGE_KEY, String(collapsed));
+  } catch {
+    /* storage unavailable (private mode) — collapse state is session-only */
+  }
+}
+
+/**
+ * Wires the layer panel's hamburger (☰) button so a single click
+ * expands/collapses the ENTIRE panel — title, search box, and layer list —
+ * down to just the icon button, instead of only hiding the list body.
+ * Boots collapsed by default (declutters the map on first paint) unless the
+ * user has previously expanded it, in which case that preference persists
+ * across sessions via localStorage. Shared by the DeckGL and Globe map
+ * engines so the affordance and behavior stay identical between them.
+ */
+export function bindLayerPanelCollapse(panelEl: HTMLElement, collapseBtn: HTMLElement): void {
+  const stored = loadPanelCollapsed();
+  const setCollapsed = (collapsed: boolean): void => {
+    // Reuses the SAME class name the SVG fallback's panel pill already uses
+    // (see the `opts.panelLabel` branch below) so all three map engines
+    // share one collapsed-panel CSS rule instead of three near-duplicates.
+    panelEl.classList.toggle('layer-panel-collapsed', collapsed);
+    collapseBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    collapseBtn.setAttribute('aria-label', collapsed ? 'Show map layers menu' : 'Hide map layers menu');
+    setTrustedHtml(collapseBtn, trustedHtml(collapsed ? HAMBURGER_ICON : CLOSE_ICON, 'static hamburger/close glyph for the layer panel toggle'));
+  };
+  setCollapsed(stored ?? true);
+  collapseBtn.addEventListener('click', () => {
+    const nowCollapsed = !panelEl.classList.contains('panel-collapsed');
+    setCollapsed(nowCollapsed);
+    savePanelCollapsed(nowCollapsed);
+  });
+}
 
 export const OTHER_GROUP_ID = 'other';
 

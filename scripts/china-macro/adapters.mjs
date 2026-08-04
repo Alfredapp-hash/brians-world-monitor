@@ -149,7 +149,7 @@ async function fetchText(fetchFn, url, headers = {}) {
   const response = await fetchFn(url, {
     // OECD's CLI flow currently returns `500 languageTag1` to Node clients
     // without an explicit language, even though the same URL works in curl.
-    headers: { Accept: 'text/csv, text/plain;q=0.9, */*;q=0.1', 'Accept-Language': 'en', 'User-Agent': 'WorldMonitor/2.10 (+https://worldmonitor.app)' , ...headers },
+    headers: { Accept: 'text/csv, text/plain;q=0.9, */*;q=0.1', 'Accept-Language': 'en', 'User-Agent': 'WorldMonitor/2.10 (+https://brians-world-monitor.vercel.app)' , ...headers },
     signal: AbortSignal.timeout(20_000),
   });
   if (!response.ok) throw Object.assign(new Error(`HTTP_${response.status}`), { status: response.status });
@@ -158,7 +158,7 @@ async function fetchText(fetchFn, url, headers = {}) {
 
 async function fetchJson(fetchFn, url) {
   const response = await fetchFn(url, {
-    headers: { Accept: 'application/json', 'User-Agent': 'WorldMonitor/2.10 (+https://worldmonitor.app)' },
+    headers: { Accept: 'application/json', 'User-Agent': 'WorldMonitor/2.10 (+https://brians-world-monitor.vercel.app)' },
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) throw Object.assign(new Error(`HTTP_${response.status}`), { status: response.status });

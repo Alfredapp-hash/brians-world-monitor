@@ -24,7 +24,14 @@ import { timingSafeEqualSecret, timingSafeIncludes } from './_crypto.js';
 import { validateBearerToken } from '../server/auth-session';
 import { getEntitlements } from '../server/_shared/entitlement-check';
 
-const RELAY_BASE = 'https://proxy.worldmonitor.app';
+// No default: this fork has no relay of its own. Previously hardcoded to
+// https://proxy.worldmonitor.app — a third party's private Railway relay —
+// which would have sent real server-side widget keys to infrastructure this
+// fork doesn't control if WIDGET_AGENT_KEY/PRO_WIDGET_KEY were ever set
+// without also setting WIDGET_RELAY_BASE. Falling through to the
+// !WIDGET_AGENT_KEY && !PRO_WIDGET_KEY 503 below already fails closed when
+// unconfigured; this removes the unsafe implicit default underneath it.
+const RELAY_BASE = process.env.WIDGET_RELAY_BASE ?? '';
 const WIDGET_AGENT_KEY = process.env.WIDGET_AGENT_KEY ?? '';
 const PRO_WIDGET_KEY = process.env.PRO_WIDGET_KEY ?? '';
 const WORLDMONITOR_VALID_KEYS = (process.env.WORLDMONITOR_VALID_KEYS ?? '')
@@ -168,8 +175,11 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  // Mirror the relay P2 fix: allow PRO-only deployments (no basic key, but PRO key present)
-  if (!WIDGET_AGENT_KEY && !PRO_WIDGET_KEY) {
+  // Mirror the relay P2 fix: allow PRO-only deployments (no basic key, but PRO key present).
+  // Also fail closed when no relay is configured at all — keys without a relay target
+  // would otherwise be silently useless (or, before RELAY_BASE was made explicit,
+  // silently forwarded to a third party's unrelated infrastructure).
+  if ((!WIDGET_AGENT_KEY && !PRO_WIDGET_KEY) || !RELAY_BASE) {
     return json({ error: 'Widget agent unavailable', ok: false, widgetKeyConfigured: false }, 503, corsHeaders);
   }
 

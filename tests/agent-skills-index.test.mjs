@@ -105,7 +105,7 @@ describe('agent readiness: agent-skills index', () => {
       'docs page must state the current catalog size',
     );
     assert.ok(
-      page.includes('https://worldmonitor.app/.well-known/agent-skills/index.json'),
+      page.includes('https://brians-world-monitor.vercel.app/.well-known/agent-skills/index.json'),
       'docs page must link to the machine-readable index',
     );
     for (const skill of index.skills) {
@@ -130,7 +130,7 @@ describe('agent readiness: agent-skills index', () => {
     assert.match(index.instructions, /when to use/i, 'instructions must include explicit when-to-use guidance');
     assert.match(index.instructions, /when not to use/i, 'instructions must state when NOT to use');
     // How an agent should call it — the MCP endpoint and the API-key header.
-    assert.match(index.instructions, /worldmonitor\.app\/mcp/, 'instructions must say how to call the MCP server');
+    assert.match(index.instructions, /brians-world-monitor\.vercel\.app\/mcp/, 'instructions must say how to call the MCP server');
     assert.match(index.instructions, /X-WorldMonitor-Key/, 'instructions must name the API-key header');
     // Forward sync: every advertised skill must be named in the guidance.
     for (const skill of index.skills) {
@@ -164,7 +164,7 @@ describe('agent readiness: agent-skills index', () => {
       assert.ok(skill.description && skill.description.length > 0, `${skill.name} missing description`);
       assert.match(
         skill.url,
-        /^https:\/\/worldmonitor\.app\/\.well-known\/agent-skills\/[^/]+\/SKILL\.md$/,
+        /^https:\/\/brians-world-monitor\.vercel\.app\/\.well-known\/agent-skills\/[^/]+\/SKILL\.md$/,
         `${skill.name} url must be the canonical absolute URL`,
       );
       const local = join(SKILLS_DIR, skill.name, 'SKILL.md');

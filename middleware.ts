@@ -75,41 +75,41 @@ const VARIANT_OG: Record<string, { name: string; title: string; description: str
     name: 'Tech Monitor',
     title: 'Tech Monitor - Real-Time AI & Tech Industry Dashboard',
     description: 'Real-time AI and tech industry dashboard tracking tech giants, AI labs, startup ecosystems, funding rounds, and tech events worldwide.',
-    image: 'https://tech.worldmonitor.app/favico/tech/og-image.png',
-    url: 'https://tech.worldmonitor.app/dashboard',
+    image: 'https://brians-world-monitor.vercel.app/favico/tech/og-image.png',
+    url: 'https://brians-world-monitor.vercel.app/dashboard',
   },
   finance: {
     name: 'Finance Monitor',
     title: 'Finance Monitor - Real-Time Markets & Trading Dashboard',
     description: 'Real-time finance and trading dashboard tracking global markets, stock exchanges, central banks, commodities, forex, crypto, and economic indicators worldwide.',
-    image: 'https://finance.worldmonitor.app/favico/finance/og-image.png',
-    url: 'https://finance.worldmonitor.app/dashboard',
+    image: 'https://brians-world-monitor.vercel.app/favico/finance/og-image.png',
+    url: 'https://brians-world-monitor.vercel.app/dashboard',
   },
   commodity: {
     name: 'Commodity Monitor',
     title: 'Commodity Monitor - Real-Time Commodity Markets & Supply Chain Dashboard',
     description: 'Real-time commodity markets dashboard tracking mining sites, processing plants, commodity ports, supply chains, and global commodity trade flows.',
-    image: 'https://commodity.worldmonitor.app/favico/commodity/og-image.png',
-    url: 'https://commodity.worldmonitor.app/dashboard',
+    image: 'https://brians-world-monitor.vercel.app/favico/commodity/og-image.png',
+    url: 'https://brians-world-monitor.vercel.app/dashboard',
   },
   happy: {
     name: 'Happy Monitor',
     title: 'Happy Monitor - Good News & Global Progress',
     description: 'Curated positive news, progress data, and uplifting stories from around the world.',
-    image: 'https://happy.worldmonitor.app/favico/happy/og-image.png',
-    url: 'https://happy.worldmonitor.app/dashboard',
+    image: 'https://brians-world-monitor.vercel.app/favico/happy/og-image.png',
+    url: 'https://brians-world-monitor.vercel.app/dashboard',
   },
   energy: {
     name: 'Energy Atlas',
     title: 'Energy Atlas - Real-Time Global Energy Intelligence Dashboard',
     description: 'Real-time global energy atlas tracking oil and gas pipelines, storage facilities, chokepoints, fuel shortages, tanker flows, and disruption events worldwide.',
-    image: 'https://energy.worldmonitor.app/favico/energy/og-image.png',
-    url: 'https://energy.worldmonitor.app/dashboard',
+    image: 'https://brians-world-monitor.vercel.app/favico/energy/og-image.png',
+    url: 'https://brians-world-monitor.vercel.app/dashboard',
   },
 };
 
 const ALLOWED_HOSTS = new Set([
-  'worldmonitor.app',
+  'brians-world-monitor.vercel.app',
   ...Object.keys(VARIANT_HOST_MAP),
 ]);
 const VERCEL_PREVIEW_RE = /^[a-z0-9-]+-[a-z0-9]{8,}\.vercel\.app$/;
@@ -196,7 +196,7 @@ export default function middleware(request: Request) {
             isPartOf: {
               '@type': 'WebSite',
               name: "JSA's Monitor",
-              url: 'https://www.worldmonitor.app/',
+              url: 'https://brians-world-monitor.vercel.app/',
             },
             sameAs: [
               'https://github.com/Alfredapp-hash/brians-world-monitor',
@@ -208,11 +208,7 @@ export default function middleware(request: Request) {
 <p>${eDesc}</p>
 <h2>Explore the platform</h2>
 <ul>
-<li><a href="https://www.worldmonitor.app/dashboard">JSA's Monitor — geopolitics &amp; intelligence</a></li>
-<li><a href="https://tech.worldmonitor.app/dashboard">Tech Monitor</a></li>
-<li><a href="https://finance.worldmonitor.app/dashboard">Finance Monitor</a></li>
-<li><a href="https://commodity.worldmonitor.app/dashboard">Commodity Monitor</a></li>
-<li><a href="https://happy.worldmonitor.app/dashboard">Happy Monitor</a></li>
+<li><a href="https://brians-world-monitor.vercel.app/dashboard">JSA's Monitor — geopolitics &amp; intelligence</a></li>
 <li><a href="https://github.com/Alfredapp-hash/brians-world-monitor">Open source on GitHub</a></li>
 </ul>
 <h2>Sources</h2>
@@ -244,7 +240,7 @@ export default function middleware(request: Request) {
   }
 
   // Variant subdomain MCP discovery canonicalization. The MCP endpoint's
-  // canonical URL is apex (`https://worldmonitor.app/mcp`), and the Cloudflare
+  // canonical URL is apex (`https://brians-world-monitor.vercel.app/mcp`), and the Cloudflare
   // apex→www redirect explicitly exempts `/mcp` so POST JSON-RPC calls aren't
   // converted to GET. Variant subdomains would otherwise serve the same `/mcp`
   // content as the apex, fragmenting discovery signals; redirect plain GET/HEAD
@@ -268,7 +264,7 @@ export default function middleware(request: Request) {
     return new Response(null, {
       status: 308,
       headers: {
-        Location: 'https://worldmonitor.app/mcp',
+        Location: 'https://brians-world-monitor.vercel.app/mcp',
         Vary: 'Accept, Last-Event-ID',
         'Cache-Control': 'public, max-age=3600',
       },

@@ -130,7 +130,7 @@ describe('measure-mobile-mainthread attribution', () => {
 describe('parseArgs', () => {
   it('defaults url/cpu/settle/json when no args are given', () => {
     const a = parseArgs(['node', 'script']);
-    assert.equal(a.url, 'https://worldmonitor.app/dashboard');
+    assert.equal(a.url, 'https://brians-world-monitor.vercel.app/dashboard');
     assert.equal(a.cpu, 4);
     assert.equal(a.settle, 15000);
     assert.equal(a.json, false);

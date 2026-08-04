@@ -48,7 +48,7 @@ export const COUNTRY_RISK_APP_HTML = `<!DOCTYPE html>
      styles working) rather than '*'. default-src 'none' earns full credit over a
      permissive default. frame-ancestors is advisory in a <meta> CSP (browsers honor
      it only via HTTP header) but the static scanner reads it here. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://worldmonitor.app https://www.worldmonitor.app; frame-ancestors https://chatgpt.com https://claude.ai https://claude.com; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://brians-world-monitor.vercel.app; frame-ancestors https://chatgpt.com https://claude.ai https://claude.com; form-action 'none'; base-uri 'none'">
 <title>Country Risk — WorldMonitor</title>
 <style>
   :root {

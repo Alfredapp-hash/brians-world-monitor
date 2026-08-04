@@ -128,7 +128,7 @@ import {
   type MapVariant,
 } from '@/config/map-layer-definitions';
 import { renderLayerExplanationCard } from '@/utils/layer-explanation-card';
-import { groupLayerToggles, type GroupedLayerPanelHandle } from '@/components/map/layer-groups';
+import { bindLayerPanelCollapse, groupLayerToggles, type GroupedLayerPanelHandle } from '@/components/map/layer-groups';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
 import { onEntitlementChange } from '@/services/entitlements';
 import { hasPremiumAccess } from '@/services/panel-gating';
@@ -5564,7 +5564,7 @@ export class DeckGLMap {
       <div class="toggle-header">
         <span>${t('components.deckgl.layersTitle')}</span>
         <button class="layer-help-btn" aria-label="${t('components.deckgl.layerGuide')}">?</button>
-        <button class="toggle-collapse">&#9660;</button>
+        <button class="toggle-collapse" aria-label="Show map layers menu"></button>
       </div>
       <input type="text" class="layer-search" placeholder="${t('components.deckgl.layerSearch')}" autocomplete="off" spellcheck="false" />
       <div class="toggle-list" style="max-height: 32vh; overflow-y: auto; scrollbar-width: thin;">
@@ -5693,13 +5693,12 @@ export class DeckGLMap {
       toggles.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: false });
     }
     bindLayerSearch(toggles);
-    const searchEl = toggles.querySelector('.layer-search') as HTMLElement | null;
 
-    collapseBtn?.addEventListener('click', () => {
-      toggleList?.classList.toggle('collapsed');
-      if (searchEl) searchEl.style.display = toggleList?.classList.contains('collapsed') ? 'none' : '';
-      if (collapseBtn) setTrustedHtml(collapseBtn, trustedHtml(toggleList?.classList.contains('collapsed') ? '&#9654;' : '&#9660;', "legacy direct innerHTML migration"));
-    });
+    // Hamburger (☰) toggle: collapses the WHOLE panel (title, search, list)
+    // down to just the icon button, rather than only hiding the list body.
+    // Boots collapsed by default so the map isn't cluttered on first paint;
+    // the user's expanded/collapsed choice then persists across sessions.
+    if (collapseBtn) bindLayerPanelCollapse(toggles, collapseBtn as HTMLElement);
   }
 
   private showLayerExplanation(layer: keyof MapLayers): void {

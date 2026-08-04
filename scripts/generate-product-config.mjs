@@ -171,10 +171,19 @@ for (const [tierGroup, entries] of tierGroups) {
     }
   } else if (!primary.selfServe && primary.priceCents === 0) {
     tier.cta = 'Get Started';
-    tier.href = 'https://worldmonitor.app/dashboard';
+    tier.href = 'https://brians-world-monitor.vercel.app/dashboard';
   } else if (!primary.selfServe && primary.priceCents === null) {
+    // No enterprise contact address exists for this fork yet (Brian has not
+    // set one up — do not invent one). Leave the CTA label with no href;
+    // Tier.href is optional in pro-test's PricingSection.tsx so this is a
+    // safe fallback, though note getCtaProps() there currently requires
+    // BOTH tier.cta and tier.href to render the "Contact Sales" label as a
+    // link — with href unset it will fall through to the generic "Learn
+    // more" (href '#') CTA instead. That's a pro-test rendering nuance
+    // deliberately left untouched here (pro-test is out of scope for this
+    // change); flagging so the business decision (real contact channel,
+    // and/or a pro-test fallback-label fix) can be made later.
     tier.cta = 'Contact Sales';
-    tier.href = 'mailto:enterprise@worldmonitor.app';
   }
 
   tier.highlighted = primary.highlighted;

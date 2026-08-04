@@ -4,7 +4,7 @@
  *   - api/_mcp-grant-hmac.ts        sign / verify (load-bearing format
  *                                    for U5: <b64u(payloadJson)>.<b64u(sig)>)
  *   - api/internal/mcp-grant-mint   issues the redirect to
- *                                    api.worldmonitor.app/oauth/authorize-pro
+ *                                    brians-world-monitor.vercel.app/oauth/authorize-pro
  *   - api/internal/mcp-grant-context returns real client metadata
  *
  * Both endpoints share validation; tests assert they fail in identical
@@ -214,7 +214,7 @@ describe('mintGrantHandler', () => {
     Object.assign(process.env, originalEnv);
   });
 
-  it('happy path: returns redirect to https://api.worldmonitor.app/oauth/authorize-pro with valid grant', async () => {
+  it('happy path: returns redirect to https://brians-world-monitor.vercel.app/oauth/authorize-pro with valid grant', async () => {
     // F2: grant write now goes through SET NX. Assert on setNxExCalls
     // instead of setExCalls.
     const { deps, setNxExCalls } = makeMintDeps();
@@ -226,7 +226,7 @@ describe('mintGrantHandler', () => {
 
     // URL parses cleanly (catches any encoding bug) and points at the FIXED host.
     const u = new URL(body.redirect);
-    assert.equal(u.origin, 'https://api.worldmonitor.app');
+    assert.equal(u.origin, 'https://brians-world-monitor.vercel.app');
     assert.equal(u.pathname, '/oauth/authorize-pro');
     assert.equal(u.searchParams.get('nonce'), 'nonce_xyz');
     const grant = u.searchParams.get('grant');

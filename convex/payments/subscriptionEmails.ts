@@ -12,8 +12,8 @@ import { PRODUCT_CATALOG } from "../config/productCatalog";
 import { createCustomerPortalUrlForUser } from "./billing";
 
 const RESEND_URL = "https://api.resend.com/emails";
-const FROM = "World Monitor <noreply@worldmonitor.app>";
-const ADMIN_EMAIL = "elie@worldmonitor.app";
+const FROM = "JSA's Monitor <noreply@brians-world-monitor.vercel.app>";
+const ADMIN_EMAIL = "briansalsbury@student.purdueglobal.edu";
 
 const PLAN_DISPLAY: Record<string, string> = {
   free: "Free",
@@ -166,7 +166,7 @@ function userWelcomeHtml(planName: string, planKey: string): string {
     ? `Welcome to ${planName} — your intel, delivered.`
     : `Welcome to ${planName}!`;
   const ctaLabel = isPro ? "Open My Brief" : "Open Dashboard";
-  const ctaHref = isPro ? "https://worldmonitor.app/brief" : "https://worldmonitor.app";
+  const ctaHref = isPro ? "https://brians-world-monitor.vercel.app/brief" : "https://brians-world-monitor.vercel.app";
   const supportLine = isPro
     ? `<p style="font-size: 11px; color: #666; text-align: center; margin: 0 0 20px;">Questions? Reply to this email or ping <a href="mailto:${ADMIN_EMAIL}" style="color: #4ade80;">${ADMIN_EMAIL}</a>.</p>`
     : "";
@@ -177,7 +177,7 @@ function userWelcomeHtml(planName: string, planKey: string): string {
     <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 32px;">
       <tr>
         <td style="width: 40px; height: 40px; vertical-align: middle;">
-          <img src="https://www.worldmonitor.app/favico/android-chrome-192x192.png" width="40" height="40" alt="WorldMonitor" style="border-radius: 50%; display: block;" />
+          <img src="https://brians-world-monitor.vercel.app/favico/android-chrome-192x192.png" width="40" height="40" alt="WorldMonitor" style="border-radius: 50%; display: block;" />
         </td>
         <td style="padding-left: 12px;">
           <div style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.5px;">WORLD MONITOR</div>
@@ -203,11 +203,11 @@ function userWelcomeHtml(planName: string, planKey: string): string {
   <div style="border-top: 1px solid #1a1a1a; padding: 24px 32px; text-align: center;">
     <div style="margin-bottom: 16px;">
       <a href="https://x.com/eliehabib" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">X / Twitter</a>
-      <a href="https://github.com/koala73/worldmonitor" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">GitHub</a>
+      <a href="https://github.com/Alfredapp-hash/brians-world-monitor" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">GitHub</a>
     </div>
     <p style="font-size: 11px; color: #444; margin: 0; line-height: 1.6;">
       World Monitor \u2014 Real-time intelligence for a connected world.<br />
-      <a href="https://worldmonitor.app" style="color: #4ade80; text-decoration: none;">worldmonitor.app</a>
+      <a href="https://brians-world-monitor.vercel.app" style="color: #4ade80; text-decoration: none;">brians-world-monitor.vercel.app</a>
     </p>
   </div>
 </div>`;
@@ -375,8 +375,8 @@ export const DUNNING_DAY7_AGE_MS = 7 * DAY_MS;
 export const WINBACK_MIN_AGE_MS = 30 * DAY_MS;
 export const WINBACK_MAX_AGE_MS = 60 * DAY_MS;
 
-const DASHBOARD_URL = "https://www.worldmonitor.app/dashboard";
-const PRICING_URL = "https://www.worldmonitor.app/pro#pricing";
+const DASHBOARD_URL = "https://brians-world-monitor.vercel.app/dashboard";
+const PRICING_URL = "https://brians-world-monitor.vercel.app/pro#pricing";
 
 // Resend caps at 10 requests/second. TWO complementary layers keep dunning
 // under it:
@@ -532,7 +532,7 @@ function dunningEmailShell(headline: string, bodyHtml: string, ctaLabel: string,
     <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 32px;">
       <tr>
         <td style="width: 40px; height: 40px; vertical-align: middle;">
-          <img src="https://www.worldmonitor.app/favico/android-chrome-192x192.png" width="40" height="40" alt="WorldMonitor" style="border-radius: 50%; display: block;" />
+          <img src="https://brians-world-monitor.vercel.app/favico/android-chrome-192x192.png" width="40" height="40" alt="WorldMonitor" style="border-radius: 50%; display: block;" />
         </td>
         <td style="padding-left: 12px;">
           <div style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.5px;">WORLD MONITOR</div>
@@ -551,7 +551,7 @@ function dunningEmailShell(headline: string, bodyHtml: string, ctaLabel: string,
   <div style="border-top: 1px solid #1a1a1a; padding: 24px 32px; text-align: center;">
     <p style="font-size: 11px; color: #444; margin: 0; line-height: 1.6;">
       ${footerNote}<br />
-      <a href="https://worldmonitor.app" style="color: #f59e0b; text-decoration: none;">worldmonitor.app</a>
+      <a href="https://brians-world-monitor.vercel.app" style="color: #f59e0b; text-decoration: none;">brians-world-monitor.vercel.app</a>
     </p>
   </div>
 </div>`;

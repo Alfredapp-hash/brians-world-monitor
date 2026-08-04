@@ -87,16 +87,16 @@ const MAX_ECHO_CHARS = 160;
 
 const HOW_TO_CALL = {
   mcp: {
-    endpoint: 'https://worldmonitor.app/mcp',
+    endpoint: 'https://brians-world-monitor.vercel.app/mcp',
     transport: 'streamable-http',
-    note: "Issue tools/list for the live inventory (anonymous). Data calls need OAuth2 (scope=mcp) or an API key header 'X-WorldMonitor-Key: wm_<40-hex>' — issue one at https://worldmonitor.app/pro.",
+    note: "Issue tools/list for the live inventory (anonymous). Data calls need OAuth2 (scope=mcp) or an API key header 'X-WorldMonitor-Key: wm_<40-hex>' — issue one at https://brians-world-monitor.vercel.app/pro.",
   },
   rest: {
-    base: 'https://api.worldmonitor.app',
-    openapi: 'https://worldmonitor.app/openapi.json',
+    base: 'https://brians-world-monitor.vercel.app/api',
+    openapi: 'https://brians-world-monitor.vercel.app/openapi.json',
   },
-  docs: 'https://www.worldmonitor.app/docs/documentation',
-  agentGuidance: 'https://worldmonitor.app/llms.txt',
+  docs: 'https://brians-world-monitor.vercel.app/docs/documentation',
+  agentGuidance: 'https://brians-world-monitor.vercel.app/llms.txt',
 } as const;
 
 interface MessagePart {

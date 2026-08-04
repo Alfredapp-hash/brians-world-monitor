@@ -563,7 +563,7 @@ async function proxyToCloud(requestUrl, req, remoteBase) {
   headers.delete('If-Modified-Since');
   // Identify sidecar as trusted origin so the cloud API key validator
   // doesn't reject the request (no origin + no key = 401).
-  headers.set('Origin', 'https://worldmonitor.app');
+  headers.set('Origin', 'https://brians-world-monitor.vercel.app');
   // Inject the configured enterprise key for cloud calls that pass through the
   // sidecar so auth-gated endpoints (e.g. /api/mcp-proxy per PR #3768, issue
   // #3723) succeed without each renderer call having to attach it. Renderer-
@@ -607,7 +607,7 @@ async function proxyRegisterInterestToCloud(requestUrl, req, context) {
   headers.delete('Expect');
   headers.delete(DESKTOP_AUTH_TIMESTAMP_HEADER);
   headers.delete(DESKTOP_AUTH_SIGNATURE_HEADER);
-  headers.set('Origin', 'https://worldmonitor.app');
+  headers.set('Origin', 'https://brians-world-monitor.vercel.app');
   headers.set('User-Agent', CHROME_UA);
   headers.set('Content-Type', 'application/json');
   headers.set('Content-Length', String(Buffer.byteLength(body)));
@@ -734,7 +734,7 @@ function remoteBaseLooksPrivate(remoteBase) {
 
 function resolveConfig(options = {}) {
   const port = Number(options.port ?? process.env.LOCAL_API_PORT ?? 46123);
-  const remoteBase = String(options.remoteBase ?? process.env.LOCAL_API_REMOTE_BASE ?? 'https://api.worldmonitor.app').replace(/\/$/, '');
+  const remoteBase = String(options.remoteBase ?? process.env.LOCAL_API_REMOTE_BASE ?? 'https://brians-world-monitor.vercel.app').replace(/\/$/, '');
   const resourceDir = String(options.resourceDir ?? process.env.LOCAL_API_RESOURCE_DIR ?? process.cwd());
   const apiDir = options.apiDir
     ? String(options.apiDir)
@@ -757,7 +757,7 @@ function resolveConfig(options = {}) {
     : [];
   const logger = options.logger ?? console;
   if (mode === 'docker' && requestedFallback) {
-    logger.warn('[local-api] Cloud fallback disabled in Docker mode (self-hosted instances must not proxy to api.worldmonitor.app)');
+    logger.warn('[local-api] Cloud fallback disabled in Docker mode (self-hosted instances must not proxy to brians-world-monitor.vercel.app)');
   }
   if (cloudFallback && !allowPrivateRemoteBase && remoteBaseLooksPrivate(remoteBase)) {
     logger.warn(
@@ -839,10 +839,11 @@ const SIDECAR_ALLOWED_ORIGINS = [
   /^https?:\/\/localhost(:\d+)?$/,
   /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
   /^https?:\/\/tauri\.localhost(:\d+)?$/,
-  // Only allow exact domain or single-level subdomains (e.g. preview-xyz.worldmonitor.app).
-  // The previous (.*\.)? pattern was overly broad. Anchored to prevent spoofing
-  // via domains like worldmonitorEVIL.vercel.app.
-  /^https:\/\/([a-z0-9-]+\.)?worldmonitor\.app$/,
+  // This fork's own Vercel deployment(s) only — never trust bare
+  // worldmonitor.app or its subdomains, that's a different owner's
+  // production domain. Tight on purpose: never a bare *.vercel.app
+  // (this is a security allowlist).
+  /^https:\/\/brians-world-monitor(-[a-z0-9-]+)?\.vercel\.app$/,
 ];
 
 function getSidecarCorsOrigin(req) {

@@ -6,8 +6,9 @@ import { resendWebhookHandler } from "./resendWebhookHandler";
 import { USER_PREFS_WRITE_RATE_LIMIT } from "./constants";
 
 const TRUSTED = [
-  "https://worldmonitor.app",
-  "*.worldmonitor.app",
+  // This fork's own deployment. Never trust bare worldmonitor.app or its
+  // subdomains here — that's a different owner's production domain.
+  "https://brians-world-monitor.vercel.app",
   "http://localhost:3000",
 ];
 

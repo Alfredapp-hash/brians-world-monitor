@@ -36,7 +36,7 @@ describe('agent-mode view (/?mode=agent)', () => {
     assert.equal(view.endpoints.mcp.url, serverCard.url);
     assert.equal(view.endpoints.mcp.tools, serverCard.tools.length);
     assert.equal(view.endpoints.a2a.url, agentCard.url);
-    assert.equal(view.endpoints.nlweb.url, 'https://www.worldmonitor.app/ask');
+    assert.equal(view.endpoints.nlweb.url, 'https://brians-world-monitor.vercel.app/ask');
   });
 
   it('vercel.json serves it for /?mode=agent ahead of the welcome rewrite', () => {
@@ -59,11 +59,11 @@ describe('agent-mode view (/?mode=agent)', () => {
   it('every discovery URL it advertises resolves to a tracked file or a live rewrite', () => {
     // Static, repo-tracked surfaces — a typo here ships a dead link to agents.
     const trackedPaths = {
-      'https://worldmonitor.app/.well-known/agent-skills/index.json':
+      'https://brians-world-monitor.vercel.app/.well-known/agent-skills/index.json':
         'public/.well-known/agent-skills/index.json',
-      'https://worldmonitor.app/.well-known/api-catalog': 'public/.well-known/api-catalog',
-      'https://worldmonitor.app/.well-known/ai-catalog.json': 'public/.well-known/ai-catalog.json',
-      'https://worldmonitor.app/llms.txt': 'public/llms.txt',
+      'https://brians-world-monitor.vercel.app/.well-known/api-catalog': 'public/.well-known/api-catalog',
+      'https://brians-world-monitor.vercel.app/.well-known/ai-catalog.json': 'public/.well-known/ai-catalog.json',
+      'https://brians-world-monitor.vercel.app/llms.txt': 'public/llms.txt',
     };
     for (const [url, path] of Object.entries(trackedPaths)) {
       assert.equal(

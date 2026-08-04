@@ -14,8 +14,8 @@
  *   4. Render the consent card (real metadata so users can spot phishing).
  *   5. On Authorize click: POST /api/internal/mcp-grant-mint {nonce}
  *      with Bearer JWT, navigate to the returned `redirect` URL (always
- *      `https://api.worldmonitor.app/oauth/authorize-pro?...` — the
- *      apex page never controls the host).
+ *      `https://brians-world-monitor.vercel.app/oauth/authorize-pro?...` —
+ *      the apex page never controls the host).
  */
 
 import { initClerk, getClerkToken, getCurrentClerkUser, openSignIn, subscribeClerk } from '@/services/clerk';
@@ -183,10 +183,11 @@ async function onAuthorizeClick(nonce: string): Promise<void> {
     return;
   }
 
-  // Defense-in-depth: the apex page MUST navigate only to api.worldmonitor.app.
-  // The server-returned URL is hard-coded to that host, but check anyway so a
-  // future server bug (or an XSS that swaps the response) cannot bounce to
-  // an attacker-controlled host.
+  // Defense-in-depth: the apex page MUST navigate only to this fork's own
+  // deployment. The server-returned URL is hard-coded to that host (see
+  // AUTHORIZE_PRO_URL in api/internal/mcp-grant-mint.ts), but check anyway
+  // so a future server bug (or an XSS that swaps the response) cannot
+  // bounce to an attacker-controlled host.
   let target: URL;
   try {
     target = new URL(mint.redirect);
@@ -194,7 +195,7 @@ async function onAuthorizeClick(nonce: string): Promise<void> {
     showErrorView('The authorization service returned an invalid redirect.');
     return;
   }
-  if (target.origin !== 'https://api.worldmonitor.app') {
+  if (target.origin !== 'https://brians-world-monitor.vercel.app') {
     showErrorView('The authorization service returned an unexpected redirect host.');
     return;
   }

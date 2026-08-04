@@ -4,6 +4,7 @@ import { after, before, beforeEach, describe, it, mock } from 'node:test';
 const originalWidgetKey = process.env.WIDGET_AGENT_KEY;
 const originalProKey = process.env.PRO_WIDGET_KEY;
 const originalValidKeys = process.env.WORLDMONITOR_VALID_KEYS;
+const originalRelayBase = process.env.WIDGET_RELAY_BASE;
 
 function fakeRelayResponse(
   body = 'data: {"type":"done"}\n\n',
@@ -24,6 +25,9 @@ describe('widget-agent unified tester key auth', () => {
     process.env.WIDGET_AGENT_KEY = 'server-widget-key';
     process.env.PRO_WIDGET_KEY = 'server-pro-key';
     process.env.WORLDMONITOR_VALID_KEYS = 'browser-test-key';
+    // RELAY_BASE now comes from env (no hardcoded third-party default) — set
+    // a fake relay so these tests exercise the "configured" path.
+    process.env.WIDGET_RELAY_BASE = 'https://example-relay.test';
 
     fetchMock = mock.method(globalThis, 'fetch', () => Promise.resolve(fakeRelayResponse()));
     ({ default: handler } = await import('../api/widget-agent.ts'));
@@ -45,13 +49,16 @@ describe('widget-agent unified tester key auth', () => {
 
     if (originalValidKeys == null) delete process.env.WORLDMONITOR_VALID_KEYS;
     else process.env.WORLDMONITOR_VALID_KEYS = originalValidKeys;
+
+    if (originalRelayBase == null) delete process.env.WIDGET_RELAY_BASE;
+    else process.env.WIDGET_RELAY_BASE = originalRelayBase;
   });
 
   it('accepts X-WorldMonitor-Key and upgrades relay request to pro', async () => {
-    const res = await handler(new Request('https://www.worldmonitor.app/api/widget-agent', {
+    const res = await handler(new Request('https://brians-world-monitor.vercel.app/api/widget-agent', {
       method: 'POST',
       headers: {
-        Origin: 'https://www.worldmonitor.app',
+        Origin: 'https://brians-world-monitor.vercel.app',
         'Content-Type': 'application/json',
         'X-WorldMonitor-Key': 'browser-test-key',
       },
@@ -62,7 +69,7 @@ describe('widget-agent unified tester key auth', () => {
     assert.equal(fetchMock.mock.calls.length, 1);
 
     const call = fetchMock.mock.calls[0];
-    assert.equal(call.arguments[0], 'https://proxy.worldmonitor.app/widget-agent');
+    assert.equal(call.arguments[0], 'https://example-relay.test/widget-agent');
 
     const init = call.arguments[1] as RequestInit;
     const headers = new Headers(init.headers);
@@ -78,10 +85,10 @@ describe('widget-agent unified tester key auth', () => {
   });
 
   it('falls back to legacy tester keys when X-WorldMonitor-Key is invalid', async () => {
-    const res = await handler(new Request('https://www.worldmonitor.app/api/widget-agent', {
+    const res = await handler(new Request('https://brians-world-monitor.vercel.app/api/widget-agent', {
       method: 'POST',
       headers: {
-        Origin: 'https://www.worldmonitor.app',
+        Origin: 'https://brians-world-monitor.vercel.app',
         'Content-Type': 'application/json',
         'X-WorldMonitor-Key': 'wrong-key',
         'X-Pro-Key': 'server-pro-key',
@@ -106,10 +113,10 @@ describe('widget-agent unified tester key auth', () => {
   });
 
   it('accepts HttpOnly legacy tester key cookies without JS-readable auth headers', async () => {
-    const res = await handler(new Request('https://www.worldmonitor.app/api/widget-agent', {
+    const res = await handler(new Request('https://brians-world-monitor.vercel.app/api/widget-agent', {
       method: 'POST',
       headers: {
-        Origin: 'https://www.worldmonitor.app',
+        Origin: 'https://brians-world-monitor.vercel.app',
         'Content-Type': 'application/json',
         Cookie: `wm-widget-key=${encodeURIComponent('server-widget-key')}; wm-pro-key=${encodeURIComponent('server-pro-key')}`,
       },
@@ -132,7 +139,7 @@ describe('widget-agent unified tester key auth', () => {
   });
 
   it('rejects disallowed origins before cookie-backed auth reaches the relay', async () => {
-    const res = await handler(new Request('https://www.worldmonitor.app/api/widget-agent', {
+    const res = await handler(new Request('https://brians-world-monitor.vercel.app/api/widget-agent', {
       method: 'POST',
       headers: {
         Origin: 'https://evil.example.com',
@@ -150,10 +157,10 @@ describe('widget-agent unified tester key auth', () => {
   });
 
   it('rejects invalid X-WorldMonitor-Key before relay fetch', async () => {
-    const res = await handler(new Request('https://www.worldmonitor.app/api/widget-agent', {
+    const res = await handler(new Request('https://brians-world-monitor.vercel.app/api/widget-agent', {
       method: 'POST',
       headers: {
-        Origin: 'https://www.worldmonitor.app',
+        Origin: 'https://brians-world-monitor.vercel.app',
         'Content-Type': 'application/json',
         'X-WorldMonitor-Key': 'wrong-key',
       },
@@ -168,10 +175,10 @@ describe('widget-agent unified tester key auth', () => {
   });
 
   it('rejects prefix and length mismatches for browser and legacy tester keys', async () => {
-    const browserPrefix = await handler(new Request('https://www.worldmonitor.app/api/widget-agent', {
+    const browserPrefix = await handler(new Request('https://brians-world-monitor.vercel.app/api/widget-agent', {
       method: 'POST',
       headers: {
-        Origin: 'https://www.worldmonitor.app',
+        Origin: 'https://brians-world-monitor.vercel.app',
         'Content-Type': 'application/json',
         'X-WorldMonitor-Key': 'browser-test',
       },
@@ -179,10 +186,10 @@ describe('widget-agent unified tester key auth', () => {
     }));
     assert.equal(browserPrefix.status, 403);
 
-    const proLonger = await handler(new Request('https://www.worldmonitor.app/api/widget-agent', {
+    const proLonger = await handler(new Request('https://brians-world-monitor.vercel.app/api/widget-agent', {
       method: 'POST',
       headers: {
-        Origin: 'https://www.worldmonitor.app',
+        Origin: 'https://brians-world-monitor.vercel.app',
         'Content-Type': 'application/json',
         'X-Pro-Key': 'server-pro-key-extra',
       },
@@ -190,10 +197,10 @@ describe('widget-agent unified tester key auth', () => {
     }));
     assert.equal(proLonger.status, 403);
 
-    const widgetLonger = await handler(new Request('https://www.worldmonitor.app/api/widget-agent', {
+    const widgetLonger = await handler(new Request('https://brians-world-monitor.vercel.app/api/widget-agent', {
       method: 'POST',
       headers: {
-        Origin: 'https://www.worldmonitor.app',
+        Origin: 'https://brians-world-monitor.vercel.app',
         'Content-Type': 'application/json',
         'X-Widget-Key': 'server-widget-key-extra',
       },

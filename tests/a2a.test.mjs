@@ -24,7 +24,7 @@ describe('a2a: agent card contract', () => {
     assert.equal(card.protocolVersion, '0.3.0');
     assert.ok(card.name && typeof card.name === 'string');
     assert.ok(card.description && card.description.length > 50, 'description must be substantive');
-    assert.equal(card.url, 'https://www.worldmonitor.app/a2a');
+    assert.equal(card.url, 'https://brians-world-monitor.vercel.app/a2a');
     assert.equal(card.preferredTransport, 'JSONRPC');
     assert.ok(card.version && typeof card.version === 'string');
     assert.ok(Array.isArray(card.defaultInputModes) && card.defaultInputModes.length > 0);
