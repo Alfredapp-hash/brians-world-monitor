@@ -1970,7 +1970,7 @@ function _fetchYahooChartNoProxy(symbol, query = '') {
   });
 }
 
-function fetchYahooChartDirect(symbol, query = '') {
+function _fetchYahooChartDirectImpl(symbol, query = '') {
   return _fetchYahooChartNoProxy(symbol, query).then((result) => {
     if (result) return result;
     if (!PROXY_URL) return null;
@@ -1991,6 +1991,21 @@ function fetchYahooChartDirect(symbol, query = '') {
       return _parseYahooChartJson(resp.body);
     }).catch(() => null);
   });
+}
+
+// Shared gate serializing every fetchYahooChartDirect call across ALL seed
+// loops (market quotes, commodities, shipping stress, China stock index,
+// etc.). Multiple independent setInterval-driven loops now call Yahoo; this
+// queue guarantees only one call is ever in flight process-wide, regardless
+// of how many loops overlap, so concurrent callers can never combine into a
+// burst that trips Yahoo's rate limit. Per-loop 150ms staggers still apply
+// on top of this for spacing between a single loop's own requests.
+let _yahooGateQueue = Promise.resolve();
+function fetchYahooChartDirect(symbol, query = '') {
+  const run = () => _fetchYahooChartDirectImpl(symbol, query);
+  const gated = _yahooGateQueue.then(run, run);
+  _yahooGateQueue = gated.then(() => {}, () => {});
+  return gated;
 }
 
 // Yahoo's /v10 quoteSummary 401s on Railway container IPs (seen 2026-04-16
@@ -6107,6 +6122,15 @@ async function seedSocialVelocity() {
       await new Promise(r => setTimeout(r, 500));
       const posts = await fetchRedditHot(sub, fetchFailures);
       for (const p of posts) {
+        // Reddit permalinks are expected to be relative paths (e.g.
+        // /r/worldnews/comments/...). Reject anything else before it's
+        // stored/rendered as a link — guards against a future API change
+        // returning a full URL with an unexpected scheme (javascript:, data:).
+        const safePermalink = typeof p.permalink === 'string' && p.permalink.startsWith('/r/') ? p.permalink : null;
+        if (!safePermalink) {
+          console.warn(`[SocialVelocity] Skipping post with invalid permalink: ${JSON.stringify(p.permalink)}`);
+          continue;
+        }
         // Deduplicate cross-subreddit reposts of the same article URL.
         const articleUrl = p.url || '';
         const isExternal = articleUrl && !articleUrl.includes('reddit.com');
@@ -6119,7 +6143,7 @@ async function seedSocialVelocity() {
           id: String(p.id || ''),
           title: String(p.title || '').slice(0, 300),
           subreddit: sub,
-          url: `https://reddit.com${p.permalink || ''}`,
+          url: `https://reddit.com${safePermalink}`,
           score: p.score || 0,
           upvoteRatio: p.upvote_ratio || 0,
           numComments: p.num_comments || 0,
@@ -11403,7 +11427,7 @@ economic: list-world-bank-indicators (params: indicator, country_code),
   get-fred-series (params: series_id e.g. UNRATE/CPIAUCSL/DGS10), get-eurostat-country-data
 trade: get-trade-flows, get-trade-restrictions, get-tariff-trends, get-trade-barriers, list-comtrade-flows
 aviation: get-airport-ops-summary (params: airport_code), get-carrier-ops (params: carrier_code), list-aviation-news
-intelligence: get-country-intel-brief (params: country_code), get-country-facts (params: country_code),
+intelligence: get-country-intel-brief (params: country_code, framework — PRO-only, applies an analytical framework to the brief), get-country-facts (params: country_code),
   get-social-velocity
 health: list-disease-outbreaks
 supply-chain: get-shipping-stress,

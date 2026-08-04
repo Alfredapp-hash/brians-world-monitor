@@ -43,6 +43,14 @@ async function emitSummarizeLlmEvent(p: {
   } catch { /* telemetry must never affect the summary */ }
 }
 
+// Provider credential check reasons — module-level constant so it is not
+// rebuilt on every request, including hot-path cache hits (#4998).
+const SKIP_REASONS: Record<string, string> = {
+  ollama: 'OLLAMA_API_URL not configured',
+  groq: 'GROQ_API_KEY not configured',
+  openrouter: 'OPENROUTER_API_KEY not configured',
+};
+
 // ======================================================================
 // Reasoning preamble detection
 // ======================================================================
@@ -114,12 +122,6 @@ export async function summarizeArticle(
   }
 
   // Provider credential check
-  const skipReasons: Record<string, string> = {
-    ollama: 'OLLAMA_API_URL not configured',
-    groq: 'GROQ_API_KEY not configured',
-    openrouter: 'OPENROUTER_API_KEY not configured',
-  };
-
   const credentials = getProviderCredentials(provider);
   if (!credentials) {
     return {
@@ -131,14 +133,15 @@ export async function summarizeArticle(
       error: '',
       errorType: '',
       status: 'SUMMARIZE_STATUS_SKIPPED',
-      statusDetail: skipReasons[provider] || `Unknown provider: ${provider}`,
+      statusDetail: SKIP_REASONS[provider] || `Unknown provider: ${provider}`,
     };
   }
 
   const { apiUrl, model, headers: providerHeaders, extraBody } = credentials;
 
-  // Request validation
-  if (!headlines || !Array.isArray(headlines) || headlines.length === 0) {
+  // Request validation — headlines is always an array here (sanitizeHeadlinesLight
+  // never returns non-array), so only the length needs checking.
+  if (headlines.length === 0) {
     return {
       summary: '',
       model: '',
@@ -230,9 +233,12 @@ export async function summarizeArticle(
           throw new Error(response.status === 429 ? 'Rate limited' : `${provider} API error`);
         }
 
-        const data = await response.json() as any;
-        const tokens = (data.usage?.total_tokens as number) || 0;
-        const usage = data.usage as { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number } | undefined;
+        const data = await response.json() as {
+          choices?: Array<{ message?: { content?: string } }>;
+          usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number };
+        };
+        const tokens = data.usage?.total_tokens || 0;
+        const usage = data.usage;
         const message = data.choices?.[0]?.message;
         const rawText = typeof message?.content === 'string' ? message.content.trim() : '';
         const rawContent = stripThinkingTags(rawText);

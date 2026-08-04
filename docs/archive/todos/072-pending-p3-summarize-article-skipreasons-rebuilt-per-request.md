@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "072"
 tags: [code-review, performance, quality, analytical-frameworks]
@@ -36,3 +36,4 @@ if (headlines.length === 0)
 
 ## Work Log
 - 2026-03-28: Identified by code-simplicity-reviewer during PR #2386 review
+- undefined: Fixed — moved the `skipReasons` object to a module-level `SKIP_REASONS` constant (no longer rebuilt per request) and simplified the dead `!headlines || !Array.isArray(headlines) ||` guard to `headlines.length === 0` since `sanitizeHeadlinesLight` always returns an array.

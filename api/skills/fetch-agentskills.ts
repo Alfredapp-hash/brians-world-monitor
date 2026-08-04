@@ -2,6 +2,7 @@ export const config = { runtime: 'edge' };
 
 // @ts-expect-error -- JS module, no declaration file
 import { getCorsHeaders } from '../_cors.js';
+import { MAX_INSTRUCTIONS_LEN as MAX_LEN } from '../../shared/framework-constants';
 
 const ALLOWED_AGENTSKILLS_HOSTS = new Set(['agentskills.io', 'www.agentskills.io', 'api.agentskills.io']);
 
@@ -62,10 +63,11 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json({ error: "This skill has no instructions — it may use tools only (not supported)." }, { status: 422, headers: corsHeaders });
   }
 
-  const MAX_LEN = 2000;
+  const MAX_NAME_LEN = 200;
+  const MAX_DESC_LEN = 500;
   const truncated = instructions.length > MAX_LEN;
-  const name = typeof skillData.name === 'string' ? skillData.name : 'Imported Skill';
-  const description = typeof skillData.description === 'string' ? skillData.description : '';
+  const name = (typeof skillData.name === 'string' ? skillData.name : 'Imported Skill').slice(0, MAX_NAME_LEN);
+  const description = (typeof skillData.description === 'string' ? skillData.description : '').slice(0, MAX_DESC_LEN);
 
   return Response.json({
     name,

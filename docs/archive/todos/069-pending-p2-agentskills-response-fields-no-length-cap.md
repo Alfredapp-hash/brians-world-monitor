@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "069"
 tags: [code-review, security, ssrf, analytical-frameworks]
@@ -33,3 +33,4 @@ return Response.json({
 
 ## Work Log
 - 2026-03-28: Identified by security-sentinel during PR #2386 review
+- undefined: Fixed — added `MAX_NAME_LEN` (200) and `MAX_DESC_LEN` (500) constants and slice `name`/`description` to those lengths before returning the response.

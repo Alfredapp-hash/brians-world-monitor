@@ -63,7 +63,12 @@ export async function persistSnapshot(snapshot) {
     ['DEL', liveKey],
   ];
 
-  const pipeRes = await fetch(`${url}/pipeline`, {
+  // Use /multi-exec (MULTI/EXEC transaction) rather than /pipeline so these
+  // 6 writes are all-or-nothing. /pipeline batches commands but is NOT
+  // transactional on Upstash — a partial failure mid-pipeline can leave the
+  // :latest pointer and the sorted-set index referencing different snapshot
+  // ids, which Phase 1 readers that enumerate via the index would trip on.
+  const pipeRes = await fetch(`${url}/multi-exec`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(pipeline),

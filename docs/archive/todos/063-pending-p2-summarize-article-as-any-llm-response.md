@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "063"
 tags: [code-review, typescript, quality, analytical-frameworks]
@@ -34,3 +34,4 @@ const data = await response.json() as {
 
 ## Work Log
 - 2026-03-28: Identified by kieran-typescript-reviewer during PR #2386 review
+- undefined: Fixed — replaced `await response.json() as any` in `summarize-article.ts` with a typed inline cast (`{ choices?: Array<{ message?: { content?: string } }>; usage?: {...} }`) and simplified the downstream `tokens`/`usage` reads to use the typed shape directly.

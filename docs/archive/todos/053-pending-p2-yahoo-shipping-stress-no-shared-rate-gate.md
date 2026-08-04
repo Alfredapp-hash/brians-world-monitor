@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "053"
 tags: [code-review, reliability, seeding, yahoo-finance, rate-limiting, pr-2375]
@@ -49,3 +49,4 @@ Isolate shipping stress seeding to its own process so it cannot interfere with m
 ## Work Log
 
 - 2026-03-27: Identified by code-review agents during PR #2375 review.
+- undefined: Fixed — `fetchYahooChartDirect` now routes through a shared process-wide `_yahooGateQueue` promise chain so all Yahoo Finance callers (market quotes, commodities, shipping stress, China stock index, etc.) are serialized against each other, not just staggered within their own loop.

@@ -1,4 +1,5 @@
 import COUNTRY_BBOXES from '../../../shared/country-bboxes.js';
+import { REGIONS } from '../../../shared/geography.js';
 // @ts-expect-error — generated JS module, no declaration file
 import MINING_SITES_RAW from '../../../shared/mining-sites.js';
 // @ts-expect-error — JS module, no declaration file
@@ -103,6 +104,17 @@ function countryBriefSearchTerms(countryCode: string): string[] {
 
 const PROCUREMENT_TOOL_DEFAULT_PAGE_SIZE = 10;
 const PROCUREMENT_TOOL_MAX_PAGE_SIZE = 25;
+
+// Derived from shared/geography.js REGIONS.forecastLabel — the same label
+// vocabulary ForecastPanel.ts's region pills and get-forecasts.ts's
+// substring filter use — instead of a hand-picked list of examples that can
+// silently drift from the actual filterable labels (e.g. "Asia Pacific" is
+// not a real forecastLabel; the real one is "East Asia"). See
+// docs/archive/todos/175-pending-p2-region-taxonomy-3-sources-of-truth.md.
+const FORECAST_REGION_LABEL_EXAMPLES = REGIONS
+  .map((r) => r.forecastLabel)
+  .filter(Boolean)
+  .join('", "');
 
 type ProcurementRouteTender = {
   id: string;
@@ -982,7 +994,7 @@ export const RPC_TOOLS: ToolDef[] = [
       type: 'object',
       properties: {
         domain: { type: 'string', description: 'Forecast domain: "geopolitical", "economic", "military", "climate", or empty for all domains' },
-        region: { type: 'string', description: 'Geographic region filter, e.g. "Middle East", "Europe", "Asia Pacific", or empty for global' },
+        region: { type: 'string', description: `Geographic region filter, e.g. "${FORECAST_REGION_LABEL_EXAMPLES}", or empty for global` },
       },
       required: [],
     },

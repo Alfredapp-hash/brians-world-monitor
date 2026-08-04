@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "055"
 tags: [code-review, quality, analytical-frameworks]
@@ -42,3 +42,4 @@ Remove the `if panelId === 'insights'` branch from the constructor.
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by code-simplicity-reviewer
+- undefined: Already resolved / not reproducible — `src/components/FrameworkSelector.ts` already accepts a `note?: string` option (`FrameworkSelectorOptions.note`) and renders it in the popup instead of any `panelId === 'insights'` branch; `InsightsPanel.ts` already passes `note: t('components.insights.frameworkNote')`. No code change needed within owned files (DailyMarketBriefPanel.ts, out of scope, still has a hardcoded note string but already uses the `note` option rather than a hardcoded panelId check in the component).

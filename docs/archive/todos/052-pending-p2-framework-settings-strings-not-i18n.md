@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "052"
 tags: [code-review, quality, i18n, analytical-frameworks]
@@ -49,3 +49,4 @@ Defer i18n to a follow-up PR since the frameworks feature is new and translation
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by code-simplicity-reviewer
+- undefined: Fixed — replaced remaining hardcoded English strings in the Analysis Frameworks section of `preferences-content.ts` (panel labels, modal aria-labels, Fetch button, all import/error messages, empty-library text, built-in badge, Rename/Delete buttons, rename prompt, default skill names) with `t()` calls, and added the corresponding new keys to `src/locales/en.json` and `src/locales/fr.json` (other locales fall back to English via i18next `fallbackLng`).

@@ -5,7 +5,7 @@
 import { clip, num } from './_helpers.mjs';
 // Use scripts/shared mirror (not repo-root shared/): Railway service has
 // rootDirectory=scripts so ../../shared/ escapes the deploy root.
-import { REGIONS } from '../shared/geography.js';
+import { getRegion } from '../shared/geography.js';
 
 const ALIASES = {
   iran: 'Iran', irgc: 'IRGC', tehran: 'Iran',
@@ -26,8 +26,8 @@ const ALIASES = {
  * @returns {{ actors: import('../../shared/regions.types.js').ActorState[]; edges: import('../../shared/regions.types.js').LeverageEdge[] }}
  */
 export function scoreActors(regionId, sources) {
-  const region = REGIONS.find((r) => r.id === regionId);
-  if (!region) return { actors: [], edges: [] };
+  const region = getRegion(regionId);
+  if (!region) throw new Error(`Unknown region: ${regionId}`);
 
   const fc = sources['forecast:predictions:v2'];
   const forecasts = Array.isArray(fc?.predictions) ? fc.predictions : [];
@@ -38,7 +38,7 @@ export function scoreActors(regionId, sources) {
 
   const counts = new Map(); // canonical name -> { mentions, leverageDomains, evidenceIds }
   for (const f of inRegion) {
-    const text = JSON.stringify(f?.caseFile ?? f?.signals ?? {}).toLowerCase();
+    const text = caseFileText(f);
     for (const [needle, canonical] of Object.entries(ALIASES)) {
       if (text.includes(needle)) {
         const entry = counts.get(canonical) ?? { mentions: 0, domains: new Set(), evidence: [] };
@@ -90,6 +90,19 @@ function inferRole(name, entry) {
   if (stabilizers.has(name)) return 'stabilizer';
   if (entry.domains.has('diplomatic')) return 'broker';
   return 'swing';
+}
+
+// Precomputed by the orchestrator as `_caseFileText` when available (see
+// issue #190); falls back to stringifying caseFile/signals here so this
+// module also works standalone. Wrapped in try/catch since caseFile is
+// upstream-supplied and could contain circular references (issue #192).
+function caseFileText(f) {
+  if (typeof f?._caseFileText === 'string') return f._caseFileText;
+  try {
+    return JSON.stringify(f?.caseFile ?? f?.signals ?? {}).toLowerCase();
+  } catch {
+    return '{}';
+  }
 }
 
 function round(n) {

@@ -12,7 +12,7 @@ import {
   getRegionCountries,
   getRegionCorridors,
   countryCriticality,
-  REGIONS,
+  getRegion,
   isSignalInRegion,
 } from '../shared/geography.js';
 import iso3ToIso2Raw from '../shared/iso3-to-iso2.json' with { type: 'json' };
@@ -36,7 +36,7 @@ export { SCORING_VERSION };
  * @returns {{ vector: import('../../shared/regions.types.js').BalanceVector }}
  */
 export function computeBalanceVector(regionId, sources) {
-  const region = REGIONS.find((r) => r.id === regionId);
+  const region = getRegion(regionId);
   if (!region) throw new Error(`Unknown region: ${regionId}`);
   const countries = new Set(getRegionCountries(regionId));
   const corridors = getRegionCorridors(regionId);
@@ -299,13 +299,13 @@ function computeAllianceCohesion(regionId, sources, drivers) {
   // No headline classification yet (deferred to Phase 1 LLM batch tagging).
   const fc = sources['forecast:predictions:v2'];
   const forecasts = Array.isArray(fc?.predictions) ? fc.predictions : [];
-  const region = REGIONS.find((r) => r.id === regionId);
+  const region = getRegion(regionId);
   const inRegion = forecasts.filter((f) => {
     const fRegion = String(f?.region ?? '').toLowerCase();
     return fRegion.includes(String(region?.forecastLabel ?? '').toLowerCase());
   });
   const allianceRefs = inRegion.filter((f) => {
-    const cf = JSON.stringify(f?.caseFile ?? {}).toLowerCase();
+    const cf = caseFileText(f);
     return /alliance|treaty|coordination|coalition|nato|gcc/.test(cf);
   }).length;
 
@@ -390,6 +390,19 @@ function computeEnergyLeverage(countries, drivers) {
   });
 
   return clip(score, 0, 1);
+}
+
+// Precomputed by the orchestrator as `_caseFileText` when available (see
+// issue #190); falls back to stringifying caseFile/signals here so this
+// module also works standalone. Wrapped in try/catch since caseFile is
+// upstream-supplied and could contain circular references (issue #192).
+function caseFileText(f) {
+  if (typeof f?._caseFileText === 'string') return f._caseFileText;
+  try {
+    return JSON.stringify(f?.caseFile ?? f?.signals ?? {}).toLowerCase();
+  } catch {
+    return '{}';
+  }
 }
 
 function round(n) {

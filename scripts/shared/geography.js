@@ -271,6 +271,7 @@ export function getRegionCountries(regionId) {
 
 /** @param {string} iso2 */
 export function regionForCountry(iso2) {
+  if (typeof iso2 !== 'string' || !Object.hasOwn(ISO2_TO_REGION, iso2)) return null;
   return ISO2_TO_REGION[iso2] ?? null;
 }
 
@@ -320,6 +321,7 @@ export function getRegionCorridors(regionId) {
 
 /** @param {string} iso2 */
 export function countryCriticality(iso2) {
+  if (typeof iso2 !== 'string' || !Object.hasOwn(COUNTRY_CRITICALITY, iso2)) return DEFAULT_COUNTRY_CRITICALITY;
   return COUNTRY_CRITICALITY[iso2] ?? DEFAULT_COUNTRY_CRITICALITY;
 }
 

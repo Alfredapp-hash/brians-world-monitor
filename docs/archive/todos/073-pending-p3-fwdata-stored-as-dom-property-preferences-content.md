@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "073"
 tags: [code-review, quality, typescript, analytical-frameworks]
@@ -31,3 +31,4 @@ if (!pendingFwData) return;
 
 ## Work Log
 - 2026-03-28: Identified by code-simplicity-reviewer during PR #2386 review
+- undefined: Fixed — replaced the `_fwData` non-standard property + cast on the preview `HTMLElement` in `preferences-content.ts` with a `pendingFwData: PendingFwData | null` closure variable scoped to `attach()`, set on successful fetch/preview and cleared once saved.

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 179
 tags: [code-review, phase-0, regional-intelligence, performance, redis, cache-stampede]
@@ -50,6 +50,12 @@ Cache key: `forecast:predictions:v2` (match the Redis key). In-process TTL: 30-6
 - [ ] Test: 10 parallel identical RPC calls produce 1 Redis GET.
 
 ## Work Log
+
+- undefined: Fixed — `get-forecasts.ts` now wraps the `getRawJson(REDIS_KEY)` read in `cachedFetchJson(REDIS_KEY, 45, () => getRawJson(REDIS_KEY))`, so concurrent invocations coalesce onto a single in-flight promise via the existing in-process `Map<key, Promise>`, and the existing try/catch around the whole read still provides the degraded-response fallback.
+- 2026-08-03: Adversarial verify caught a real bug in the above: `cachedFetchJson`'s cache key IS the Redis key it reads/writes via `readCachedJson`/`setCachedJson`, and `REDIS_KEY` (`forecast:predictions:v2`) here is the *exact same* canonical key `scripts/seed-forecasts.mjs` seeds directly with a 6h TTL. Two consequences, both confirmed by reproduction: (1) `readCachedJson` hits on that key almost immediately (it's the same already-populated seeded value), so the in-flight `Map` was never actually consulted on the common warm path — 5 concurrent calls produced 5 independent Redis GETs, i.e. **zero** real coalescing, failing the doc's own acceptance criterion; (2) on a genuine miss/race, `cachedFetchJson`'s `setCachedJson(key, result, 45)` would `SET` the canonical seed key with a 45s TTL, clobbering the seeder's deliberate 21600s (6h) buffer — a real production-data risk (forecast feed could silently empty ~45s after quiet traffic until the next hourly reseed).
+  - **Re-fixed properly**: replaced the `cachedFetchJson` wrapper with a small, self-contained in-process `Map<string, Promise>` coalescer (`inFlight` + `readForecastsCoalesced()` in `get-forecasts.ts`), matching the existing bare-coalescing idiom already used elsewhere in this codebase for the same purpose (`server/_shared/entitlement-check.ts`'s `_inFlight` map, `server/_shared/llm-health.ts`'s `inFlight` map) rather than `cachedFetchJson`, which is designed for a genuinely different scenario — a value with no persistent canonical Redis key of its own. This coalescer never issues a Redis SET and can't affect the canonical key's TTL, while still genuinely coalescing concurrent calls regardless of whether the read is a cache-hit.
+  - Added a regression test (`tests/forecast-get-forecasts.test.mts`, "coalesces concurrent invocations into a single Redis GET and never SETs the canonical key") that fires 5 concurrent `getForecasts()` calls and asserts exactly 1 upstream `fetch` (a GET, never a SET/write) occurs — directly covers the doc's "10 parallel identical RPC calls produce 1 Redis GET" criterion (scaled to 5, same assertion) and guards against the TTL-clobber regression.
+  - Verified: `npx biome lint server/worldmonitor/forecast/v1/get-forecasts.ts tests/forecast-get-forecasts.test.mts` clean; `npx tsc --noEmit -p tsconfig.api.json` clean; `npx tsx --test tests/forecast-get-forecasts.test.mts` 7/7 pass (up from 6, new coalescing test added).
 
 ## Resources
 

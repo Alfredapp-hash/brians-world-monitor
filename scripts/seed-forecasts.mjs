@@ -5186,9 +5186,11 @@ function buildImpactExpansionDebugPayload(data = {}, worldState = null, runId = 
     hypothesisValidation,
     convergence,
     // gateDetails records the active thresholds at time of execution for self-documenting artifacts.
+    // secondOrderMappedFloor/secondOrderMultiplier are read live from getImpactValidationFloors()
+    // so this payload can't silently go stale when those thresholds change.
     gateDetails: {
-      secondOrderMappedFloor: 0.58,
-      secondOrderMultiplier: 0.88,
+      secondOrderMappedFloor: getImpactValidationFloors('second_order').mapped,
+      secondOrderMultiplier: getImpactValidationFloors('second_order').multiplier,
       pathScoreThreshold: 0.50,
       acceptanceThreshold: 0.50,
       refinementQualityThreshold: 0.80,
@@ -12924,6 +12926,20 @@ async function writeDeepForecastSnapshot(snapshot, _context = {}) {
 // Simulation Package Export — theater-agnostic eligibility
 // ---------------------------------------------------------------------------
 
+const SIMULATION_MAX_SEED_SUMMARY = 200;
+
+function simulationEntitySlug(value) {
+  return String(value || '').toLowerCase().replace(/\W+/g, '_');
+}
+
+// Accepts either an already-built Map (preferred — avoids rebuilding per call
+// when the orchestrator threads the same lookup through multiple builders) or
+// a plain candidates array (kept for direct-call/test compatibility).
+function buildCandidateByIdMap(candidates) {
+  if (candidates instanceof Map) return candidates;
+  return new Map((candidates || []).map((c) => [c.candidateStateId, c]));
+}
+
 function getSimulationRankingScore(candidate) {
   const score = parseFloat(candidate.rankingScore || 0);
   return Number.isFinite(score) ? score : 0;
@@ -13017,10 +13033,12 @@ function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegis
   }
 
   for (const candidate of candidates) {
-    for (const actorName of (candidate.stateSummary?.actors || [])) {
+    for (const rawActorName of (candidate.stateSummary?.actors || [])) {
+      const actorName = sanitizeForPrompt(rawActorName);
+      if (!actorName) continue;
       const key = `su:${actorName}:${candidate.candidateStateId}`;
       addEntity(key, {
-        entityId: `${candidate.candidateStateId}:${actorName.toLowerCase().replace(/\W+/g, '_')}`,
+        entityId: `${candidate.candidateStateId}:${simulationEntitySlug(actorName)}`,
         name: actorName,
         class: inferEntityClassFromName(actorName),
         region: candidate.dominantRegion || '',
@@ -13034,11 +13052,16 @@ function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegis
     for (const entry of (candidate.evidenceTable || [])) {
       if (entry.kind !== 'actor') continue;
       const match = entry.text.match(/^(.+?)\s+remain the lead actors/i);
-      if (!match) continue;
-      for (const name of match[1].split(/,\s*/).filter(Boolean)) {
+      if (!match) {
+        console.debug(`[SimulationPackage] evidence actor regex miss: ${String(entry.text || '').slice(0, 80)}`);
+        continue;
+      }
+      for (const rawName of match[1].split(/,\s*/).filter(Boolean)) {
+        const name = sanitizeForPrompt(rawName);
+        if (!name) continue;
         const key = `ev:${name}:${candidate.candidateStateId}`;
         addEntity(key, {
-          entityId: `${candidate.candidateStateId}:${name.toLowerCase().replace(/\W+/g, '_')}`,
+          entityId: `${candidate.candidateStateId}:${simulationEntitySlug(name)}`,
           name,
           class: inferEntityClassFromName(name),
           region: candidate.dominantRegion || '',
@@ -13054,7 +13077,7 @@ function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegis
   if (seen.size === 0) {
     for (const theater of selectedTheaters) {
       addEntity(`fallback:state:${theater.theaterId}`, {
-        entityId: `state:${theater.dominantRegion.toLowerCase().replace(/\W+/g, '_')}`,
+        entityId: `state:${simulationEntitySlug(theater.dominantRegion)}`,
         name: `${theater.dominantRegion} state authority`,
         class: 'state_actor',
         region: theater.dominantRegion,
@@ -13064,7 +13087,7 @@ function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegis
         relevanceToTheater: theater.theaterId,
       });
       addEntity(`fallback:logistics:${theater.theaterId}`, {
-        entityId: `logistics:${(theater.routeFacilityKey || theater.dominantRegion).toLowerCase().replace(/\W+/g, '_')}`,
+        entityId: `logistics:${simulationEntitySlug(theater.routeFacilityKey || theater.dominantRegion)}`,
         name: `${theater.routeFacilityKey || theater.dominantRegion} logistics operators`,
         class: 'logistics_operator',
         region: theater.dominantRegion,
@@ -13090,11 +13113,12 @@ function buildSimulationPackageEntities(selectedTheaters, candidates, actorRegis
 }
 
 function buildSimulationPackageEventSeeds(selectedTheaters, candidates) {
+  const candidateById = buildCandidateByIdMap(candidates);
   const seeds = [];
   let idx = 0;
 
   for (const theater of selectedTheaters) {
-    const candidate = candidates.find((c) => c.candidateStateId === theater.candidateStateId);
+    const candidate = candidateById.get(theater.candidateStateId);
     if (!candidate) continue;
 
     for (const entry of (candidate.evidenceTable || [])) {
@@ -13103,7 +13127,7 @@ function buildSimulationPackageEventSeeds(selectedTheaters, candidates) {
           seedId: `seed-${++idx}`,
           theaterId: theater.theaterId,
           type: 'live_news',
-          summary: sanitizeForPrompt(entry.text).slice(0, 200),
+          summary: sanitizeForPrompt(entry.text).slice(0, SIMULATION_MAX_SEED_SUMMARY),
           evidenceRefs: [entry.key],
           timing: 'T+0h',
           strength: +Math.min(0.95, (candidate.rankingScore || 0.5)).toFixed(3),
@@ -13113,7 +13137,7 @@ function buildSimulationPackageEventSeeds(selectedTheaters, candidates) {
           seedId: `seed-${++idx}`,
           theaterId: theater.theaterId,
           type: 'observed_disruption',
-          summary: sanitizeForPrompt(entry.text).slice(0, 200),
+          summary: sanitizeForPrompt(entry.text).slice(0, SIMULATION_MAX_SEED_SUMMARY),
           evidenceRefs: [entry.key],
           timing: 'T+0h',
           strength: +Math.min(0.9, (Number(candidate.marketContext?.criticalSignalLift || 0) + 0.3)).toFixed(3),
@@ -13128,7 +13152,7 @@ function buildSimulationPackageEventSeeds(selectedTheaters, candidates) {
           seedId: `seed-${++idx}`,
           theaterId: theater.theaterId,
           type: 'observed_disruption',
-          summary: sanitizeForPrompt(fallback.text).slice(0, 200),
+          summary: sanitizeForPrompt(fallback.text).slice(0, SIMULATION_MAX_SEED_SUMMARY),
           evidenceRefs: [fallback.key],
           timing: 'T+0h',
           strength: +(candidate.rankingScore || 0.4).toFixed(3),
@@ -13141,11 +13165,12 @@ function buildSimulationPackageEventSeeds(selectedTheaters, candidates) {
 }
 
 function buildSimulationPackageConstraints(selectedTheaters, candidates) {
+  const candidateById = buildCandidateByIdMap(candidates);
   const result = {};
   let idx = 0;
 
   for (const theater of selectedTheaters) {
-    const candidate = candidates.find((c) => c.candidateStateId === theater.candidateStateId);
+    const candidate = candidateById.get(theater.candidateStateId);
     if (!candidate) continue;
     const src = `candidate:${theater.candidateStateId}`;
     const theaterConstraints = [];
@@ -13285,9 +13310,10 @@ function buildEvalTargetQuestions(theater, macroRegion) {
 }
 
 function buildSimulationPackageEvaluationTargets(selectedTheaters, candidates) {
+  const candidateById = buildCandidateByIdMap(candidates);
   const result = {};
   for (const theater of selectedTheaters) {
-    const candidate = candidates.find((c) => c.candidateStateId === theater.candidateStateId);
+    const candidate = candidateById.get(theater.candidateStateId);
     if (!candidate) {
       console.warn(`[SimulationPackage] No candidate for theaterId=${theater.theaterId} (evaluationTargets)`);
     }
@@ -13317,7 +13343,13 @@ function buildSimulationStructuralWorld(selectedTheaters, { stateUnits, worldSig
 
   const selectedStateUnits = (stateUnits || []).filter((u) => theaterStateIds.has(u.id));
   const touchingSignals = (worldSignals?.signals || [])
-    .filter((s) => theaterRegions.has(s.region) || theaterRegions.has(s.macroRegion) || theaterStateIds.has(s.situationId))
+    .filter((s) => {
+      const sigMacro = s.macroRegion;
+      const macroMatch = Array.isArray(sigMacro)
+        ? sigMacro.some((r) => theaterRegions.has(r))
+        : theaterRegions.has(sigMacro);
+      return theaterRegions.has(s.region) || macroMatch || theaterStateIds.has(s.situationId);
+    })
     .slice(0, 20);
   const touchingTransmissionEdges = (marketTransmission?.edges || [])
     .filter((e) => theaterStateIds.has(e.sourceSituationId) || theaterStateIds.has(e.targetSituationId))
@@ -13367,15 +13399,16 @@ function buildSimulationPackageFromDeepSnapshot(snapshot, priorWorldState = null
     criticalSignalTypes: c.criticalSignalTypes || [],
     actorRoles: [...new Set(
       (Array.isArray(c?.stateSummary?.actors) ? c.stateSummary.actors : [])
-        .map((s) => String(s || '').trim())
+        .map((s) => sanitizeForPrompt(String(s || '').trim()))
         .filter(Boolean),
     )].slice(0, 12),
   }));
 
+  const candidateById = buildCandidateByIdMap(top);
   const simulationRequirement = Object.fromEntries(
     selectedTheaters.map((theater) => [
       theater.theaterId,
-      buildSimulationRequirementText(theater, top.find((c) => c.candidateStateId === theater.candidateStateId)),
+      buildSimulationRequirementText(theater, candidateById.get(theater.candidateStateId)),
     ]),
   );
 
@@ -13401,9 +13434,9 @@ function buildSimulationPackageFromDeepSnapshot(snapshot, priorWorldState = null
       situationFamilies,
     }),
     entities: buildSimulationPackageEntities(selectedTheaters, top, actorRegistry),
-    eventSeeds: buildSimulationPackageEventSeeds(selectedTheaters, top),
-    constraints: buildSimulationPackageConstraints(selectedTheaters, top),
-    evaluationTargets: buildSimulationPackageEvaluationTargets(selectedTheaters, top),
+    eventSeeds: buildSimulationPackageEventSeeds(selectedTheaters, candidateById),
+    constraints: buildSimulationPackageConstraints(selectedTheaters, candidateById),
+    evaluationTargets: buildSimulationPackageEvaluationTargets(selectedTheaters, candidateById),
   };
 }
 

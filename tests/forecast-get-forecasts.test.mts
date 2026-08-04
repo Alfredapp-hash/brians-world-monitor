@@ -98,6 +98,34 @@ describe('getForecasts backend status', () => {
     });
   });
 
+  it('coalesces concurrent invocations into a single Redis GET and never SETs the canonical key', async () => {
+    let fetchCalls = 0;
+    globalThis.fetch = (async (input) => {
+      fetchCalls += 1;
+      const url = typeof input === 'string' ? input : (input as URL).toString();
+      // Regression guard for #179: the fix must never issue a SET/write
+      // against the canonical seeded key (that would clobber the seeder's
+      // 6h TTL with a short in-process cache TTL). Every request this test
+      // makes must be a GET against the exact canonical key.
+      assert.ok(url.endsWith(`/get/${encodeURIComponent(REDIS_KEY)}`), `unexpected fetch: ${url}`);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      return new Response(JSON.stringify({
+        result: JSON.stringify({ predictions: [makeForecast({ id: 'coalesced' })], generatedAt: 999 }),
+      }), { status: 200 });
+    }) as typeof fetch;
+
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () => getForecasts(makeCtx(), { domain: '', region: '' })),
+    );
+
+    for (const res of results) {
+      assert.equal(res.degraded, false);
+      assert.equal(res.forecasts.length, 1);
+      assert.equal(res.forecasts[0].id, 'coalesced');
+    }
+    assert.equal(fetchCalls, 1, `expected 5 concurrent calls to coalesce into 1 Redis GET, got ${fetchCalls}`);
+  });
+
   it('unwraps seeded forecast envelopes and filters the happy path', async () => {
     const gulfMarket = makeForecast({
       id: 'gulf-market',

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 174
 tags: [code-review, phase-0, regional-intelligence, seeder, redis, gold-standard]
@@ -68,6 +68,8 @@ The current seeder fails 1, 2, 3 above. The summary key at line 206 violates #1 
 - [ ] Health check still reports OK after a partial failure.
 
 ## Work Log
+
+- undefined: Fixed (Option 1, retrofit) — `main()` now acquires an `acquireLockSafely('regional-snapshots', ...)` distributed lock (5 min TTL) before doing any work and releases it in a `finally` block; the `writeExtraKeyWithMeta` call was already guarded to `persisted > 0` in current code (that part of the doc's finding no longer reproduced); the summary/seed-meta TTL was bumped from 12h (2x) to 24h (>=3x the 6h cron cadence); and a per-region failure now calls `extendExistingTtl` on that region's `:latest` key so transient failures don't leave stale data expiring on the old clock.
 
 ## Resources
 

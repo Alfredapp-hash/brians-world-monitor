@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "010"
 tags: [code-review, deep-forecast, simulation-package, correctness]
@@ -49,3 +49,4 @@ Effort: Tiny | Risk: Low
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:kieran-typescript-reviewer in PR #2204 review
+- undefined: Already resolved / not reproducible — `inferEntityClassFromName` already uses `\b(military|army|navy|air\s+force|national\s+guard|houthi|irgc|revolutionary\s+guard|armed\s+forces?)\b` with word boundaries (Option A), and `Salesforce`/`workforce` tests already pass; no code change needed.

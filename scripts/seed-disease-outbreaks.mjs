@@ -18,6 +18,7 @@ import {
   rssNormalizeItem,
   tghNormalizeItem,
   mapItem,
+  detectDisease,
   diseaseContentMeta,
   diseasePublishTransform,
   DISEASE_MAX_CONTENT_AGE_MIN,
@@ -166,16 +167,17 @@ async function fetchDiseaseOutbreaks() {
   // preserve all geo-located alerts, and don't collapse by disease+country.
   const tghOutbreaks = tghItems.map(mapItem);
 
-  const diseaseKeywords = ['outbreak', 'disease', 'virus', 'fever', 'flu', 'ebola', 'mpox',
-    'cholera', 'dengue', 'measles', 'polio', 'plague', 'avian', 'h5n1', 'epidemic',
-    'infection', 'pathogen', 'rabies', 'meningitis', 'hepatitis', 'nipah', 'marburg',
-    'diphtheria', 'chikungunya', 'rift valley', 'influenza', 'botulism',
-    'salmonella', 'listeria', 'e. coli', 'norovirus', 'legionella', 'campylobacter'];
+  // Generic outbreak/epidemiology terms not tied to any specific disease name.
+  // Specific disease names are NOT duplicated here — detectDisease() (imported
+  // above from _disease-outbreaks-helpers.mjs) is the single source of truth
+  // for those, so relevance filtering below also consults it directly (#059).
+  const GENERIC_OUTBREAK_TERMS = ['outbreak', 'disease', 'virus', 'fever', 'flu', 'avian',
+    'epidemic', 'infection', 'pathogen'];
 
   const otherOutbreaks = [...whoItems, ...cdcItems, ...outbreakNewsItems]
     .filter(item => {
       const text = `${item.title} ${item.desc}`.toLowerCase();
-      return diseaseKeywords.some(k => text.includes(k));
+      return GENERIC_OUTBREAK_TERMS.some(k => text.includes(k)) || detectDisease(text) !== 'Unknown Disease';
     })
     .map(mapItem);
 

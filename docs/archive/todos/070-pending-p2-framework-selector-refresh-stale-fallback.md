@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "070"
 tags: [code-review, correctness, ui, analytical-frameworks]
@@ -36,3 +36,4 @@ this.select.value = getActiveFrameworkForPanel(this.panelId)?.id ?? '';
 
 ## Work Log
 - 2026-03-28: Identified by kieran-typescript-reviewer during PR #2386 review
+- undefined: Fixed — `FrameworkSelector.refresh()` in `src/components/FrameworkSelector.ts` now falls back to `''` instead of the stale pre-refresh `select.value`, so a deleted active framework resets the selector to "Default (Neutral)" instead of pointing at a removed option.

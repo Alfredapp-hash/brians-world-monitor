@@ -3,6 +3,7 @@ import { escapeHtml } from '@/services/forecast';
 import type { Forecast } from '@/services/forecast';
 import { t } from '@/services/i18n';
 import { getForecastMacroRegion } from '../../shared/forecast-macro-regions.js';
+import { REGIONS } from '../../shared/geography.js';
 import { unsafeRawHtml } from '@/utils/sanitize';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { mergeCachedCaseFiles, needsCaseFileRefetch, shouldFetchCaseFile } from './forecast-case-files';
@@ -26,16 +27,15 @@ interface ForecastSourceState {
 // refresh-time updateForecasts() calls. The '' (empty) id means
 // "All Regions" — no filter applied. Forecasts whose region does not
 // classify (unknown or 'global') only appear under "All Regions".
+//
+// Derived from shared/geography.js's REGIONS — the canonical region taxonomy
+// — rather than a hardcoded duplicate, so adding/renaming a region there
+// automatically updates these pills (#175). 'global' is excluded: it has no
+// dedicated pill and only surfaces under "All Regions".
 const FORECAST_REGIONS = [
   { id: '', label: 'All Regions' },
-  { id: 'mena', label: 'MENA' },
-  { id: 'east-asia', label: 'East Asia' },
-  { id: 'europe', label: 'Europe' },
-  { id: 'south-asia', label: 'South Asia' },
-  { id: 'sub-saharan-africa', label: 'Africa' },
-  { id: 'latam', label: 'LatAm' },
-  { id: 'north-america', label: 'N. America' },
-] as const;
+  ...REGIONS.filter(r => r.id !== 'global').map(r => ({ id: r.id, label: r.forecastLabel })),
+];
 
 const DOMAIN_LABELS: Record<string, string> = {
   all: 'All',

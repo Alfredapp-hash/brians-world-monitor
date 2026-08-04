@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 178
 tags: [code-review, phase-0, regional-intelligence, performance, frontend]
@@ -65,6 +65,8 @@ Cache shape: `Map<regionId, { data: Forecast[]; ts: number }>` with a 60-second 
 - [ ] Cache entries honor a TTL and refresh on visibility change.
 
 ## Work Log
+
+- undefined: Already resolved / not reproducible — current `ForecastPanel.ts` region-pill click handler (see the `[data-fc-region]` branch) is purely client-side: it sets `this.selectedRegion` and re-renders from the already-fetched `this.forecasts` set via `getVisibleForecasts()`. No RPC fires per pill click at all (no `regionFetchSeq`, no `fetchForecasts` call in the click path), so there is no wasted request to abort and no stale-response race to guard against. This is a stronger fix than either proposed option. No code change made.
 
 ## Resources
 

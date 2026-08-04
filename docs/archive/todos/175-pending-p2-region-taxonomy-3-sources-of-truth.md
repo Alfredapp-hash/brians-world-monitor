@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 175
 tags: [code-review, phase-0, regional-intelligence, dry, taxonomy]
@@ -59,6 +59,12 @@ The `scripts/seed-forecasts.mjs` `MACRO_REGION_MAP` is a fourth source but its j
 - [ ] `MACRO_REGION_MAP` in `seed-forecasts.mjs` references `REGIONS` for the region IDs.
 
 ## Work Log
+
+- undefined: Fixed (scoped to ForecastPanel.ts + get-forecasts.ts import sites only, per workstream scope) — `ForecastPanel.ts` now imports `REGIONS` from `shared/geography.js` and derives `FORECAST_REGIONS` pills via `REGIONS.filter(r => r.id !== 'global').map(r => ({ id: r.id, label: r.forecastLabel }))` instead of a hardcoded duplicate list; `get-forecasts.ts` was inspected and has no local region-taxonomy duplicate to dedupe (it does a generic substring match on `req.region` against whatever string is passed), so no change was needed there. `api/mcp.ts` and `scripts/seed-forecasts.mjs` are explicitly out of scope for this workstream and were left untouched.
+- 2026-08-03: Adversarial verify correctly flagged that marking this `done` overstated completion — acceptance criteria #2 (`api/mcp.ts` labels) and #4 (`MACRO_REGION_MAP`) were untouched. Closed the loop on both:
+  - **AC #2 fixed for real:** `api/mcp.ts` no longer exists as a single file (repo has since split MCP tool defs into `api/mcp/registry/*.ts`); the `generate_forecasts` tool description now lives in `api/mcp/registry/rpc-tools.ts`. Added `const FORECAST_REGION_LABEL_EXAMPLES = REGIONS.map(r => r.forecastLabel).filter(Boolean).join('", "')` (imported `REGIONS` from `shared/geography.js`, following the existing `api/mcp/registry/rpc-tools.ts` → `shared/*.js` import precedent already used in that same file for `COUNTRY_BBOXES`/`MINING_SITES_RAW`) and used it in the `region` input-schema description, replacing the stale hardcoded `"Middle East", "Europe", "Asia Pacific"` examples (note: `REGIONS` has no `"Asia Pacific"` label at all — the real one is `"East Asia"` — confirming the doc's original drift report). Now genuinely derived: adding/renaming a region in `geography.js` updates this description automatically.
+  - **AC #4 investigated, found not applicable as stated:** `MACRO_REGION_MAP` in `seed-forecasts.mjs` does **not** write `f.region` (verified via full-file grep of every `region:` assignment site — every persisted forecast's `region` field is a free-text label like `'Middle East'`, `'Global'`, `'United States'`, `rate.countryName`, etc., set directly, never through `MACRO_REGION_MAP`). `MACRO_REGION_MAP` is a separate, unrelated lookup used only by `getMacroRegion()`/`isCrossTheaterPair()`/`classifyEffectClass()` for cross-theater cascade-spillover scoring, with its own intentionally coarser 6-bucket taxonomy (`MENA`/`EAST_ASIA`/`AMERICAS`/`EUROPE`/`SOUTH_ASIA`/`AFRICA` — deliberately merging North America + Latin America into one `AMERICAS` bucket, which the 8-region display taxonomy in `geography.js` does not do). Forcing it to reference `REGIONS` would either break the cross-theater spillover semantics (finer-grained buckets would classify more pairs as "cross-theater" than intended) or require a translation layer the doc never specifies. The original PR review's premise that this map is a "fourth source of truth" for `f.region` was a misdiagnosis; leaving it untouched is correct, not a shortfall.
+  - Verified: `npx biome lint api/mcp/registry/rpc-tools.ts` clean; `npx tsc --noEmit -p tsconfig.api.json` clean; `tests/llms-txt-mcp-tools.test.mjs` + `tests/mcp-tool-output-contracts.test.mjs` + `tests/mcp-schema-default-parity.test.mjs` (55/55) all pass.
 
 ## Resources
 
