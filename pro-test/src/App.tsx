@@ -859,12 +859,12 @@ const ApiSection = () => (
         <div className="bg-black border border-wm-border rounded-lg overflow-hidden font-mono text-sm">
           <div className="bg-wm-card px-4 py-2 border-b border-wm-border flex items-center gap-2">
             <Terminal className="w-4 h-4 text-wm-muted" aria-hidden="true" />
-            <span className="text-wm-muted text-xs">api.worldmonitor.app</span>
+            <span className="text-wm-muted text-xs">brians-world-monitor.vercel.app</span>
           </div>
           <div className="p-6 text-gray-300 overflow-x-auto">
             <pre><code>
 <span className="text-wm-blue">curl</span> \<br/>
-  <span className="text-wm-green">"https://api.worldmonitor.app/v1/intelligence/convergence?region=MENA&time_window=6h"</span> \<br/>
+  <span className="text-wm-green">"https://brians-world-monitor.vercel.app/v1/intelligence/convergence?region=MENA&time_window=6h"</span> \<br/>
   -H <span className="text-wm-green">"Authorization: Bearer wm_live_xxx"</span><br/><br/>
 <span className="text-wm-muted">{"{"}</span><br/>
   <span className="text-wm-blue">"status"</span>: <span className="text-wm-green">"success"</span>,<br/>
@@ -1319,9 +1319,9 @@ const EnterprisePage = () => (
         </div>
         <div className="flex items-center gap-6">
           <a href={DASHBOARD_PATH} className="hover:text-wm-text transition-colors">Dashboard</a>
-          <a href="https://www.worldmonitor.app/blog/" className="hover:text-wm-text transition-colors">Blog</a>
-          <a href="https://www.worldmonitor.app/docs" className="hover:text-wm-text transition-colors">Docs</a>
-          <a href="https://status.worldmonitor.app/" target="_blank" rel="noreferrer" className="hover:text-wm-text transition-colors">Status</a>
+          <a href="https://brians-world-monitor.vercel.app/blog/" className="hover:text-wm-text transition-colors">Blog</a>
+          <a href="https://brians-world-monitor.vercel.app/docs" className="hover:text-wm-text transition-colors">Docs</a>
+          <a href="https://brians-world-monitor.vercel.app/status" target="_blank" rel="noreferrer" className="hover:text-wm-text transition-colors">Status</a>
           <a href="https://github.com/koala73/worldmonitor" target="_blank" rel="noreferrer" className="hover:text-wm-text transition-colors">GitHub</a>
           <a href="https://discord.gg/re63kWKxaz" target="_blank" rel="noreferrer" className="hover:text-wm-text transition-colors">Discord</a>
           <a href="https://x.com/worldmonitorai" target="_blank" rel="noreferrer" className="hover:text-wm-text transition-colors">X</a>

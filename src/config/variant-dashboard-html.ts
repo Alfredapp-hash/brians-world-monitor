@@ -105,10 +105,17 @@ export function renderVariantDashboardHtml(fullDashboardHtml: string, variant: s
   html = replaceCounted(html, /(<meta name="twitter:url" content=")[^"]*(" \/>)/g, (_m, a, b) => `${a}${escHtml(meta.url)}${b}`, ONE, 'twitter:url');
 
   // hreflang cluster: alternates of THIS page live on the same subdomain;
-  // preserve the ?lang= suffix per entry.
+  // preserve the ?lang= suffix per entry. Anchor is the built dashboard.html's
+  // own base URL (index.html's hreflang cluster — see meta.url), NOT a fixed
+  // upstream literal, so this stays correct if the deploy domain changes again.
+  const dashboardBaseUrl = new URL(VARIANT_META.full.url);
+  const hreflangAnchor = new RegExp(
+    `(<link rel="alternate" hreflang="[^"]+" href=")${dashboardBaseUrl.origin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${dashboardBaseUrl.pathname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}((?:\\?[^"]*)?" \\/>)`,
+    'g',
+  );
   html = replaceCounted(
     html,
-    /(<link rel="alternate" hreflang="[^"]+" href=")https:\/\/www\.worldmonitor\.app\/dashboard((?:\?[^"]*)?" \/>)/g,
+    hreflangAnchor,
     (_m, a, b) => `${a}${escHtml(meta.url)}${b}`,
     { min: 1, max: 80 },
     'hreflang alternates',

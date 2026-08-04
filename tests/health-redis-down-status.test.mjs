@@ -28,7 +28,7 @@ test('detailed health requires an operator API key before Redis is queried', asy
   assert.equal(res.status, 401);
   const body = await res.json();
   assert.equal(body.error, 'API key required');
-  assert.equal(res.headers.get('Access-Control-Allow-Origin'), 'https://worldmonitor.app');
+  assert.equal(res.headers.get('Access-Control-Allow-Origin'), 'https://brians-world-monitor.vercel.app');
 });
 
 test('the 401 carries an HONEST WWW-Authenticate and points keyless callers at the public compact form', async () => {
@@ -78,7 +78,7 @@ test('compact health remains public and REDIS_DOWN returns HTTP 503', async () =
   assert.ok('checkedAt' in body, 'snapshot must carry checkedAt');
   // No Origin → getCorsHeaders falls back to the canonical app origin (the
   // origin-gated handler does not emit ACAO:* for unknown/absent origins).
-  assert.equal(res.headers.get('Access-Control-Allow-Origin'), 'https://worldmonitor.app');
+  assert.equal(res.headers.get('Access-Control-Allow-Origin'), 'https://brians-world-monitor.vercel.app');
 });
 
 test('authenticated detailed health can reach the Redis-down probe', async () => {
@@ -92,7 +92,7 @@ test('authenticated detailed health can reach the Redis-down probe', async () =>
   assert.ok('checkedAt' in body, 'snapshot must carry checkedAt');
   // No Origin → getCorsHeaders falls back to the canonical app origin (the
   // origin-gated handler does not emit ACAO:* for unknown/absent origins).
-  assert.equal(res.headers.get('Access-Control-Allow-Origin'), 'https://worldmonitor.app');
+  assert.equal(res.headers.get('Access-Control-Allow-Origin'), 'https://brians-world-monitor.vercel.app');
 });
 
 test('OPTIONS preflight returns 204 (never 503)', async () => {

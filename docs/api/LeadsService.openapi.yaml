@@ -6,7 +6,7 @@ security:
     - WorldMonitorKey: []
     - ApiKeyHeader: []
 servers:
-    - url: https://api.worldmonitor.app
+    - url: https://brians-world-monitor.vercel.app
 paths:
     /api/leads/v1/submit-contact:
         post:

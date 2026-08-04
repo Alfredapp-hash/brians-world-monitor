@@ -18,7 +18,7 @@
       "mcpBurstRequestsPerMinute": 0
     },
     "cta": "Get Started",
-    "href": "https://worldmonitor.app/dashboard",
+    "href": "https://brians-world-monitor.vercel.app/dashboard",
     "highlighted": false
   },
   {
@@ -111,7 +111,6 @@
       "mcpBurstRequestsPerMinute": 1000
     },
     "cta": "Contact Sales",
-    "href": "mailto:enterprise@worldmonitor.app",
     "highlighted": false
   }
 ]

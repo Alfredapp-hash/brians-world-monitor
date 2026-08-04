@@ -949,11 +949,11 @@ export class Panel {
 
     const ctaBtn = h('button', { type: 'button', className: 'panel-locked-cta' }, 'Upgrade to Pro');
     if (isDesktopRuntime()) {
-      ctaBtn.addEventListener('click', () => void invokeTauri<void>('open_url', { url: 'https://worldmonitor.app/pro' }).catch(() => window.open('https://worldmonitor.app/pro', '_blank', 'noopener,noreferrer')));
+      ctaBtn.addEventListener('click', () => void invokeTauri<void>('open_url', { url: 'https://brians-world-monitor.vercel.app/pro' }).catch(() => window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer')));
     } else {
       ctaBtn.addEventListener('click', () => {
         import('@/services/checkout').then(m => import('@/config/products').then(p => m.startCheckout(p.DEFAULT_UPGRADE_PRODUCT))).catch(() => {
-          window.open('https://worldmonitor.app/pro', '_blank', 'noopener,noreferrer');
+          window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer');
         });
       });
     }

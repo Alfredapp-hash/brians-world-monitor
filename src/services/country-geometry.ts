@@ -15,8 +15,12 @@ interface CountryHit {
 
 const COUNTRY_GEOJSON_URL = '/data/countries.geojson';
 
-/** Optional higher-resolution boundary overrides sourced from Natural Earth (served from R2 CDN). */
-const COUNTRY_OVERRIDES_URL = 'https://maps.worldmonitor.app/country-boundary-overrides.geojson';
+/** Optional higher-resolution boundary overrides sourced from Natural Earth.
+ * Was fetched from an R2 CDN subdomain this fork doesn't control (silently
+ * no-op'd there — see the try/catch below); the same file is already
+ * committed at public/data/country-boundary-overrides.geojson, so serve it
+ * same-origin instead. */
+const COUNTRY_OVERRIDES_URL = '/data/country-boundary-overrides.geojson';
 const COUNTRY_OVERRIDE_TIMEOUT_MS = 3_000;
 
 const POLITICAL_OVERRIDES: Record<string, string> = { 'CN-TW': 'TW' };

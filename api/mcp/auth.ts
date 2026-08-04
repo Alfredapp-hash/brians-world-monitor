@@ -278,7 +278,7 @@ export async function runProPreChecks(
   }
   if (!validation || validation.userId !== context.userId) {
     return new Response(
-      JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32001, message: 'MCP authorization revoked. Re-authorize at https://worldmonitor.app/mcp-grant.' } }),
+      JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32001, message: 'MCP authorization revoked. Re-authorize at https://brians-world-monitor.vercel.app/mcp-grant.' } }),
       { status: 401, headers: withMcpNoStore({ 'Content-Type': 'application/json', 'WWW-Authenticate': wwwAuthHeader(resourceMetadataUrl, 'invalid_token'), ...corsHeaders }) },
     );
   }

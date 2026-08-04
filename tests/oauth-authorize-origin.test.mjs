@@ -1,12 +1,13 @@
 /**
  * Regression for PR #5009 review P1 — the consent POST origin gate.
  *
- * The OAuth discovery metadata (PRM/AS) and the /agent/auth challenge are all
- * host-derived, so an agent can be pointed at the apex OR www OR api consent
- * page. Previously the POST handler accepted only Origin=https://api.worldmonitor.app
- * and 403'd every other first-party host, dead-ending the www/apex flow. The gate
- * now accepts any worldmonitor.app apex/subdomain origin (foreign origins still
- * 403). The CSRF nonce remains the real protection.
+ * This fork does not control worldmonitor.app (a separate, unaffiliated live
+ * product) and must never trust it — or any of its subdomains — as a
+ * first-party origin. The allowlist trusts only this fork's own Vercel
+ * deployment(s): the production alias plus preview-deployment aliases
+ * (branch/hash variants), mirroring api/_cors.js. Foreign origins (including
+ * worldmonitor.app itself) still 403. The CSRF nonce remains the real
+ * protection.
  *
  * The origin check is the FIRST statement in the POST branch (before rate-limit
  * and Redis), so an allowed origin with no `_nonce` falls straight through to the
@@ -28,7 +29,7 @@ const { default: handler } = await import('../api/oauth/authorize.js');
 const postWithOrigin = (origin) => {
   const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
   if (origin !== undefined) headers.origin = origin;
-  return handler(new Request('https://www.worldmonitor.app/oauth/authorize', {
+  return handler(new Request('https://brians-world-monitor.vercel.app/oauth/authorize', {
     method: 'POST',
     headers,
     body: '', // no _nonce → 400 "Missing session token" once the origin gate passes
@@ -37,11 +38,9 @@ const postWithOrigin = (origin) => {
 
 describe('OAuth authorize — consent POST origin gate (P1)', () => {
   const firstPartyOrigins = [
-    'https://worldmonitor.app',          // apex — the scanned host, previously 403'd
-    'https://www.worldmonitor.app',      // canonical Vercel host
-    'https://api.worldmonitor.app',      // the only host that worked before
-    'https://tech.worldmonitor.app',     // variant subdomain
-    'https://finance.worldmonitor.app',
+    'https://brians-world-monitor.vercel.app',           // production alias
+    'https://brians-world-monitor-git-main.vercel.app',  // branch preview alias
+    'https://brians-world-monitor-abc123.vercel.app',    // deployment-hash preview alias
   ];
 
   for (const origin of firstPartyOrigins) {
@@ -66,10 +65,13 @@ describe('OAuth authorize — consent POST origin gate (P1)', () => {
 
   const foreignOrigins = [
     'https://evil.example',
-    'https://worldmonitor.app.evil.example', // suffix attack — must stay anchored
-    'https://evilworldmonitor.app',          // prefix attack — no subdomain dot
-    'http://worldmonitor.app',               // non-https
-    'https://worldmonitor.app:8443',         // port smuggling
+    'https://worldmonitor.app',                                   // this fork does not control worldmonitor.app — must not be trusted
+    'https://www.worldmonitor.app',
+    'https://api.worldmonitor.app',
+    'https://brians-world-monitor.vercel.app.evil.example',       // suffix attack — must stay anchored
+    'https://evilbrians-world-monitor.vercel.app',                // prefix attack — no subdomain dot
+    'http://brians-world-monitor.vercel.app',                     // non-https
+    'https://brians-world-monitor.vercel.app:8443',                // port smuggling
   ];
 
   for (const origin of foreignOrigins) {

@@ -114,8 +114,8 @@ export function getProviderCredentials(
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://worldmonitor.app',
-        'X-Title': 'World Monitor',
+        'HTTP-Referer': 'https://brians-world-monitor.vercel.app',
+        'X-Title': "JSA's Monitor",
       },
       // Hybrid-reasoning models (DeepSeek V4) reason by default via
       // OpenRouter's normalized `reasoning` param; utility calls must not

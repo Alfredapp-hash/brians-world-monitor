@@ -24,7 +24,7 @@ export async function upstashCommand(creds, command) {
     headers: {
       Authorization: `Bearer ${creds.token}`,
       'Content-Type': 'application/json',
-      'User-Agent': 'worldmonitor-ops/1.0 (+https://worldmonitor.app)',
+      'User-Agent': 'worldmonitor-ops/1.0 (+https://brians-world-monitor.vercel.app)',
     },
     body: JSON.stringify(command),
     signal: AbortSignal.timeout(15_000),

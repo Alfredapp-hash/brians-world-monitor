@@ -869,14 +869,14 @@ describe('renderBriefMagazine — publicMode', () => {
     const env = envelope();
     const html = renderBriefMagazine(env, { publicMode: true });
     assert.ok(html.includes('class="wm-public-strip"'), 'subscribe strip element emitted');
-    assert.ok(html.includes('worldmonitor.app/pro'), 'strip links to /pro');
+    assert.ok(html.includes('brians-world-monitor.vercel.app/pro'), 'strip links to /pro');
     assert.ok(html.includes('Subscribe'), 'strip CTA text present');
   });
 
   it('attaches ?ref= to public CTAs when refCode is provided', () => {
     const env = envelope();
     const html = renderBriefMagazine(env, { publicMode: true, refCode: 'ABC123' });
-    assert.ok(html.includes('worldmonitor.app/pro?ref=ABC123'), 'refCode appended to /pro URL');
+    assert.ok(html.includes('brians-world-monitor.vercel.app/pro?ref=ABC123'), 'refCode appended to /pro URL');
   });
 
   it('HTML-escapes a hostile refCode before interpolation', () => {

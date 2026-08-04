@@ -6,7 +6,7 @@ The World Monitor MCP Server exposes World Monitor's real-time global-intelligen
 
 ## Endpoint
 
-- **Server URL:** `https://worldmonitor.app/mcp` — Streamable HTTP transport, JSON-RPC 2.0 (JSON responses by default, SSE when the client advertises `text/event-stream`; `initialize` defaults to protocol `2025-03-26`).
+- **Server URL:** `https://brians-world-monitor.vercel.app/mcp` — Streamable HTTP transport, JSON-RPC 2.0 (JSON responses by default, SSE when the client advertises `text/event-stream`; `initialize` defaults to protocol `2025-03-26`).
 - **Server card:** https://worldmonitor.app/.well-known/mcp/server-card.json
 - **Docs MCP server:** `https://www.worldmonitor.app/docs/mcp` — a second, public (no-auth) MCP server with search-and-retrieval tools over the documentation. Route "how do I…" questions there; route live-data calls to the product server above.
 
@@ -47,7 +47,7 @@ Full agent walkthrough: [auth.md](https://worldmonitor.app/auth.md). Authorizati
 npx worldmonitor tools
 ```
 
-Add the server to Claude Desktop / Cursor via their MCP settings using the URL `https://worldmonitor.app/mcp`, or follow the [MCP Quickstart](https://www.worldmonitor.app/docs/mcp-quickstart) for a five-minute path to a real tool call.
+Add the server to Claude Desktop / Cursor via their MCP settings using the URL `https://brians-world-monitor.vercel.app/mcp`, or follow the [MCP Quickstart](https://www.worldmonitor.app/docs/mcp-quickstart) for a five-minute path to a real tool call.
 
 ## Learn more
 

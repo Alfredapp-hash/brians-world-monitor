@@ -62,7 +62,7 @@ export function getWebVitalsFormFactor(): WebVitalsFormFactor {
 export function sanitizeWebVitalUrl(raw: string | undefined): string {
   if (!raw) return '';
   try {
-    const url = new URL(raw, typeof window !== 'undefined' ? window.location.href : 'https://worldmonitor.app/');
+    const url = new URL(raw, typeof window !== 'undefined' ? window.location.href : 'https://brians-world-monitor.vercel.app/');
     const query = url.search ? '?[redacted]' : '';
     return `${url.origin}${url.pathname}${query}`;
   } catch {

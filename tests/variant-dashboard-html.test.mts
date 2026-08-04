@@ -76,7 +76,13 @@ const escHtml = (s: string) =>
     .replace(/'/g, '&#39;');
 
 describe('renderVariantDashboardHtml (#4996)', () => {
-  it('self-canonicalizes each variant on its own subdomain', () => {
+  it('self-canonicalizes each variant (own subdomain upstream; same single domain on this fork)', () => {
+    // Upstream, each variant is served from its own worldmonitor.app subdomain
+    // so its canonical differs from FULL's. This fork serves every variant
+    // from one Vercel domain (no subdomain routing — see deploy-config.test.mjs),
+    // so VARIANT_META collapses every meta.url to FULL.url and the canonical
+    // is IDENTICAL across variants. That's still correct: a variant-branded
+    // page should self-canonicalize to the one real URL that actually exists.
     for (const variant of WEB_DASHBOARD_VARIANTS) {
       const html = renderVariantDashboardHtml(fixture, variant);
       const meta = VARIANT_META[variant];
@@ -86,10 +92,6 @@ describe('renderVariantDashboardHtml (#4996)', () => {
       );
       assert.ok(html.includes(`<meta property="og:url" content="${meta.url}" />`), `${variant}: og:url`);
       assert.ok(html.includes(`<meta name="twitter:url" content="${meta.url}" />`), `${variant}: twitter:url`);
-      assert.ok(
-        !html.includes(`<link rel="canonical" href="${FULL.url}" />`),
-        `${variant}: must not keep the www canonical`,
-      );
     }
   });
 
@@ -110,7 +112,7 @@ describe('renderVariantDashboardHtml (#4996)', () => {
       'x-default alternate moves to the variant host',
     );
     assert.ok(
-      html.includes('content="https://tech.worldmonitor.app/favico/tech/og-image.png"'),
+      html.includes('content="https://brians-world-monitor.vercel.app/favico/tech/og-image.png"'),
       'og/twitter image points at the variant OG asset',
     );
     assert.ok(html.includes('<meta property="og:image:width" content="1200" />'), 'og:image:width untouched');
@@ -128,7 +130,7 @@ describe('renderVariantDashboardHtml (#4996)', () => {
     const org = blocks.find((b) => b['@type'] === 'Organization');
     assert.equal(webApp.name, 'Finance Monitor');
     assert.equal(webApp.url, finance.url);
-    assert.equal(webApp.screenshot, 'https://finance.worldmonitor.app/favico/finance/og-image.png');
+    assert.equal(webApp.screenshot, 'https://brians-world-monitor.vercel.app/favico/finance/og-image.png');
     assert.deepEqual(webApp.featureList, finance.features);
     assert.equal(org.name, 'World Monitor', 'variant isPartOf World Monitor — org identity stays');
     assert.equal(org.url, 'https://www.worldmonitor.app/');

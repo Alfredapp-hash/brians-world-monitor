@@ -8,9 +8,9 @@
 //   - OPTIONS preflight returns 204 + Access-Control-Allow-Credentials: true
 //     (the load-bearing assertion — the 2026-05-27 outage was a missing ACAC).
 //   - Allowed origins are echoed verbatim into ACAO.
-//   - Disallowed origins fall back to the canonical https://worldmonitor.app
-//     (so browsers reject the request rather than the Worker serving an open
-//     wildcard).
+//   - Disallowed origins fall back to the canonical
+//     https://brians-world-monitor.vercel.app (so browsers reject the
+//     request rather than the Worker serving an open wildcard).
 //   - Non-/api/ paths pass through to fetch() unmodified.
 //   - The allow-headers list matches api/_cors.js (drift would silently
 //     break preflight for any header the function expects but the Worker
@@ -28,8 +28,8 @@ function makeRequest(method, url, headers = {}) {
   return new Request(url, { method, headers });
 }
 
-const CANONICAL_FALLBACK = 'https://worldmonitor.app';
-const KNOWN_GOOD = 'https://www.worldmonitor.app';
+const CANONICAL_FALLBACK = 'https://brians-world-monitor.vercel.app';
+const KNOWN_GOOD = 'https://brians-world-monitor.vercel.app';
 const ACAH_EXPECTED = 'Content-Type, Authorization, X-WorldMonitor-Key, X-Api-Key, X-Widget-Key, X-Pro-Key, X-WorldMonitor-Desktop-Timestamp, X-WorldMonitor-Desktop-Signature, Idempotency-Key, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID';
 const ACEH_EXPECTED = 'Mcp-Session-Id, WWW-Authenticate, Retry-After, Idempotency-Key, Idempotent-Replayed, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-WorldMonitor-Bbox, X-WorldMonitor-Bbox-Missing, X-WorldMonitor-Bbox-Invalid, X-Military-Bbox';
 // Must be a superset of every method any api/* route advertises. Notably
@@ -40,27 +40,28 @@ const ACAM_EXPECTED = 'GET, POST, DELETE, HEAD, OPTIONS';
 
 // --- allowlist coverage ---------------------------------------------------
 
-test('isAllowedOrigin accepts apex worldmonitor.app and subdomains', () => {
-  assert.equal(isAllowedOrigin('https://worldmonitor.app'), true);
-  assert.equal(isAllowedOrigin('https://www.worldmonitor.app'), true);
-  assert.equal(isAllowedOrigin('https://tech.worldmonitor.app'), true);
-  assert.equal(isAllowedOrigin('https://commodity.worldmonitor.app'), true);
+test('isAllowedOrigin accepts this fork\'s canonical Vercel domain', () => {
+  assert.equal(isAllowedOrigin('https://brians-world-monitor.vercel.app'), true);
+  // Bare worldmonitor.app and its subdomains belong to a different owner's
+  // production domain and must NEVER be trusted here.
+  assert.equal(isAllowedOrigin('https://worldmonitor.app'), false);
+  assert.equal(isAllowedOrigin('https://www.worldmonitor.app'), false);
+  assert.equal(isAllowedOrigin('https://tech.worldmonitor.app'), false);
+  assert.equal(isAllowedOrigin('https://commodity.worldmonitor.app'), false);
 });
 
-test('isAllowedOrigin accepts Vercel preview deploys under the eliewm team scope (mirrors api/_cors.js)', () => {
-  // The project deploys previews under the "eliewm" Vercel team scope, so URLs
-  // end in `-eliewm.vercel.app` (git-branch alias AND hash deployment forms).
-  // The Worker MUST mirror api/_cors.js exactly — if it stays narrower, eliewm
-  // preview preflights echo the canonical worldmonitor.app fallback and the
-  // browser blocks them before the request ever reaches Vercel.
-  assert.equal(isAllowedOrigin('https://worldmonitor-git-feat-x-eliewm.vercel.app'), true);
-  assert.equal(isAllowedOrigin('https://worldmonitor-r6q9o-eliewm.vercel.app'), true);
-  // Tight allowlist: a foreign team scope, a non-worldmonitor app, and the
-  // retired personal scope (worldmonitor-*-elie-<hash>, migration complete)
-  // must all stay rejected. Never a bare *.vercel.app.
-  assert.equal(isAllowedOrigin('https://worldmonitor-feat-x-attacker.vercel.app'), false);
-  assert.equal(isAllowedOrigin('https://some-other-app-eliewm.vercel.app'), false);
-  assert.equal(isAllowedOrigin('https://worldmonitor-abc-elie-habib.vercel.app'), false);
+test('isAllowedOrigin accepts this fork\'s Vercel preview deploys (mirrors server/cors.ts)', () => {
+  // This project's own Vercel deployments use `brians-world-monitor` as the
+  // project slug, so preview URLs end in `-<suffix>.vercel.app` (git-branch
+  // alias AND hash deployment forms).
+  assert.equal(isAllowedOrigin('https://brians-world-monitor-git-feat-x.vercel.app'), true);
+  assert.equal(isAllowedOrigin('https://brians-world-monitor-r6q9o.vercel.app'), true);
+  // Tight allowlist: an unrelated app, a look-alike prefix, and any other
+  // team/owner's preview scope must all stay rejected. Never a bare
+  // *.vercel.app.
+  assert.equal(isAllowedOrigin('https://some-other-app.vercel.app'), false);
+  assert.equal(isAllowedOrigin('https://brians-world-monitor-evil.attacker.vercel.app'), false);
+  assert.equal(isAllowedOrigin('https://worldmonitor-git-feat-x-eliewm.vercel.app'), false);
 });
 
 test('isAllowedOrigin accepts Tauri desktop runtime origins', () => {
@@ -73,8 +74,8 @@ test('isAllowedOrigin accepts Tauri desktop runtime origins', () => {
 
 test('isAllowedOrigin rejects unrelated origins', () => {
   assert.equal(isAllowedOrigin('https://evil.com'), false);
-  assert.equal(isAllowedOrigin('https://worldmonitor.app.evil.com'), false);
-  assert.equal(isAllowedOrigin('https://notworldmonitor.app'), false);
+  assert.equal(isAllowedOrigin('https://brians-world-monitor.vercel.app.evil.com'), false);
+  assert.equal(isAllowedOrigin('https://notbrians-world-monitor.vercel.app'), false);
   assert.equal(isAllowedOrigin(''), false);
 });
 
@@ -293,8 +294,9 @@ test('hasPublicCorsPolicy: rejects WM-app routes (so credentialed flow keeps Wor
 
 test('OPTIONS preflight to /api/mcp from https://claude.ai passes through to Vercel (Worker does NOT short-circuit)', async () => {
   // Regression: PR review caught that the Worker was short-circuiting MCP
-  // preflights with the canonical worldmonitor.app fallback origin echo,
-  // which blocked claude.ai / claude.com MCP clients. Pin the bypass.
+  // preflights with the canonical brians-world-monitor.vercel.app fallback
+  // origin echo, which blocked claude.ai / claude.com MCP clients. Pin the
+  // bypass.
   const original = globalThis.fetch;
   let received;
   globalThis.fetch = async (req) => {

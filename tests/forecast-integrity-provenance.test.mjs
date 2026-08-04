@@ -52,7 +52,9 @@ describe('forecast integrity and provenance surfaces', () => {
   it('does not repeat backend-unavailable detail in degraded forecast notices', () => {
     const src = read('src/components/ForecastPanel.ts');
 
-    assert.match(src, /const errorDetail = this\.sourceState\.degraded \? '' : this\.sourceState\.error\.replace/);
+    // When degraded, the notice shows calm copy ("catching up") instead of the
+    // raw backend error string, so the error detail is never duplicated.
+    assert.match(src, /!this\.sourceState\.degraded && this\.sourceState\.error \? 'retrying automatically' : ''/);
     assert.doesNotMatch(src, /this\.sourceState\.error \? this\.sourceState\.error\.replace/);
   });
 

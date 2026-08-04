@@ -82,7 +82,7 @@ const WEBHOOKS_BLOCK = `webhooks:
 
                 A verifiable signed sample (fixed secret + exact raw body +
                 resulting signature) is published at
-                https://www.worldmonitor.app/.well-known/webhook-sample.json so you
+                https://brians-world-monitor.vercel.app/.well-known/webhook-sample.json so you
                 can confirm your HMAC verification end-to-end before registering.
 
                 Respond with any 2xx to acknowledge receipt; a non-2xx response or a

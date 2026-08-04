@@ -36,7 +36,7 @@ import {
   type MapVariant,
 } from '@/config/map-layer-definitions';
 import { renderLayerExplanationCard } from '@/utils/layer-explanation-card';
-import { groupLayerToggles, type GroupedLayerPanelHandle } from '@/components/map/layer-groups';
+import { bindLayerPanelCollapse, groupLayerToggles, type GroupedLayerPanelHandle } from '@/components/map/layer-groups';
 import { guardOrbitControlsPointerTracking } from '@/utils/orbit-controls-pointer-guard';
 import { getSecretState } from '@/services/runtime-config';
 import { resolveTradeRouteSegments, type TradeRouteSegment } from '@/config/trade-routes';
@@ -2103,7 +2103,7 @@ export class GlobeMap {
     setTrustedHtml(el, trustedHtml(`
       <div class="toggle-header">
         <span>${t('components.deckgl.layersTitle')}</span>
-        <button class="toggle-collapse">&#9660;</button>
+        <button class="toggle-collapse" aria-label="Show map layers menu"></button>
       </div>
       <input type="text" class="layer-search" placeholder="${t('components.deckgl.layerSearch')}" autocomplete="off" spellcheck="false" />
       <div class="toggle-list" style="max-height:32vh;overflow-y:auto;scrollbar-width:thin;">
@@ -2198,17 +2198,15 @@ export class GlobeMap {
     this.enforceLayerLimit();
 
     bindLayerSearch(el);
-    const searchEl = el.querySelector('.layer-search') as HTMLElement | null;
 
     const collapseBtn = el.querySelector('.toggle-collapse');
     const list = el.querySelector('.toggle-list') as HTMLElement | null;
-    let collapsed = false;
-    collapseBtn?.addEventListener('click', () => {
-      collapsed = !collapsed;
-      if (list) list.style.display = collapsed ? 'none' : '';
-      if (searchEl) searchEl.style.display = collapsed ? 'none' : '';
-      if (collapseBtn) setTrustedHtml((collapseBtn as HTMLElement), trustedHtml(collapsed ? '&#9654;' : '&#9660;', "legacy direct innerHTML migration"));
-    });
+
+    // Hamburger (☰) toggle: collapses the WHOLE panel (title, search, list)
+    // down to just the icon button, rather than only hiding the list body.
+    // Boots collapsed by default so the globe isn't cluttered on first paint;
+    // the user's expanded/collapsed choice then persists across sessions.
+    if (collapseBtn) bindLayerPanelCollapse(el, collapseBtn as HTMLElement);
 
     // Intercept wheel on layer panel — scroll list, don't zoom globe
     el.addEventListener('wheel', (e) => {

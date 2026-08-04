@@ -2,7 +2,7 @@
 
 import { fileURLToPath } from 'node:url';
 
-const DEFAULT_HEALTH_URL = 'https://api.worldmonitor.app/api/health?compact=1';
+const DEFAULT_HEALTH_URL = 'https://brians-world-monitor.vercel.app/api/health?compact=1';
 
 export function validateCompactHealthPayload(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {

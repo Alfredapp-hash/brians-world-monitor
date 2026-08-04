@@ -14,6 +14,7 @@ interface HarnessState {
   fetchBodies: unknown[];
   closeCalls: number;
   silentNoOpOpens: number;
+  errorToastMessages: string[];
 }
 
 declare global {
@@ -95,6 +96,7 @@ function resetHarness(): void {
     fetchBodies: [],
     closeCalls: 0,
     silentNoOpOpens: 0,
+    errorToastMessages: [],
   };
   installBrowserGlobals();
 }
@@ -181,7 +183,7 @@ const stubSources: Record<string, string> = {
     export const snapshotUpstreamResponse = () => ({});
   `,
   './checkout-error-toast': `
-    export const showCheckoutErrorToast = () => {};
+    export const showCheckoutErrorToast = (msg) => { globalThis.__checkoutOverlayHarness.errorToastMessages.push(msg); };
   `,
   './checkout-no-user-policy': `
     export const decideNoUserPathOutcome = () => ({ kind: 'inline-signin', persist: true });
@@ -272,24 +274,25 @@ async function loadCheckoutModule(): Promise<{
 }
 
 describe('checkout overlay lifecycle', () => {
-  it('sends Dodo full-page returns back to the dashboard checkout-return handler', async () => {
+  it('Pro checkout is disabled: startCheckout short-circuits before the Dodo full-page redirect flow', async () => {
+    // This fork has no payment processor connected and does not control the
+    // live Dodo/Pro product at worldmonitor.app, so startCheckout() gates
+    // itself before doing anything else (see PRO_CHECKOUT_DISABLED in
+    // src/services/checkout.ts) — never fetching /api/create-checkout, never
+    // navigating anywhere, only surfacing a friendly toast via the existing
+    // error-toast plumbing. The full redirect flow this test previously
+    // exercised (#4449/#4447) stays dormant behind that gate, mirroring how
+    // the overlay SDK machinery in this same file is kept dormant.
     resetHarness();
     const checkout = await loadCheckoutModule();
 
-    assert.equal(await checkout.startCheckout('prod_monthly'), true);
+    assert.equal(await checkout.startCheckout('prod_monthly'), false);
 
     const harness = globalThis.__checkoutOverlayHarness;
-    assert.equal(harness.fetchBodies.length, 1);
-    assert.deepEqual(harness.fetchBodies[0], {
-      productId: 'prod_monthly',
-      returnUrl: 'https://worldmonitor.app/dashboard?wm_checkout=return',
-    });
-    // #4449: redirect mode navigates the top window to Dodo's hosted checkout
-    // (3DS/fraud run unconstrained) instead of opening the overlay iframe
-    // (which cannot host the nested 3DS/fraud stack). #4447 returns the
-    // customer to /dashboard?wm_checkout=return to reconcile.
-    assert.deepEqual(harness.assignedUrls, ['https://checkout.dodopayments.com/session/cks_redirecttest000000000']);
+    assert.equal(harness.fetchBodies.length, 0, 'must not call /api/create-checkout');
+    assert.deepEqual(harness.assignedUrls, [], 'must not navigate anywhere');
     assert.deepEqual(harness.openedUrls, []);
+    assert.deepEqual(harness.errorToastMessages, ["Pro upgrades aren't available yet."]);
   });
 
   it('keeps one SDK handler while refreshing per-session side effects after destroy+reopen', async () => {

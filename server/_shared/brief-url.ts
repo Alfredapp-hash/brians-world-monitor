@@ -163,7 +163,7 @@ function base64urlDecode(token: string): Uint8Array | null {
  *   const url = await signBriefUrl({
  *     userId: 'user_abc',
  *     issueDate: '2026-04-17-0800',
- *     baseUrl: 'https://worldmonitor.app',
+ *     baseUrl: 'https://brians-world-monitor.vercel.app',
  *     secret: process.env.BRIEF_URL_SIGNING_SECRET!,
  *   });
  */

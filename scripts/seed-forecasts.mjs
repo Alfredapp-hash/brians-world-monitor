@@ -869,7 +869,7 @@ async function warmPingChokepoints() {
   // (server/gateway.ts isRelayWarmPingRequest); Origin alone is not enough, so
   // without the key this 401s every run. Mirrors seed-service-statuses.mjs.
   const relayKey = process.env.WORLDMONITOR_RELAY_KEY || '';
-  const headers = { 'User-Agent': CHROME_UA, Origin: 'https://worldmonitor.app' };
+  const headers = { 'User-Agent': CHROME_UA, Origin: 'https://brians-world-monitor.vercel.app' };
   if (relayKey) headers['X-WorldMonitor-Key'] = relayKey;
   try {
     const resp = await fetch(`${baseUrl}/api/supply-chain/v1/get-chokepoint-status`, {
@@ -15266,7 +15266,7 @@ async function callForecastLLM(systemPrompt, userPrompt, options = {}) {
                 Authorization: `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
                 'User-Agent': CHROME_UA,
-                ...(provider.name === 'openrouter' ? { 'HTTP-Referer': 'https://worldmonitor.app', 'X-Title': 'World Monitor' } : {}),
+                ...(provider.name === 'openrouter' ? { 'HTTP-Referer': 'https://brians-world-monitor.vercel.app', 'X-Title': 'World Monitor' } : {}),
               },
               body: JSON.stringify({
                 model: provider.model,

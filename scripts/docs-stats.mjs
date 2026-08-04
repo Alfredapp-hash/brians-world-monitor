@@ -207,7 +207,7 @@ function validateIndexLanguageMetadata(stats, html = read('index.html')) {
 // crashing the whole gate. Returns null only when the value is not a URL at all.
 function hrefSearchParams(href) {
   try {
-    return new URL(href, 'https://www.worldmonitor.app').searchParams;
+    return new URL(href, 'https://www.brians-world-monitor.vercel.app').searchParams;
   } catch {
     return null;
   }

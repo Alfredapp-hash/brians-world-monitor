@@ -638,7 +638,7 @@ export function compareReports(before, after) {
 
 export function parseArgs(argv) {
   const args = {
-    url: 'https://www.worldmonitor.app/dashboard',
+    url: 'https://www.brians-world-monitor.vercel.app/dashboard',
     settle: 10000,
     width: 1365,
     height: 768,

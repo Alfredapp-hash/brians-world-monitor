@@ -63,8 +63,8 @@ function uniqueCallerIp() {
   return `10.${high}.${low}.0`;
 }
 
-function makeGetRequest(params = {}, origin = 'https://worldmonitor.app', opts = {}) {
-  const url = new URL('https://worldmonitor.app/api/mcp-proxy');
+function makeGetRequest(params = {}, origin = 'https://brians-world-monitor.vercel.app', opts = {}) {
+  const url = new URL('https://brians-world-monitor.vercel.app/api/mcp-proxy');
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined) url.searchParams.set(k, typeof v === 'string' ? v : JSON.stringify(v));
   }
@@ -74,16 +74,16 @@ function makeGetRequest(params = {}, origin = 'https://worldmonitor.app', opts =
   });
 }
 
-function makePostRequest(body = {}, origin = 'https://worldmonitor.app', opts = {}) {
-  return new Request('https://worldmonitor.app/api/mcp-proxy', {
+function makePostRequest(body = {}, origin = 'https://brians-world-monitor.vercel.app', opts = {}) {
+  return new Request('https://brians-world-monitor.vercel.app/api/mcp-proxy', {
     method: 'POST',
     headers: buildHeaders(origin, { ...opts, extra: { 'Content-Type': 'application/json', ...(opts.extra || {}) } }),
     body: JSON.stringify(body),
   });
 }
 
-function makeOptionsRequest(origin = 'https://worldmonitor.app') {
-  return new Request('https://worldmonitor.app/api/mcp-proxy', {
+function makeOptionsRequest(origin = 'https://brians-world-monitor.vercel.app') {
+  return new Request('https://brians-world-monitor.vercel.app/api/mcp-proxy', {
     method: 'OPTIONS',
     headers: { origin },
   });
@@ -162,7 +162,7 @@ describe('api/mcp-proxy', () => {
 
   describe('Auth gate', () => {
     it('returns 401 when no X-WorldMonitor-Key is provided', async () => {
-      const res = await handler(makeGetRequest({ serverUrl: 'https://mcp.example.com/mcp' }, 'https://worldmonitor.app', { authed: false }));
+      const res = await handler(makeGetRequest({ serverUrl: 'https://mcp.example.com/mcp' }, 'https://brians-world-monitor.vercel.app', { authed: false }));
       assert.equal(res.status, 401);
       assertNoStore(res, 'GET auth error');
     });
@@ -171,14 +171,14 @@ describe('api/mcp-proxy', () => {
       // isDisallowedOrigin returns false on null Origin (correct for legit
       // server-to-server callers on other endpoints). The auth check is what
       // closes the bypass here.
-      const url = new URL('https://worldmonitor.app/api/mcp-proxy');
+      const url = new URL('https://brians-world-monitor.vercel.app/api/mcp-proxy');
       url.searchParams.set('serverUrl', 'https://mcp.example.com/mcp');
       const res = await handler(new Request(url.toString(), { method: 'GET' }));
       assert.equal(res.status, 401);
     });
 
     it('returns 401 for POST without key', async () => {
-      const res = await handler(makePostRequest({ serverUrl: 'https://mcp.example.com/mcp', toolName: 'search' }, 'https://worldmonitor.app', { authed: false }));
+      const res = await handler(makePostRequest({ serverUrl: 'https://mcp.example.com/mcp', toolName: 'search' }, 'https://brians-world-monitor.vercel.app', { authed: false }));
       assert.equal(res.status, 401);
       assertNoStore(res, 'POST auth error');
     });
@@ -199,11 +199,11 @@ describe('api/mcp-proxy', () => {
     // requiring keyCheck.required === true (wms_ short-circuits at
     // required:false). PR #3768 review regression.
     it('rejects a wms_ session token even though it is technically valid', async () => {
-      const url = new URL('https://worldmonitor.app/api/mcp-proxy');
+      const url = new URL('https://brians-world-monitor.vercel.app/api/mcp-proxy');
       url.searchParams.set('serverUrl', 'https://mcp.example.com/mcp');
       const req = new Request(url.toString(), {
         method: 'GET',
-        headers: { origin: 'https://worldmonitor.app', 'X-WorldMonitor-Key': SESSION_TOKEN },
+        headers: { origin: 'https://brians-world-monitor.vercel.app', 'X-WorldMonitor-Key': SESSION_TOKEN },
       });
       const res = await handler(req);
       assert.equal(res.status, 401, 'wms_ session token must NOT unlock /api/mcp-proxy');
@@ -217,11 +217,11 @@ describe('api/mcp-proxy', () => {
     // can't run — and that the path is exercised (no MODULE_NOT_FOUND
     // like the previous .js → .ts dynamic-import attempt).
     it('rejects wm_ user keys when Convex validation cannot run / returns null', async () => {
-      const url = new URL('https://worldmonitor.app/api/mcp-proxy');
+      const url = new URL('https://brians-world-monitor.vercel.app/api/mcp-proxy');
       url.searchParams.set('serverUrl', 'https://mcp.example.com/mcp');
       const req = new Request(url.toString(), {
         method: 'GET',
-        headers: { origin: 'https://worldmonitor.app', 'X-WorldMonitor-Key': 'wm_user_abc123' },
+        headers: { origin: 'https://brians-world-monitor.vercel.app', 'X-WorldMonitor-Key': 'wm_user_abc123' },
       });
       const res = await handler(req);
       assert.equal(res.status, 401);
@@ -301,18 +301,18 @@ describe('api/mcp-proxy', () => {
     });
 
     it('returns 405 for DELETE', async () => {
-      const res = await handler(new Request('https://worldmonitor.app/api/mcp-proxy', {
+      const res = await handler(new Request('https://brians-world-monitor.vercel.app/api/mcp-proxy', {
         method: 'DELETE',
-        headers: { origin: 'https://worldmonitor.app', 'X-WorldMonitor-Key': ENTERPRISE_KEY },
+        headers: { origin: 'https://brians-world-monitor.vercel.app', 'X-WorldMonitor-Key': ENTERPRISE_KEY },
       }));
       assert.equal(res.status, 405);
       assertNoStore(res, 'DELETE method guard');
     });
 
     it('returns 405 for PUT', async () => {
-      const res = await handler(new Request('https://worldmonitor.app/api/mcp-proxy', {
+      const res = await handler(new Request('https://brians-world-monitor.vercel.app/api/mcp-proxy', {
         method: 'PUT',
-        headers: { origin: 'https://worldmonitor.app', 'X-WorldMonitor-Key': ENTERPRISE_KEY },
+        headers: { origin: 'https://brians-world-monitor.vercel.app', 'X-WorldMonitor-Key': ENTERPRISE_KEY },
         body: '{}',
       }));
       assert.equal(res.status, 405);
@@ -513,10 +513,10 @@ describe('api/mcp-proxy', () => {
 
     it('ignores invalid JSON in headers param', async () => {
       globalThis.fetch = makeMcpFetch({ tools: [] });
-      const url = new URL('https://worldmonitor.app/api/mcp-proxy');
+      const url = new URL('https://brians-world-monitor.vercel.app/api/mcp-proxy');
       url.searchParams.set('serverUrl', 'https://mcp.example.com/mcp');
       url.searchParams.set('headers', 'not json');
-      const req = new Request(url.toString(), { method: 'GET', headers: { origin: 'https://worldmonitor.app', 'X-WorldMonitor-Key': ENTERPRISE_KEY } });
+      const req = new Request(url.toString(), { method: 'GET', headers: { origin: 'https://brians-world-monitor.vercel.app', 'X-WorldMonitor-Key': ENTERPRISE_KEY } });
       const res = await handler(req);
       assert.equal(res.status, 200);
     });
@@ -894,7 +894,7 @@ describe('api/mcp-proxy', () => {
       const ip = uniqueCallerIp();
       const res = await handler(makeGetRequest(
         { serverUrl: 'https://mcp.example.com/mcp' },
-        'https://worldmonitor.app',
+        'https://brians-world-monitor.vercel.app',
         { extra: { 'cf-connecting-ip': ip, 'x-wm-edge-proof': 'edge-secret-xyz' } },
       ));
       assert.equal(res.status, 429, 'must return HTTP 429 on rate-limit hit');
@@ -923,7 +923,7 @@ describe('api/mcp-proxy', () => {
       const ip = uniqueCallerIp();
       const res = await handler(makeGetRequest(
         { serverUrl: 'https://mcp.example.com/mcp' },
-        'https://worldmonitor.app',
+        'https://brians-world-monitor.vercel.app',
         { extra: { 'cf-connecting-ip': ip, 'x-wm-edge-proof': 'edge-secret-xyz' } },
       ));
       assert.equal(res.status, 200, 'rate-limit must fail-open on Redis error');
@@ -950,7 +950,7 @@ describe('api/mcp-proxy', () => {
 
       const res = await handler(makeGetRequest(
         { serverUrl: 'https://mcp.example.com/mcp' },
-        'https://worldmonitor.app',
+        'https://brians-world-monitor.vercel.app',
         { extra: { 'cf-connecting-ip': ip, 'x-wm-edge-proof': 'edge-secret-xyz' } },
       ));
       assert.equal(res.status, 200);
@@ -978,7 +978,7 @@ describe('api/mcp-proxy', () => {
 
       const res = await handler(makeGetRequest(
         { serverUrl: 'https://mcp.example.com/mcp' },
-        'https://worldmonitor.app',
+        'https://brians-world-monitor.vercel.app',
         { extra: { 'cf-connecting-ip': spoofedIp, 'x-real-ip': '192.0.2.5' } },
       ));
       assert.equal(res.status, 200);
@@ -1008,7 +1008,7 @@ describe('api/mcp-proxy', () => {
       globalThis.fetch = makeMcpFetch({ tools: [] });
       const res = await handler(makeGetRequest(
         { serverUrl: 'https://mcp.example.com/mcp' },
-        'https://worldmonitor.app',
+        'https://brians-world-monitor.vercel.app',
         { extra: { 'cf-connecting-ip': uniqueCallerIp() } },
       ));
       assert.equal(res.status, 200);
@@ -1033,7 +1033,7 @@ describe('api/mcp-proxy', () => {
           serverUrl: 'https://mcp.example.com/mcp',
           headers: JSON.stringify({ Authorization: 'Bearer super-secret-token-XYZ', 'X-Api-Key': 'k_abc123' }),
         },
-        'https://worldmonitor.app',
+        'https://brians-world-monitor.vercel.app',
         { extra: { 'cf-connecting-ip': uniqueCallerIp() } },
       ));
       assert.equal(res.status, 200);
@@ -1057,7 +1057,7 @@ describe('api/mcp-proxy', () => {
       // never lands in the structured log.
       const res = await handler(makeGetRequest(
         { serverUrl: 'https://mcp.example.com/mcp?token=querystring-secret-ABCDEF' },
-        'https://worldmonitor.app',
+        'https://brians-world-monitor.vercel.app',
         { extra: { 'cf-connecting-ip': uniqueCallerIp() } },
       ));
       assert.equal(res.status, 200);
@@ -1090,7 +1090,7 @@ describe('api/mcp-proxy', () => {
         };
         const res = await handler(makeGetRequest(
           { serverUrl: 'https://mcp.example.com/mcp' },
-          'https://worldmonitor.app',
+          'https://brians-world-monitor.vercel.app',
           { extra: { 'cf-connecting-ip': uniqueCallerIp(), 'x-wm-edge-proof': 'edge-secret-xyz' } },
         ));
         assert.equal(res.status, 429);
@@ -1111,7 +1111,7 @@ describe('api/mcp-proxy', () => {
     it('emits audit log on validation failure (status: 400)', async () => {
       const res = await handler(makeGetRequest(
         { serverUrl: 'https://localhost/mcp' },
-        'https://worldmonitor.app',
+        'https://brians-world-monitor.vercel.app',
         { extra: { 'cf-connecting-ip': uniqueCallerIp(), 'x-real-ip': uniqueCallerIp() } },
       ));
       assert.equal(res.status, 400);

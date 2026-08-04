@@ -50,7 +50,7 @@ function fixtureResult() {
 }
 
 test('parseArgs reads url + flags with sane defaults', () => {
-  assert.deepEqual(parseArgs(['node', 's.mjs']).url, 'https://www.worldmonitor.app/dashboard');
+  assert.deepEqual(parseArgs(['node', 's.mjs']).url, 'https://www.brians-world-monitor.vercel.app/dashboard');
   const a = parseArgs(['node', 's.mjs', 'http://127.0.0.1:4173/dashboard', '--cpu', '4', '--json']);
   assert.equal(a.url, 'http://127.0.0.1:4173/dashboard');
   assert.equal(a.cpu, 4);

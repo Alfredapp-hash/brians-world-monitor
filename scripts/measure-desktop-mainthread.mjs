@@ -24,7 +24,7 @@
  *
  * Usage:
  *   node scripts/measure-desktop-mainthread.mjs [url] [--cpu 1] [--settle 15000] [--json]
- *   (default url: https://www.worldmonitor.app/dashboard; --cpu 1 = no throttle, matches Lighthouse desktop)
+ *   (default url: https://www.brians-world-monitor.vercel.app/dashboard; --cpu 1 = no throttle, matches Lighthouse desktop)
  */
 import { pathToFileURL } from 'node:url';
 
@@ -270,7 +270,7 @@ export function summarizeLongTasks(entries) {
 }
 
 export function parseArgs(argv) {
-  const args = { url: 'https://www.worldmonitor.app/dashboard', cpu: 1, settle: 15000, json: false };
+  const args = { url: 'https://www.brians-world-monitor.vercel.app/dashboard', cpu: 1, settle: 15000, json: false };
   const rest = argv.slice(2);
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];

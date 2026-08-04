@@ -102,40 +102,56 @@ describe('readBootstrapTierObject', () => {
   });
 
   it('returns timeout promptly when the caller-supplied signal expires', async () => {
-    const timeoutMs = 10;
-    const startedAt = performance.now();
-    const result = await readBootstrapTierObject('fast', readerOptions(null, {
-      timeoutMs,
-      awsClientFactory: () => ({
-        fetch: async (_url, { signal }) => await new Promise((_resolve, reject) => {
-          signal.addEventListener('abort', () => reject(signal.reason), { once: true });
-        }),
-      }),
-    }));
-
-    assert.equal(result.status, 'fallback');
-    assert.equal(result.reason, 'timeout');
-    assertDuration(result);
-    assert.ok(performance.now() - startedAt < 500, 'reader should not hang beyond its timeout');
-  });
-
-  it('returns timeout when the response body stalls after headers arrive', async () => {
-    const result = await readBootstrapTierObject('fast', readerOptions(null, {
-      timeoutMs: 10,
-      awsClientFactory: () => ({
-        fetch: async (_url, { signal }) => ({
-          status: 200,
-          ok: true,
-          json: async () => await new Promise((_resolve, reject) => {
+    // AbortSignal.timeout()'s internal timer is unref'd by design, so it never
+    // fires if it is the only thing keeping the event loop alive (as happens
+    // here, since the mocked fetch performs no real I/O). Hold a ref'd timer
+    // open for the duration of the wait so the abort event actually arrives.
+    const keepAlive = setInterval(() => {}, 1000);
+    try {
+      const timeoutMs = 10;
+      const startedAt = performance.now();
+      const result = await readBootstrapTierObject('fast', readerOptions(null, {
+        timeoutMs,
+        awsClientFactory: () => ({
+          fetch: async (_url, { signal }) => await new Promise((_resolve, reject) => {
             signal.addEventListener('abort', () => reject(signal.reason), { once: true });
           }),
         }),
-      }),
-    }));
+      }));
 
-    assert.equal(result.status, 'fallback');
-    assert.equal(result.reason, 'timeout');
-    assertDuration(result);
+      assert.equal(result.status, 'fallback');
+      assert.equal(result.reason, 'timeout');
+      assertDuration(result);
+      assert.ok(performance.now() - startedAt < 500, 'reader should not hang beyond its timeout');
+    } finally {
+      clearInterval(keepAlive);
+    }
+  });
+
+  it('returns timeout when the response body stalls after headers arrive', async () => {
+    // See note above: keep the event loop alive so the unref'd
+    // AbortSignal.timeout() timer actually fires during this mocked wait.
+    const keepAlive = setInterval(() => {}, 1000);
+    try {
+      const result = await readBootstrapTierObject('fast', readerOptions(null, {
+        timeoutMs: 10,
+        awsClientFactory: () => ({
+          fetch: async (_url, { signal }) => ({
+            status: 200,
+            ok: true,
+            json: async () => await new Promise((_resolve, reject) => {
+              signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+            }),
+          }),
+        }),
+      }));
+
+      assert.equal(result.status, 'fallback');
+      assert.equal(result.reason, 'timeout');
+      assertDuration(result);
+    } finally {
+      clearInterval(keepAlive);
+    }
   });
 
   it('returns invalid for malformed JSON', async () => {
