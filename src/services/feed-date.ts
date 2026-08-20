@@ -16,10 +16,11 @@
  *     records whether the source had a parseable timestamp.
  *   - `effectivePubDateMs(item)` returns 0 for items with `pubDateMissing:
  *     true`, otherwise `item.pubDate.getTime()`. Every ranking/recency
- *     consumer in `src/services/` and `src/app/` MUST route through this
- *     helper instead of calling `item.pubDate.getTime()` directly. The
- *     static guardrail test `tests/feed-date-ranking-uses-effective.test.
- *     mts` enforces this.
+ *     consumer — including `src/services/`, `src/app/`, NCI burst timing
+ *     in `src/utils/nci-score.ts`, and Coverage Compare LIVE — MUST route
+ *     through this helper instead of calling `item.pubDate.getTime()`
+ *     directly. The static guardrail test `tests/feed-date-ranking-uses-
+ *     effective.test.mts` enforces the scanned surfaces.
  *
  * Recency-window semantics: returning 0 makes any positive-duration
  * recency gate (`Date.now() - effectivePubDateMs(item) < windowMs`)

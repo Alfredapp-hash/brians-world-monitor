@@ -16,6 +16,7 @@
  *
  * Pure functions, no DOM.
  */
+import { effectivePubDateMs } from '../services/feed-date';
 import { normalizeTitle, LOADED_TERMS, type TalkingPointAnalysis } from './talking-points';
 
 export type IndicatorSource = 'auto' | 'ai' | 'default' | 'manual';
@@ -146,7 +147,7 @@ export function scaleScore(fraction: number): 1 | 2 | 3 | 4 | 5 {
 }
 
 export interface NciClusterInput {
-  titles: Array<{ source: string; title: string; pubDate?: Date }>;
+  titles: Array<{ source: string; title: string; pubDate?: Date; pubDateMissing?: boolean }>;
   tp: TalkingPointAnalysis;
 }
 
@@ -187,9 +188,36 @@ function evidenceFor(hit: LexiconHit): string {
   return `${Math.round(hit.fraction * 100)}% of headlines: ${hit.matched.slice(0, 5).join(', ')}`;
 }
 
-/** Max items published within any rolling 2-hour window, as a fraction of all items. */
-function burstFraction(titles: NciClusterInput['titles']): number {
-  const times = titles.map(t => t.pubDate?.getTime()).filter((n): n is number => Number.isFinite(n)).sort((a, b) => a - b);
+interface DatedPublishTimes {
+  times: number[];
+  missingCount: number;
+}
+
+/**
+ * Collect real publication timestamps for burst/timing analysis.
+ * Items with `pubDateMissing`, no `pubDate`, or an effective stamp of 0
+ * are excluded — synthesized "now" stamps must not look like a simultaneous
+ * burst. Matches the velocity.ts pattern: filter missing dates, then
+ * `effectivePubDateMs` (never treat 0 as a clustered epoch timestamp).
+ */
+function collectDatedPublishMs(titles: NciClusterInput['titles']): DatedPublishTimes {
+  const times: number[] = [];
+  let missingCount = 0;
+  for (const t of titles) {
+    if (t.pubDate == null || t.pubDateMissing === true) {
+      missingCount++;
+      continue;
+    }
+    const ms = effectivePubDateMs(t);
+    if (ms > 0) times.push(ms);
+    else missingCount++;
+  }
+  times.sort((a, b) => a - b);
+  return { times, missingCount };
+}
+
+/** Max dated items published within any rolling 2-hour window, as a fraction of dated items. */
+function burstFractionFromTimes(times: number[]): number {
   if (times.length < 3) return 0;
   const WINDOW = 2 * 60 * 60 * 1000;
   let best = 0;
@@ -201,16 +229,30 @@ function burstFraction(titles: NciClusterInput['titles']): number {
   return best / times.length;
 }
 
+function timingEvidence(burst: number, missingCount: number): string {
+  const missingNote = missingCount > 0
+    ? ` (${missingCount} undated excluded)`
+    : '';
+  if (burst > 0) {
+    return `${Math.round(burst * 100)}% of dated items published within a 2-hour window${missingNote}`;
+  }
+  if (missingCount > 0) {
+    return `Insufficient dated timestamps to assess timing (${missingCount} item${missingCount === 1 ? '' : 's'} missing pubDate).`;
+  }
+  return 'Insufficient timing spread to assess.';
+}
+
 export function heuristicNciScore(input: NciClusterInput): NciResult {
   const { titles, tp } = input;
   const scores = new Map<number, IndicatorScore>();
   const set = (id: number, score: 1 | 2 | 3 | 4 | 5, evidence: string, source: IndicatorSource = 'auto') =>
     scores.set(id, { score, evidence, source });
 
-  // 1. Suspicious timing — publication burst tightness across outlets.
-  const burst = burstFraction(titles);
-  set(1, scaleScore(burst >= 0.8 && titles.length >= 4 ? burst : burst * 0.6),
-    burst > 0 ? `${Math.round(burst * 100)}% of items published within a 2-hour window` : 'Insufficient timing spread to assess.');
+  // 1. Suspicious timing — publication burst tightness across dated outlets.
+  const { times, missingCount } = collectDatedPublishMs(titles);
+  const burst = burstFractionFromTimes(times);
+  set(1, scaleScore(burst >= 0.8 && times.length >= 4 ? burst : burst * 0.6),
+    timingEvidence(burst, missingCount));
 
   // 2. Emotional manipulation — loaded-language density.
   const loaded = lexiconScan(titles, LOADED_TERMS);

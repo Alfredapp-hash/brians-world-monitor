@@ -1,16 +1,15 @@
 /**
- * Static guardrail: every ranking/recency consumer of feed-item pubDate in
- * `src/services/` and `src/app/` MUST route through `effectivePubDateMs`
- * from `src/services/feed-date.ts`. Without this guard, a future ranking
- * call site could silently call `item.pubDate.getTime()` directly and
- * re-introduce the false-freshness bug U3 fixed.
+ * Static guardrail: ranking/recency consumers of feed-item pubDate in
+ * `src/services/`, `src/app/`, `src/utils/`, and Coverage Compare MUST
+ * route through `effectivePubDateMs` from `src/services/feed-date.ts`.
+ * Without this guard, a future ranking call site could silently call
+ * `item.pubDate.getTime()` directly and re-introduce the false-freshness
+ * bug U3 fixed.
  *
- * Audit shape: walks .ts files under src/services/ and src/app/, finds
- * every line containing `.pubDate.getTime()` inside a freshness comparator
- * or recency gate, and fails if that line doesn't ALSO reference
- * `effectivePubDateMs`. Files have an explicit per-line allow-list with
- * documented reasons for legitimate non-ranking uses (metadata storage,
- * identity keys, embedding index timestamps).
+ * Audit shape: walks .ts files under src/services/, src/app/, and
+ * src/utils/, plus Coverage Compare (LIVE badge), finds every line
+ * containing `.pubDate.getTime()` inside a freshness comparator or recency
+ * gate, and fails if that line doesn't ALSO reference `effectivePubDateMs`.
  *
  * Self-fixture: also pins the regex against synthetic samples for both
  * the sort-comparator shape (`b.pubDate.getTime() - a.pubDate.getTime()`)
@@ -31,7 +30,8 @@ import { displayPubDateMs, effectivePubDateMs } from '../src/services/feed-date'
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..');
 
-const SCAN_DIRS = ['src/services', 'src/app'];
+const SCAN_DIRS = ['src/services', 'src/app', 'src/utils'];
+const SCAN_EXTRA_FILES = ['src/components/CoverageComparePanel.ts'];
 
 // Files (path, line number) that legitimately use raw .pubDate.getTime()
 // for NON-ranking purposes — metadata storage, identity key generation,
@@ -159,7 +159,7 @@ describe('feed-date freshness guardrail — effectivePubDateMs usage', () => {
     );
   });
 
-  it('every .pubDate.getTime() in src/services + src/app is helper-routed or explicitly allow-listed', () => {
+  it('every scanned .pubDate.getTime() is helper-routed or explicitly allow-listed', () => {
     const violations: Array<{ file: string; line: number; text: string }> = [];
 
     for (const dir of SCAN_DIRS) {
@@ -180,6 +180,20 @@ describe('feed-date freshness guardrail — effectivePubDateMs usage', () => {
           if (isAllowed(file, i + 1)) continue;
           violations.push({ file, line: i + 1, text: trimmed });
         }
+      }
+    }
+
+    for (const file of SCAN_EXTRA_FILES) {
+      const src = readFileSync(resolve(repoRoot, file), 'utf8');
+      const lines = src.split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        const text = lines[i]!;
+        if (!PUBDATE_GETTIME_RE.test(text)) continue;
+        const trimmed = text.trim();
+        if (trimmed.startsWith('*') || trimmed.startsWith('//')) continue;
+        if (EFFECTIVE_HELPER_RE.test(text)) continue;
+        if (isAllowed(file, i + 1)) continue;
+        violations.push({ file, line: i + 1, text: trimmed });
       }
     }
 
@@ -263,5 +277,17 @@ describe('feed-date freshness guardrail — effectivePubDateMs usage', () => {
   it('EFFECTIVE_HELPER_RE matches a comparator using the helper', () => {
     const sample = 'items.sort((a, b) => effectivePubDateMs(b) - effectivePubDateMs(a));';
     assert.ok(EFFECTIVE_HELPER_RE.test(sample));
+  });
+
+  it('Coverage Compare LIVE badge and NCI titles pass through effectivePubDateMs / pubDateMissing', () => {
+    const panel = readFileSync(resolve(repoRoot, 'src/components/CoverageComparePanel.ts'), 'utf8');
+    assert.match(panel, /effectivePubDateMs/);
+    assert.match(panel, /pubDateMissing:\s*i\.pubDateMissing/);
+    assert.equal(
+      /i\.item\.pubDate\.getTime\s*\(/.test(panel),
+      false,
+      'LIVE gate must not read raw item.pubDate.getTime()',
+    );
+    assert.match(panel, /undated/);
   });
 });
