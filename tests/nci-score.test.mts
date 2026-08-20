@@ -103,3 +103,58 @@ describe('nci-score', () => {
     assert.equal(ai!.scores.get(2)!.score, 1);
   });
 });
+
+describe('nci-score pubDateMissing timing', () => {
+  const undated = (source: string, title: string) => ({
+    source,
+    title,
+    pubDate: new Date(),
+    pubDateMissing: true as boolean,
+    isWire: false,
+    isState: false,
+  });
+
+  it('does not treat synthesized missing pubDates as a simultaneous burst', () => {
+    const result = scoreCluster([
+      undated('Outlet A', 'Parliament passes annual budget after committee review'),
+      undated('Outlet B', 'Annual budget approved with amendments to transit funding'),
+      undated('Outlet C', 'Budget vote concludes with bipartisan support in chamber'),
+      undated('Outlet D', 'Lawmakers complete the annual spending bill for the year'),
+    ]);
+    const timing = result.scores.get(1)!;
+    assert.equal(timing.score, 1, `undated items must not raise suspicious-timing (got ${timing.score})`);
+    assert.match(timing.evidence, /missing pubDate/i);
+  });
+
+  it('still scores a real dated burst and discloses undated exclusions', () => {
+    const base = Date.now();
+    const dated = (source: string, title: string, offsetMin: number) => ({
+      source,
+      title,
+      pubDate: new Date(base - offsetMin * 60_000),
+      pubDateMissing: false,
+      isWire: false,
+      isState: false,
+    });
+    const result = heuristicNciScore({
+      titles: [
+        dated('Outlet A', 'Quiet local story about a bridge repair downtown', 4),
+        dated('Outlet B', 'City crews finish overnight repairs on the main bridge', 6),
+        dated('Outlet C', 'Bridge reopens after overnight maintenance work ends', 8),
+        dated('Outlet D', 'Traffic returns to normal after the overnight bridge work', 10),
+        undated('Outlet E', 'Regional paper covers the same bridge repair without a date'),
+      ],
+      tp: analyzeTalkingPoints([
+        t('Outlet A', 'Quiet local story about a bridge repair downtown'),
+        t('Outlet B', 'City crews finish overnight repairs on the main bridge'),
+        t('Outlet C', 'Bridge reopens after overnight maintenance work ends'),
+        t('Outlet D', 'Traffic returns to normal after the overnight bridge work'),
+        t('Outlet E', 'Regional paper covers the same bridge repair without a date'),
+      ]),
+    });
+    const timing = result.scores.get(1)!;
+    assert.ok(timing.score >= 3, `dated 2-hour cluster should still score bursty (got ${timing.score})`);
+    assert.match(timing.evidence, /dated items published within a 2-hour window/);
+    assert.match(timing.evidence, /1 undated excluded/);
+  });
+});
