@@ -16,7 +16,7 @@
  *
  * Pure functions, no DOM.
  */
-import { normalizeTitle, LOADED_TERMS, type TalkingPointAnalysis } from './talking-points';
+import { normalizeTitle, LOADED_TERMS, phraseKindLabel, type TalkingPointAnalysis } from './talking-points';
 
 export type IndicatorSource = 'auto' | 'ai' | 'default' | 'manual';
 
@@ -78,8 +78,8 @@ export const NCI_TIERS: NciTier[] = [
   { min: 0, max: 20, label: 'Low indication of coordinated manipulation', level: 0 },
   { min: 21, max: 40, label: 'Some persuasive or propaganda techniques present', level: 1 },
   { min: 41, max: 60, label: 'Significant manipulation indicators', level: 2 },
-  { min: 61, max: 80, label: 'Strong likelihood of an organized influence campaign', level: 3 },
-  { min: 81, max: 100, label: 'Extreme, highly coordinated engineered-reality environment', level: 4 },
+  { min: 61, max: 80, label: 'High concentration of influence-campaign indicators', level: 3 },
+  { min: 81, max: 100, label: 'Extreme concentration of engineered-reality indicators', level: 4 },
 ];
 
 export function tierFor(normalized: number): NciTier {
@@ -221,7 +221,7 @@ export function heuristicNciScore(input: NciClusterInput): NciResult {
   const syncFrac = tp.syncScore / 100;
   set(3, scaleScore(coordinated.length > 0 ? Math.max(syncFrac, 0.2) : syncFrac * 0.5),
     coordinated.length > 0
-      ? `Sync ${tp.syncScore}% — coordinated phrase${coordinated.length > 1 ? 's' : ''}: ${coordinated.slice(0, 2).map(p => `"${p.phrase}"`).join(', ')}`
+      ? `Sync ${tp.syncScore}% — non-wire shared phrase${coordinated.length > 1 ? 's' : ''}: ${coordinated.slice(0, 2).map(p => `"${p.phrase}"`).join(', ')}`
       : `Sync ${tp.syncScore}% — no non-wire shared phrasing.`);
 
   // 6. Tribal framing.
@@ -262,12 +262,12 @@ export function heuristicNciScore(input: NciClusterInput): NciResult {
   const outrage = lexiconScan(titles, OUTRAGE);
   set(17, scaleScore(outrage.fraction), evidenceFor(outrage));
 
-  // 18. Framing & language manipulation — loaded phrasing inside coordinated phrases.
+  // 18. Framing & language manipulation — loaded phrasing inside non-wire shared phrases.
   const loadedCoord = coordinated.filter(p => p.loaded);
   const framingSignal = Math.min(1, loaded.fraction * 0.6 + (loadedCoord.length > 0 ? 0.4 : 0));
   set(18, scaleScore(framingSignal),
     loadedCoord.length
-      ? `Loaded coordinated phrasing: ${loadedCoord.slice(0, 2).map(p => `"${p.phrase}"`).join(', ')}`
+      ? `Loaded non-wire shared phrasing: ${loadedCoord.slice(0, 2).map(p => `"${p.phrase}"`).join(', ')}`
       : evidenceFor(loaded));
 
   // 19. Rapid behavior-change push.
@@ -493,7 +493,12 @@ export function buildNciReport(storyTitle: string, result: NciResult, extra: {
   if (extra.aiSummary) lines.push(`**AI assessment:** ${extra.aiSummary}`, '');
   if (extra.phrases?.length) {
     lines.push(`## Synchronized phrasing`, '');
-    for (const p of extra.phrases) lines.push(`- "${p.phrase}" (${p.kind}) — ${p.sources.join(', ')}`);
+    for (const p of extra.phrases) {
+      const kind = p.kind === 'syndication' || p.kind === 'coordinated'
+        ? phraseKindLabel(p.kind)
+        : p.kind;
+      lines.push(`- "${p.phrase}" (${kind}) — ${p.sources.join(', ')}`);
+    }
     lines.push('');
   }
   lines.push(`## Indicators (1 = not present, 5 = strongly present)`, '');

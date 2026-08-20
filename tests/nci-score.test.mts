@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   heuristicNciScore, tierFor, scaleScore, buildNciPrompt,
-  parseAiNciResponse, mergeNci, NCI_INDICATORS,
+  parseAiNciResponse, mergeNci, buildNciReport, NCI_INDICATORS, NCI_TIERS,
 } from '../src/utils/nci-score';
 import { analyzeTalkingPoints, type TitleForAnalysis } from '../src/utils/talking-points';
 
@@ -101,5 +101,32 @@ describe('nci-score', () => {
     assert.ok(ai);
     assert.equal(ai!.scores.get(1)!.score, 5);
     assert.equal(ai!.scores.get(2)!.score, 1);
+  });
+
+  it('tier 3–4 labels describe indicator concentration, not a collusion verdict', () => {
+    const labels = NCI_TIERS.map(t => t.label).join('\n');
+    assert.equal(/likelihood of an organized influence campaign/i.test(labels), false);
+    assert.equal(/engineered-reality environment/i.test(labels), false);
+    assert.match(NCI_TIERS[3]!.label, /indicators/i);
+    assert.match(NCI_TIERS[4]!.label, /indicators/i);
+    assert.equal(tierFor(70).label, NCI_TIERS[3]!.label);
+    assert.equal(tierFor(90).label, NCI_TIERS[4]!.label);
+  });
+
+  it('heuristic evidence and exported reports do not label shared phrasing as coordinated', () => {
+    const result = scoreCluster([
+      t('Outlet A', 'Officials warn of unprecedented security threat at the border', 5),
+      t('Outlet B', 'Nation faces unprecedented security threat, lawmakers say', 8),
+      t('Outlet C', 'Why the unprecedented security threat changes everything', 6),
+    ]);
+    const syncEvidence = result.scores.get(3)!.evidence;
+    assert.equal(/coordinated phrase/i.test(syncEvidence), false);
+    const report = buildNciReport('Test story', result, {
+      sources: ['Outlet A', 'Outlet B', 'Outlet C'],
+      phrases: [{ phrase: 'unprecedented security threat', kind: 'coordinated', sources: ['Outlet A', 'Outlet B', 'Outlet C'] }],
+    });
+    assert.equal(/\(\s*coordinated\s*\)/i.test(report), false);
+    assert.match(report, /shared phrasing/);
+    assert.match(report, /does not by itself prove/i);
   });
 });

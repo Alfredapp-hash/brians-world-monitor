@@ -1,6 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzeTalkingPoints, findSharedPhrases, type TitleForAnalysis } from '../src/utils/talking-points';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { analyzeTalkingPoints, findSharedPhrases, phraseKindLabel, phraseKindTitle, type TitleForAnalysis } from '../src/utils/talking-points';
 
 const t = (source: string, title: string, opts: Partial<TitleForAnalysis> = {}): TitleForAnalysis => ({
   source, title, isWire: false, isState: false, ...opts,
@@ -91,5 +94,24 @@ describe('talking-points', () => {
     ];
     const phrases = findSharedPhrases(titles, 2);
     assert.equal(phrases.length, 0);
+  });
+
+  it('user-facing phrase labels never claim coordination as a verdict', () => {
+    assert.equal(phraseKindLabel('syndication'), 'wire copy');
+    assert.equal(phraseKindLabel('coordinated'), 'shared phrasing');
+    assert.equal(phraseKindLabel('coordinated').toLowerCase().includes('coordinat'), false);
+    assert.match(phraseKindTitle('coordinated'), /not proof of coordination/i);
+    assert.match(phraseKindTitle('syndication'), /syndication/i);
+  });
+
+  it('Coverage Compare renders phrase kinds through phraseKindLabel, not a "coordinated" verdict chip', () => {
+    const panel = readFileSync(
+      resolve(dirname(fileURLToPath(import.meta.url)), '../src/components/CoverageComparePanel.ts'),
+      'utf8',
+    );
+    assert.match(panel, /phraseKindLabel/);
+    assert.equal(panel.includes("'⚠ coordinated'"), false);
+    assert.equal(panel.includes('"⚠ coordinated"'), false);
+    assert.equal(panel.includes('from coordinated messaging'), false);
   });
 });
