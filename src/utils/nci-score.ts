@@ -208,7 +208,7 @@ function collectDatedPublishMs(titles: NciClusterInput['titles']): DatedPublishT
       missingCount++;
       continue;
     }
-    const ms = effectivePubDateMs(t);
+    const ms = effectivePubDateMs({ pubDate: t.pubDate, pubDateMissing: t.pubDateMissing });
     if (ms > 0) times.push(ms);
     else missingCount++;
   }

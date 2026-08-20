@@ -53,22 +53,22 @@ const ALLOW_LIST: AllowEntry[] = [
   },
   {
     file: 'src/services/feed-date.ts',
-    line: 72,
+    line: 73,
     reason: 'effectivePubDateMs implementation — the helper itself necessarily calls .getTime() on the underlying Date.',
   },
   {
     file: 'src/services/feed-date.ts',
-    line: 83,
+    line: 84,
     reason: 'effectivePubDateMs implementation — string-input branch reconstructs Date and reads getTime; covered by NaN/Infinity guard immediately below.',
   },
   {
     file: 'src/services/feed-date.ts',
-    line: 91,
+    line: 92,
     reason: 'displayPubDateMs implementation — preserves display timestamps for cache serialization; not used as a freshness comparator.',
   },
   {
     file: 'src/services/feed-date.ts',
-    line: 98,
+    line: 99,
     reason: 'displayPubDateMs implementation — string-input branch reconstructs a display timestamp; not used as a freshness comparator.',
   },
   {
