@@ -11,6 +11,7 @@ describe('operator live-tick allowlist', () => {
   it('ticks telegram-intel only — Railway relay, not Redis', () => {
     assert.match(panels, /OPERATOR_LIVE_TICK_PANELS:\s*readonly string\[\]\s*=\s*\['telegram-intel'\]/);
     assert.doesNotMatch(panels, /OPERATOR_LIVE_TICK_PANELS[\s\S]{0,80}ais/i);
+    assert.doesNotMatch(panels, /OPERATOR_LIVE_TICK_PANELS[\s\S]{0,80}predictions/);
   });
 
   it('RefreshScheduler oneShot skips live-tick panels', () => {

@@ -74,7 +74,7 @@ import {
   mergeStockAnalysisHistory,
   type StockAnalysisHistory,
 } from '@/services/stock-analysis-history';
-import { checkBatchForBreakingAlerts, dispatchOrefBreakingAlert } from '@/services/breaking-news-alerts';
+import { checkBatchForBreakingAlerts, dispatchOrefBreakingAlert, dispatchTelegramBreakingAlert } from '@/services/breaking-news-alerts';
 import { displayPubDateMs, effectivePubDateMs } from '@/services/feed-date';
 import { mlWorker } from '@/services/ml-worker';
 import { clusterNewsHybrid } from '@/services/clustering';
@@ -3974,6 +3974,7 @@ export class DataLoaderManager implements AppModule {
     try {
       const result = await fetchTelegramFeed();
       this.callPanel('telegram-intel', 'setData', result);
+      dispatchTelegramBreakingAlert(result.items || []);
     } catch (error) {
       console.error('[App] Telegram intel fetch failed:', error);
       this.callPanel('telegram-intel', 'setData', {

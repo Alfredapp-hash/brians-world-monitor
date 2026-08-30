@@ -38,18 +38,51 @@ describe('breaking-news-alerts oref_siren integration', () => {
   });
 
   it('bypasses global cooldown (no isGlobalCooldown check)', () => {
-    const fnBody = SRC.slice(SRC.indexOf('function dispatchOrefBreakingAlert'), SRC.indexOf('export function initBreakingNewsAlerts'));
+    const fnBody = SRC.slice(SRC.indexOf('function dispatchOrefBreakingAlert'), SRC.indexOf('export function dispatchTelegramBreakingAlert'));
     assert.ok(!fnBody.includes('isGlobalCooldown'), 'should not check global cooldown');
   });
 
   it('checks isDuplicate for per-event dedupe', () => {
-    const fnBody = SRC.slice(SRC.indexOf('function dispatchOrefBreakingAlert'), SRC.indexOf('export function initBreakingNewsAlerts'));
+    const fnBody = SRC.slice(SRC.indexOf('function dispatchOrefBreakingAlert'), SRC.indexOf('export function dispatchTelegramBreakingAlert'));
     assert.ok(fnBody.includes('isDuplicate'), 'should check isDuplicate');
   });
 
   it('returns early when settings disabled or no alerts', () => {
-    const fnBody = SRC.slice(SRC.indexOf('function dispatchOrefBreakingAlert'), SRC.indexOf('export function initBreakingNewsAlerts'));
+    const fnBody = SRC.slice(SRC.indexOf('function dispatchOrefBreakingAlert'), SRC.indexOf('export function dispatchTelegramBreakingAlert'));
     assert.ok(fnBody.includes('!settings.enabled') && fnBody.includes('!alerts.length'), 'should guard settings and empty alerts');
+  });
+});
+
+describe('breaking-news-alerts telegram_osint integration', () => {
+  it('includes telegram_osint in origin union type', () => {
+    assert.ok(SRC.includes("'telegram_osint'"), 'origin type should include telegram_osint');
+  });
+
+  it('exports dispatchTelegramBreakingAlert', () => {
+    assert.ok(SRC.includes('export function dispatchTelegramBreakingAlert('));
+  });
+
+  it('banners only breaking, conflict, and middleeast topics', () => {
+    assert.match(SRC, /TELEGRAM_BANNER_TOPICS = new Set\(\['breaking', 'conflict', 'middleeast'\]\)/);
+  });
+
+  it('gates on 15-minute recency', () => {
+    assert.match(SRC, /TELEGRAM_BANNER_RECENCY_MS = 15 \* 60 \* 1000/);
+  });
+
+  it('dedupes with a tg: prefix', () => {
+    const fnBody = SRC.slice(SRC.indexOf('function dispatchTelegramBreakingAlert'), SRC.indexOf('export function initBreakingNewsAlerts'));
+    assert.ok(fnBody.includes("'tg:'"));
+    assert.ok(fnBody.includes('isDuplicate'));
+  });
+});
+
+describe('oref poll interval', () => {
+  const oref = readFileSync(join(__dirname, '..', 'src', 'services', 'oref-alerts.ts'), 'utf8');
+
+  it('polls Railway every 60s, not 120s', () => {
+    assert.match(oref, /intervalMs:\s*60_000/);
+    assert.doesNotMatch(oref, /intervalMs:\s*120_000/);
   });
 });
 
@@ -70,5 +103,27 @@ describe('data-loader oref breaking news wiring', () => {
     const orefSection = DL.slice(DL.indexOf('// OREF sirens'), DL.indexOf('// GPS/GNSS'));
     const callbackSection = orefSection.slice(orefSection.indexOf('onOrefAlertsUpdate'));
     assert.ok(callbackSection.includes('dispatchOrefBreakingAlert'), 'should call in update callback');
+  });
+});
+
+describe('data-loader telegram breaking news wiring', () => {
+  const DL = readFileSync(join(__dirname, '..', 'src', 'app', 'data-loader.ts'), 'utf8');
+
+  it('imports dispatchTelegramBreakingAlert', () => {
+    assert.ok(DL.includes('dispatchTelegramBreakingAlert'));
+  });
+
+  it('dispatches after telegram feed setData', () => {
+    const tg = DL.slice(DL.indexOf('async loadTelegramIntel'), DL.indexOf('async loadThermalEscalations'));
+    assert.ok(tg.includes("this.callPanel('telegram-intel', 'setData', result)"));
+    assert.ok(tg.includes('dispatchTelegramBreakingAlert(result.items'));
+  });
+});
+
+describe('breaking banner telegram click target', () => {
+  const banner = readFileSync(join(__dirname, '..', 'src', 'components', 'BreakingNewsBanner.ts'), 'utf8');
+
+  it('scrolls telegram_osint alerts to the Telegram Intel panel', () => {
+    assert.match(banner, /alert\.origin === 'telegram_osint'\) return 'telegram-intel'/);
   });
 });

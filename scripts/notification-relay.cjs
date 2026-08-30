@@ -707,6 +707,8 @@ const PERMISSIVE_UNATTRIBUTED_EVENT_TYPES = new Set([
   'hotspot_escalation',
   'military_surge',
   'watchlist_story_alert',
+  // Telegram OSINT/ME leads are multi-country; region tags are not ISO-2.
+  'telegram_osint',
 ]);
 
 function isPermissiveUnattributedEvent(event) {
