@@ -87,11 +87,14 @@ This fork is a personal dashboard, not the upstream SaaS free tier.
   not auto-disabled. Custom widgets (`cw-*`) stay pro-only.
 - Full-variant map defaults now paint already-hydrated feeds: protests,
   GPS jamming, UCDP, climate, displacement, fires, CII choropleth,
-  disease outbreaks, radiation. Mobile stays lighter (protests + fires).
+  disease outbreaks, radiation, cables, pipelines, storage, fuel
+  shortages, AIS, flights, trade routes, minerals, and webcams. Mobile
+  stays lighter (protests, fires, flights).
 - Full variant also shows Internet Disruptions, Service Status,
   Chokepoint Status, Climate News, Energy Risk Overview, Gulf Economies,
-  and Consumer Prices.
-- Returning browsers pick this up once via `jsam-live-display-v1`.
+  Consumer Prices, grocery/Big Mac/fuel/FAO indexes, calendars, AAII,
+  FSI, yield curve, COT, giving, and geo hubs.
+- Returning browsers pick this up once via `jsam-live-display-v2`.
   After deploy, hard-refresh. If an old layout is still stuck, clear
   site data for the app origin.
 

@@ -860,8 +860,9 @@ export class App {
 
       // One-time: undo the free-tier 40-panel clamp and paint live map
       // layers whose feeds already hydrate. Returning visitors otherwise
-      // keep the clamped-off localStorage set forever.
-      const JSAM_LIVE_DISPLAY_KEY = 'jsam-live-display-v1';
+      // keep the clamped-off localStorage set forever. v2 also turns on
+      // cables/AIS/flights/pipelines and remaining seeded panels.
+      const JSAM_LIVE_DISPLAY_KEY = 'jsam-live-display-v2';
       if (!localStorage.getItem(JSAM_LIVE_DISPLAY_KEY)) {
         const variantKeys = VARIANT_DEFAULTS[currentVariant] ?? [];
         for (const key of variantKeys) {
@@ -871,11 +872,10 @@ export class App {
           panelSettings[key] = { ...(prev ?? config), ...config, enabled: true };
         }
         if (currentVariant === 'full') {
-          const liveLayers: Array<keyof MapLayers> = isMobile
-            ? ['protests', 'fires']
-            : ['protests', 'gpsJamming', 'ucdpEvents', 'climate', 'displacement', 'fires', 'ciiChoropleth', 'diseaseOutbreaks', 'radiationWatch'];
           const nextLayers: MapLayers = { ...mapLayers };
-          for (const key of liveLayers) nextLayers[key] = true;
+          for (const [key, on] of Object.entries(defaultLayers) as Array<[keyof MapLayers, boolean]>) {
+            if (on) nextLayers[key] = true;
+          }
           mapLayers = normalizeExclusiveChoropleths(
             sanitizeLayersForVariant(nextLayers, currentVariant as MapVariant),
             null,

@@ -95,6 +95,9 @@ describe('variant panel config resolution', () => {
     assert.equal(passed['ucdp-events']?.enabled, true);
     assert.equal(passed['internet-disruptions']?.enabled, true);
     assert.equal(passed['chokepoint-strip']?.enabled, true);
+    assert.equal(passed['aaii-sentiment']?.enabled, true);
+    assert.equal(passed['grocery-basket']?.enabled, true);
+    assert.equal(passed['geo-hubs']?.enabled, true);
     assert.ok(counted > FREE_MAX_PANELS, `expected more than ${FREE_MAX_PANELS} live panels, got ${counted}`);
   });
 
