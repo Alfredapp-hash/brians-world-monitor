@@ -1,5 +1,5 @@
 import type { AppContext, AppModule } from '@/app/app-context';
-import { OPERATOR_REFRESH_ON_LOAD_ONLY } from '@/config/panels';
+import { isOperatorLiveTickPanel, OPERATOR_REFRESH_ON_LOAD_ONLY } from '@/config/panels';
 import { startSmartPollLoop, VisibilityHub, type SmartPollLoopHandle } from '@/services/runtime';
 
 export interface RefreshRegistration {
@@ -52,7 +52,7 @@ export class RefreshScheduler implements AppModule {
   ): void {
     this.refreshRunners.get(name)?.loop.stop();
 
-    const oneShot = OPERATOR_REFRESH_ON_LOAD_ONLY;
+    const oneShot = OPERATOR_REFRESH_ON_LOAD_ONLY && !isOperatorLiveTickPanel(name);
     const loop = startSmartPollLoop(async () => {
       if (this.ctx.inFlight.has(name)) return;
 
@@ -84,7 +84,6 @@ export class RefreshScheduler implements AppModule {
   }
 
   flushStaleRefreshes(): void {
-    if (OPERATOR_REFRESH_ON_LOAD_ONLY) return;
     if (!this.hiddenSince) return;
     const hiddenMs = Date.now() - this.hiddenSince;
     this.hiddenSince = 0;
@@ -96,7 +95,8 @@ export class RefreshScheduler implements AppModule {
 
     // Collect stale tasks and sort by interval ascending (highest-frequency first)
     const stale: { loop: SmartPollLoopHandle; intervalMs: number }[] = [];
-    for (const entry of this.refreshRunners.values()) {
+    for (const [name, entry] of this.refreshRunners.entries()) {
+      if (OPERATOR_REFRESH_ON_LOAD_ONLY && !isOperatorLiveTickPanel(name)) continue;
       if (hiddenMs >= entry.intervalMs) {
         stale.push(entry);
       }

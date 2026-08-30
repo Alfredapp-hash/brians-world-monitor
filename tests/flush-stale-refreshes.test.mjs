@@ -113,19 +113,31 @@ function stripTSAnnotations(src) {
   return src.replace(/:\s*\{\s*loop[^}]+\}\[\]/g, '');
 }
 
-function buildFlushStaleRefreshes(timers) {
+function buildFlushStaleRefreshes(timers, {
+  OPERATOR_REFRESH_ON_LOAD_ONLY = false,
+  isOperatorLiveTickPanel = () => false,
+} = {}) {
   const rawBody = extractMethodBody(appSrc, 'flushStaleRefreshes');
   const methodBody = stripTSAnnotations(rawBody);
-  const factory = new Function('Date', 'setTimeout', 'clearTimeout', `
+  const factory = new Function(
+    'Date',
+    'setTimeout',
+    'clearTimeout',
+    'OPERATOR_REFRESH_ON_LOAD_ONLY',
+    'isOperatorLiveTickPanel',
+    `
     return function flushStaleRefreshes() {
       ${methodBody}
     };
-  `);
+  `,
+  );
 
   return factory(
     { now: () => timers.now },
     timers.setTimeout.bind(timers),
-    timers.clearTimeout.bind(timers)
+    timers.clearTimeout.bind(timers),
+    OPERATOR_REFRESH_ON_LOAD_ONLY,
+    isOperatorLiveTickPanel,
   );
 }
 
@@ -330,5 +342,28 @@ describe('flushStaleRefreshes behavior', () => {
     timers.runAll();
 
     assert.equal(called, false, 'Non-stale service should not be triggered');
+  });
+
+  it('refresh-on-load-only still flushes live-tick panels after a long hide', () => {
+    const flushed = [];
+    flushStaleRefreshes = buildFlushStaleRefreshes(timers, {
+      OPERATOR_REFRESH_ON_LOAD_ONLY: true,
+      isOperatorLiveTickPanel: (name) => name === 'telegram-intel',
+    });
+
+    ctx.refreshRunners.set('telegram-intel', {
+      loop: { trigger: () => { flushed.push('telegram-intel'); } },
+      intervalMs: 60_000,
+    });
+    ctx.refreshRunners.set('news', {
+      loop: { trigger: () => { flushed.push('news'); } },
+      intervalMs: 60_000,
+    });
+
+    ctx.hiddenSince = timers.now - 600_000;
+    flushStaleRefreshes.call(ctx);
+    timers.runAll();
+
+    assert.deepEqual(flushed, ['telegram-intel']);
   });
 });

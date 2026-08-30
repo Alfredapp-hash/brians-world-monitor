@@ -114,9 +114,13 @@ This fork is a personal dashboard, not the upstream SaaS free tier.
 - `/api/wm-session` fail-opens if Upstash rate-limit Redis is exhausted so
   a free-tier 500k-command cap cannot 503 the whole dashboard.
 - Dashboard **loads Redis data once per page load**. Refresh the browser
-  (F5) to update. No background poll. Redis-backed API rate limits are
+  (F5) to update Redis-backed panels. Redis-backed API rate limits are
   skipped on this fork (one operator). Seeders run twice a day (06:00 and
   18:00 UTC). Together that is what keeps command count near Free.
+- **Telegram Intel ticks every 60s** while the tab is visible (Railway
+  relay, not Redis). OSINT and Middle East are client-side tabs on that
+  same feed. Do not add AIS or other Redis surfaces to
+  `OPERATOR_LIVE_TICK_PANELS`.
 
 ## Seeded panels — Upstash Redis + scheduled seeders (full activation)
 
