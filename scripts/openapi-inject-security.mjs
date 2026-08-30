@@ -238,6 +238,14 @@ function appendGateNote(description, note) {
   return `${text} ${note}`;
 }
 
+function stripStaleProNotes(description) {
+  let text = String(description ?? '');
+  text = text.replace(/\s*PRO-gated\. Requires an active Pro subscription\./g, '');
+  text = text.replace(/\s*PRO-gated\. Requires entitlement tier >= \d+\./g, '');
+  text = text.replace(/\s*Requires entitlement tier >= \d+\./g, '');
+  return text.replace(/\s+$/g, '');
+}
+
 // ── Per-service JSON injection ──────────────────────────────────────────────
 function injectJson(spec) {
   let changed = false;
@@ -335,7 +343,13 @@ function injectJson(spec) {
         } else {
           // Plain authenticated op: no route-specific gate, but the account-state
           // (#4611) 403 still applies to any authed route. Do not clobber a more
-          // specific 403 (handled by the branches above).
+          // specific 403 (handled by the branches above). Strip stale Pro notes
+          // if this path left PREMIUM_RPC_PATHS / ENDPOINT_ENTITLEMENTS.
+          const stripped = stripStaleProNotes(op.description);
+          if (op.description !== stripped) {
+            op.description = stripped;
+            changed = true;
+          }
           if (!eq(op.responses['403'], INACTIVE_ACCESS_FORBIDDEN_RESPONSE)) {
             op.responses['403'] = INACTIVE_ACCESS_FORBIDDEN_RESPONSE;
             changed = true;
@@ -780,7 +794,7 @@ function ensureYamlForbiddenSchema(lines) {
 }
 
 function injectYamlEntitlementContract(text) {
-  const lines = text.split('\n');
+  const lines = text.split(/\r?\n/);
   let changed = false;
   // Tracks whether the ForbiddenError schema is needed — set by EITHER an
   // entitlement path or a premium-only path, since both 403 families reference
@@ -1023,7 +1037,7 @@ function enumerateYamlOperations(lines) {
 // presence) + root API-key security + UnauthorizedError schema + per-operation
 // 401 / public security:[] opt-outs / bearer stamping.
 function injectYamlAuthContract(text) {
-  const lines = text.split('\n');
+  const lines = text.split(/\r?\n/);
   let changed = false;
 
   const operations = enumerateYamlOperations(lines);

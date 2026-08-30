@@ -8,7 +8,6 @@ import type {
 } from '../../../../src/generated/server/worldmonitor/supply_chain/v1/service_server';
 import { ValidationError } from '../../../../src/generated/server/worldmonitor/supply_chain/v1/service_server';
 
-import { isCallerPremium } from '../../../_shared/premium-check';
 import { getCachedJson } from '../../../_shared/redis';
 import { CHOKEPOINT_REGISTRY } from '../../../_shared/chokepoint-registry';
 import { CHOKEPOINT_STATUS_KEY } from '../../../_shared/cache-keys';
@@ -64,7 +63,7 @@ function emptyResponse(
 }
 
 export async function getMultiSectorCostShock(
-  ctx: ServerContext,
+  _ctx: ServerContext,
   req: GetMultiSectorCostShockRequest,
 ): Promise<GetMultiSectorCostShockResponse> {
   const iso2 = (req.iso2 ?? '').trim().toUpperCase();
@@ -85,9 +84,6 @@ export async function getMultiSectorCostShock(
   if (!CHOKEPOINT_REGISTRY.some(c => c.id === chokepointId)) {
     throw new ValidationError([{ field: 'chokepointId', description: `Unknown chokepointId: ${chokepointId}` }]);
   }
-
-  const isPro = await isCallerPremium(ctx.request);
-  if (!isPro) return emptyResponse(iso2, chokepointId, closureDays);
 
   // Seeder writes the products payload via raw key (no env-prefix) — read raw.
   const productsKey = `comtrade:bilateral-hs4:${iso2}:v1`;

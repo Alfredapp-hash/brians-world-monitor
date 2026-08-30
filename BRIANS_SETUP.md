@@ -96,7 +96,13 @@ This fork is a personal dashboard, not the upstream SaaS free tier.
   Chokepoint Status, Climate News, Energy Risk Overview, Gulf Economies,
   Consumer Prices, grocery/Big Mac/fuel/FAO indexes, calendars, AAII,
   FSI, yield curve, COT, giving, geo hubs, Windy cams, and tech hubs.
-- Returning browsers pick this up once via `jsam-live-display-v3`.
+- Regional Intelligence, Global Procurement, Trade Policy, and WSB
+  Ticker Scanner are default-on Redis reads (no LLM spend). Resilience
+  choropleth is unlocked as a toggle (conflicts with CII, so stays
+  default-off). LLM surfaces stay gated: stock analysis/backtest,
+  daily market brief, market implications, deduction, chat-analyst,
+  latest-brief, classify-event, scenario run, MCP proxy.
+- Returning browsers pick this up once via `jsam-live-display-v4`.
   After deploy, hard-refresh. If an old layout is still stuck, clear
   site data for the app origin.
 

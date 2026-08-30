@@ -42,7 +42,6 @@ export class WsbTickerScannerPanel extends Panel {
       title: t('panels.wsbTickerScanner'),
       infoTooltip: t('components.wsbTickerScanner.infoTooltip'),
       showCount: true,
-      premium: 'locked',
     });
 
     this.content.addEventListener('click', (e) => {

@@ -861,9 +861,9 @@ export class App {
 
       // One-time: undo the free-tier 40-panel clamp and paint live map
       // layers whose feeds already hydrate. Returning visitors otherwise
-      // keep the clamped-off localStorage set forever. v3 adds cyber,
-      // satellites, day/night, datacenters, spaceports, and irradiators.
-      const JSAM_LIVE_DISPLAY_KEY = 'jsam-live-display-v3';
+      // keep the clamped-off localStorage set forever. v4 adds regional
+      // intelligence, WSB, procurement, and trade-policy (Redis, no LLM).
+      const JSAM_LIVE_DISPLAY_KEY = 'jsam-live-display-v4';
       if (!localStorage.getItem(JSAM_LIVE_DISPLAY_KEY)) {
         const variantKeys = VARIANT_DEFAULTS[currentVariant] ?? [];
         for (const key of variantKeys) {

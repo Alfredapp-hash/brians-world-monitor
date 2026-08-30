@@ -121,12 +121,12 @@ describe('premium gateway API key enforcement', () => {
     const resilienceScoreNoKey = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-score?countryCode=US', {
       headers: { Origin: 'https://brians-world-monitor.vercel.app' },
     }));
-    assert.equal(resilienceScoreNoKey.status, 401);
+    assert.equal(resilienceScoreNoKey.status, 401, 'resilience still requires a wms_ session (#3541)');
 
     const resilienceRankingNoKey = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-ranking', {
       headers: { Origin: 'https://brians-world-monitor.vercel.app' },
     }));
-    assert.equal(resilienceRankingNoKey.status, 401);
+    assert.equal(resilienceRankingNoKey.status, 401, 'resilience still requires a wms_ session (#3541)');
 
     // Trusted browser origin with valid API key — 200 (API-key holders bypass entitlement check)
     const browserWithKey = await handler(new Request('https://brians-world-monitor.vercel.app/api/market/v1/analyze-stock?symbol=AAPL', {
@@ -324,12 +324,15 @@ describe('premium gateway API key enforcement', () => {
       },
     ]);
 
-    for (const path of ['/api/market/v1/analyze-stock?symbol=AAPL', '/api/resilience/v1/get-resilience-score?countryCode=US']) {
-      const res = await handler(new Request(`https://brians-world-monitor.vercel.app${path}`, {
-        headers: { Origin: 'https://brians-world-monitor.vercel.app', 'X-WorldMonitor-Key': SESSION_TOKEN },
-      }));
-      assert.notEqual(res.status, 200, `wms_ MUST NOT unlock ${path} (got ${res.status})`);
-    }
+    const stockRes = await handler(new Request('https://brians-world-monitor.vercel.app/api/market/v1/analyze-stock?symbol=AAPL', {
+      headers: { Origin: 'https://brians-world-monitor.vercel.app', 'X-WorldMonitor-Key': SESSION_TOKEN },
+    }));
+    assert.notEqual(stockRes.status, 200, `wms_ MUST NOT unlock LLM stock analysis (got ${stockRes.status})`);
+
+    const resilienceRes = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-score?countryCode=US', {
+      headers: { Origin: 'https://brians-world-monitor.vercel.app', 'X-WorldMonitor-Key': SESSION_TOKEN },
+    }));
+    assert.equal(resilienceRes.status, 200, 'wms_ session unlocks public Redis resilience reads');
   });
 
   it('strips client-supplied x-user-id before an anonymous session reaches handlers', async () => {
@@ -722,64 +725,27 @@ describe('premium gateway bearer token auth', () => {
     assert.equal(res.status, 401);
   });
 
-  it('rejects free bearer token on resilience premium endpoints → 403', async () => {
-    const token = await signToken({ sub: 'user_free', plan: 'free' });
+  it('Clerk bearer alone does not unlock public Redis resilience (needs wms_ session)', async () => {
+    const freeToken = await signToken({ sub: 'user_free', plan: 'free' });
+    const proToken = await signToken({ sub: 'user_pro', plan: 'pro' });
 
-    const scoreRes = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-score?countryCode=US', {
+    for (const token of [freeToken, proToken]) {
+      const scoreRes = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-score?countryCode=US', {
+        headers: {
+          Origin: 'https://brians-world-monitor.vercel.app',
+          Authorization: `Bearer ${token}`,
+        },
+      }));
+      assert.equal(scoreRes.status, 401);
+    }
+
+    const sessionRes = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-score?countryCode=US', {
       headers: {
         Origin: 'https://brians-world-monitor.vercel.app',
-        Authorization: `Bearer ${token}`,
+        'X-WorldMonitor-Key': SESSION_TOKEN,
       },
     }));
-    assert.equal(scoreRes.status, 403);
-
-    const rankingRes = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-ranking', {
-      headers: {
-        Origin: 'https://brians-world-monitor.vercel.app',
-        Authorization: `Bearer ${token}`,
-      },
-    }));
-    assert.equal(rankingRes.status, 403);
-  });
-
-  it('rejects invalid bearer token on resilience premium endpoints → 401', async () => {
-    const token = await signToken({ sub: 'user_bad', plan: 'pro' }, { key: wrongPrivateKey });
-
-    const scoreRes = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-score?countryCode=US', {
-      headers: {
-        Origin: 'https://brians-world-monitor.vercel.app',
-        Authorization: `Bearer ${token}`,
-      },
-    }));
-    assert.equal(scoreRes.status, 401);
-
-    const rankingRes = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-ranking', {
-      headers: {
-        Origin: 'https://brians-world-monitor.vercel.app',
-        Authorization: `Bearer ${token}`,
-      },
-    }));
-    assert.equal(rankingRes.status, 401);
-  });
-
-  it('accepts valid Pro bearer token on resilience premium endpoints → 200', async () => {
-    const token = await signToken({ sub: 'user_pro', plan: 'pro' });
-
-    const scoreRes = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-score?countryCode=US', {
-      headers: {
-        Origin: 'https://brians-world-monitor.vercel.app',
-        Authorization: `Bearer ${token}`,
-      },
-    }));
-    assert.equal(scoreRes.status, 200);
-
-    const rankingRes = await handler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-ranking', {
-      headers: {
-        Origin: 'https://brians-world-monitor.vercel.app',
-        Authorization: `Bearer ${token}`,
-      },
-    }));
-    assert.equal(rankingRes.status, 200);
+    assert.equal(sessionRes.status, 200);
   });
 
   it('rewrites spoofed x-user-id from a verified legacy bearer before reaching handlers', async () => {
@@ -787,14 +753,14 @@ describe('premium gateway bearer token auth', () => {
     const headerEchoHandler = createDomainGateway([
       {
         method: 'GET',
-        path: '/api/resilience/v1/get-resilience-score',
+        path: '/api/market/v1/analyze-stock',
         handler: async (request) => new Response(JSON.stringify({
           userId: request.headers.get('x-user-id'),
         }), { status: 200 }),
       },
     ]);
 
-    const res = await headerEchoHandler(new Request('https://brians-world-monitor.vercel.app/api/resilience/v1/get-resilience-score?countryCode=US', {
+    const res = await headerEchoHandler(new Request('https://brians-world-monitor.vercel.app/api/market/v1/analyze-stock?symbol=AAPL', {
       headers: {
         Origin: 'https://brians-world-monitor.vercel.app',
         Authorization: `Bearer ${token}`,

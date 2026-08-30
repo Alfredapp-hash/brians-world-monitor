@@ -59,7 +59,6 @@ export class GlobalProcurementPanel extends Panel {
       title: 'Global Procurement',
       defaultRowSpan: 2,
       showCount: true,
-      premium: 'locked',
       infoTooltip: 'Search active official procurement opportunities. Results are seed-backed and source health is reported explicitly.',
     });
     this.showLoading('Loading procurement opportunities…');

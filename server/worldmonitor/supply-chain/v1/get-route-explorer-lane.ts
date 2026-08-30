@@ -2,7 +2,6 @@
  * GET /api/supply-chain/v1/get-route-explorer-lane
  *
  * Internal wrapper around the vendor-only `route-intelligence` compute. Adds:
- *   - Browser-callable PRO gating via `premium-paths.ts` (no forceKey API-key gate)
  *   - `primaryRouteGeometry` polyline for map rendering
  *   - `fromPort` / `toPort` on every bypass option (so the client can feed
  *     `MapContainer.setBypassRoutes` directly without its own geometry lookup)
@@ -29,7 +28,6 @@ import type {
   NumberRange,
 } from '../../../../src/generated/server/worldmonitor/supply_chain/v1/service_server';
 
-import { isCallerPremium } from '../../../_shared/premium-check';
 import { cachedFetchJson, getCachedJson } from '../../../_shared/redis';
 import { ROUTE_EXPLORER_LANE_KEY } from '../../../_shared/cache-keys';
 import { CHOKEPOINT_STATUS_KEY } from '../../../_shared/cache-keys';
@@ -301,15 +299,13 @@ export async function computeLane(
 }
 
 export async function getRouteExplorerLane(
-  ctx: ServerContext,
+  _ctx: ServerContext,
   req: GetRouteExplorerLaneRequest,
 ): Promise<GetRouteExplorerLaneResponse> {
-  const isPro = await isCallerPremium(ctx.request);
   const hs2 = req.hs2?.trim().replace(/\D/g, '') || '27';
   const cargo = CARGO_TYPES.has(req.cargoType?.trim().toLowerCase() ?? '')
     ? req.cargoType.trim().toLowerCase()
     : 'container';
-  if (!isPro) return emptyResponse(req, hs2, cargo);
 
   const fromIso2 = req.fromIso2?.trim().toUpperCase() ?? '';
   const toIso2 = req.toIso2?.trim().toUpperCase() ?? '';

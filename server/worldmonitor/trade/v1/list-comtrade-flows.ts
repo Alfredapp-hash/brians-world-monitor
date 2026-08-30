@@ -7,7 +7,6 @@ import type {
 import filterParamContracts from '../../../../shared/openapi-filter-param-contracts.json';
 import strategicProductMetadata from '../../../../scripts/shared/comtrade-strategic-products.json';
 import { getCachedJsonBatch } from '../../../_shared/redis';
-import { isCallerPremium } from '../../../_shared/premium-check';
 
 const KEY_PREFIX = 'comtrade:flows';
 
@@ -24,12 +23,9 @@ function isValidCode(c: string): boolean {
 }
 
 export async function listComtradeFlows(
-  ctx: ServerContext,
+  _ctx: ServerContext,
   req: ListComtradeFlowsRequest,
 ): Promise<ListComtradeFlowsResponse> {
-  const isPro = await isCallerPremium(ctx.request);
-  if (!isPro) return { flows: [], fetchedAt: '', upstreamUnavailable: true };
-
   try {
     const reporters = req.reporterCode && isValidCode(req.reporterCode) ? [req.reporterCode] : REPORTERS;
     const cmdCodes = req.cmdCode && CMD_CODE_RE.test(req.cmdCode) ? [req.cmdCode] : CMD_CODES;

@@ -147,8 +147,8 @@ describe('intelligence handler registration', () => {
 // ────────────────────────────────────────────────────────────────────────────
 
 describe('security wiring', () => {
-  it('adds the endpoint to PREMIUM_RPC_PATHS', () => {
-    assert.match(premiumPathsSrc, /'\/api\/intelligence\/v1\/get-regime-history'/);
+  it('is a public Redis-read RPC on this fork (not in PREMIUM_RPC_PATHS)', () => {
+    assert.doesNotMatch(premiumPathsSrc, /'\/api\/intelligence\/v1\/get-regime-history'/);
   });
 
   it('has a RPC_CACHE_TIER entry for route-parity', () => {
