@@ -76,7 +76,13 @@ Variables):**
   Watch, Pipeline Status, Storage Atlas, Fuel Shortages, Energy Disruptions,
   Security Advisories) after running `./scripts/run-seeders.sh`
 
-`scripts/panel-audit.mjs` re-runs the audit against any URL
+Windows: `npx playwright install chromium` once, then:
+
+```
+SMOKE_URL=https://brians-world-monitor.vercel.app/dashboard node scripts/operator-no-llm-smoke.mjs
+```
+
+`scripts/panel-audit.mjs` walks every rendered panel against any URL
 (`SMOKE_URL=https://your-app.vercel.app node scripts/panel-audit.mjs`).
 
 ## Operator live display (2026-08-27)
@@ -105,6 +111,11 @@ This fork is a personal dashboard, not the upstream SaaS free tier.
 - Returning browsers pick this up once via `jsam-live-display-v4`.
   After deploy, hard-refresh. If an old layout is still stuck, clear
   site data for the app origin.
+- `/api/wm-session` fail-opens if Upstash rate-limit Redis is exhausted so
+  a free-tier 500k-command cap cannot 503 the whole dashboard. Seeders run
+  every 2 hours instead of every 30 minutes for the same reason. If Redis
+  reads themselves start failing, wait for the daily Upstash reset or
+  upgrade the database.
 
 ## Seeded panels — Upstash Redis + scheduled seeders (full activation)
 

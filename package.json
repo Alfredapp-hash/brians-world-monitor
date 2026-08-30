@@ -86,6 +86,7 @@
     "test:data": "tsx --test --test-concurrency=16 tests/*.test.mjs tests/*.test.mts cli/test/*.test.mjs api/security/report.test.mjs",
     "test:resilience-validation-smoke": "tsx --test tests/resilience-validation-artifacts-schema.test.mts tests/benchmark-resilience-external.test.mjs tests/backtest-resilience-outcomes.test.mjs tests/resilience-sensitivity-v2.test.mts tests/seed-bundle-resilience-validation.test.mjs tests/resilience-validation-import-graph.test.mjs",
     "dryrun:resilience": "node --import tsx/esm scripts/dry-run-resilience-rebalance.mjs",
+    "smoke:operator": "node scripts/operator-no-llm-smoke.mjs",
     "test:feeds": "node scripts/validate-rss-feeds.mjs",
     "test:feeds:ci": "node scripts/validate-rss-feeds.mjs --ci",
     "test:sidecar": "node --test src-tauri/sidecar/local-api-server.test.mjs src-tauri/open-url-safety.test.mjs api/_cors.test.mjs api/_session.test.mjs api/_api-key.test.mjs api/_user-api-key.test.mjs api/_rate-limit.test.mjs api/_sentry-common.test.mjs api/bootstrap-auth.test.mjs api/wm-session.test.mjs api/product-catalog.test.mjs api/youtube/embed.test.mjs api/cyber-threats.test.mjs api/usni-fleet.test.mjs api/rss-proxy.test.mjs scripts/ais-relay-rss.test.cjs api/loaders-xml-wms-regression.test.mjs api/security/report.test.mjs",

@@ -26,10 +26,12 @@ name: Seed Data
 # seeders comfortably fit inside timeout-minutes below. It requires bash
 # (invoked explicitly below, not `sh`) for `wait -n`.
 #
-# Triggers: every 30 min, on manual dispatch, and once on push of this file.
+# Triggers: every 2 hours (Upstash free tier is 500k commands/day; 30-min
+# fan-out plus dashboard rate-limit reads exhausted that cap), on manual
+# dispatch, and once on push of this file.
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '0 */2 * * *'
   workflow_dispatch:
   push:
     branches: [main]
