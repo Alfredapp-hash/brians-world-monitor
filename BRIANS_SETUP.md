@@ -118,9 +118,10 @@ This fork is a personal dashboard, not the upstream SaaS free tier.
   skipped on this fork (one operator). Seeders run twice a day (06:00 and
   18:00 UTC). Together that is what keeps command count near Free.
 - **Telegram Intel ticks every 60s** while the tab is visible (Railway
-  relay, not Redis). OSINT and Middle East are client-side tabs on that
-  same feed. Do not add AIS or other Redis surfaces to
-  `OPERATOR_LIVE_TICK_PANELS`.
+  relay, not Redis). OSINT, Middle East, cyber, conflict, breaking, and
+  geopolitics are client-side tabs on that same feed (up to 200 posts).
+  The default `full` poll set includes the 8 tech/cyber channels. Do not
+  add AIS or other Redis surfaces to `OPERATOR_LIVE_TICK_PANELS`.
 
 ## Seeded panels — Upstash Redis + scheduled seeders (full activation)
 

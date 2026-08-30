@@ -507,6 +507,78 @@
         "enabled": true,
         "region": "middleeast",
         "maxMessages": 15
+      },
+      {
+        "handle": "thehackernews",
+        "label": "The Hacker News",
+        "topic": "cyber",
+        "tier": 2,
+        "enabled": true,
+        "region": "global",
+        "maxMessages": 25
+      },
+      {
+        "handle": "cybersecboardrm",
+        "label": "Cybersecurity Boardroom",
+        "topic": "cyber",
+        "tier": 3,
+        "enabled": true,
+        "region": "global",
+        "maxMessages": 15
+      },
+      {
+        "handle": "securelist",
+        "label": "Securelist by Kaspersky",
+        "topic": "cyber",
+        "tier": 3,
+        "enabled": true,
+        "region": "global",
+        "maxMessages": 15
+      },
+      {
+        "handle": "DarkWebInformer",
+        "label": "Dark Web Informer",
+        "topic": "cyber",
+        "tier": 3,
+        "enabled": true,
+        "region": "global",
+        "maxMessages": 20
+      },
+      {
+        "handle": "CYBERWARCOM",
+        "label": "CYBERWAR.COM",
+        "topic": "cyber",
+        "tier": 2,
+        "enabled": true,
+        "region": "global",
+        "maxMessages": 25
+      },
+      {
+        "handle": "thecyberwire",
+        "label": "The CyberWire",
+        "topic": "cyber",
+        "tier": 2,
+        "enabled": true,
+        "region": "global",
+        "maxMessages": 20
+      },
+      {
+        "handle": "vxunderground",
+        "label": "vx-underground",
+        "topic": "cyber",
+        "tier": 2,
+        "enabled": true,
+        "region": "global",
+        "maxMessages": 20
+      },
+      {
+        "handle": "falconfeeds",
+        "label": "FalconFeeds.io",
+        "topic": "cyber",
+        "tier": 3,
+        "enabled": true,
+        "region": "global",
+        "maxMessages": 15
       }
     ],
     "tech": [

@@ -173,7 +173,7 @@ export default async function handler(req) {
 
   try {
     const url = new URL(req.url);
-    const limit = Math.max(1, Math.min(200, parseInt(url.searchParams.get('limit') || '50', 10) || 50));
+    const limit = Math.max(1, Math.min(200, parseInt(url.searchParams.get('limit') || '200', 10) || 200));
     const topic = (url.searchParams.get('topic') || '').trim();
     const channel = (url.searchParams.get('channel') || '').trim();
     const params = new URLSearchParams();
