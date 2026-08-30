@@ -78,11 +78,11 @@
   "airportCount": 115,
   "stockExchangeCount": 29,
   "centralBankInstitutionCount": 14,
-  "telegramFullEnabledChannels": 56,
+  "telegramFullEnabledChannels": 64,
   "telegramFullTierCounts": {
     "1": 3,
-    "2": 23,
-    "3": 30
+    "2": 27,
+    "3": 34
   },
   "leaderNames": 16,
   "populationPriorityCountries": 20,

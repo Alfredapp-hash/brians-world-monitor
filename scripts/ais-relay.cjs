@@ -808,6 +808,31 @@ const orefState = {
   _historyCache: null, // { json, gzip, brotli }
 };
 
+function telegramMediaCaption(msg) {
+  if (!msg) return '';
+  if (msg.photo) return '[photo]';
+  if (msg.video) return '[video]';
+  if (msg.document) return '[file]';
+  if (msg.webPreview) return '[link]';
+  if (msg.media) return '[media]';
+  return '';
+}
+
+function normalizeTelegramChannelList(channels) {
+  return channels
+    .filter(c => c && typeof c.handle === 'string' && c.handle.length > 1)
+    .map(c => ({
+      handle: String(c.handle).replace(/^@/, ''),
+      label: c.label ? String(c.label) : undefined,
+      topic: c.topic ? String(c.topic) : undefined,
+      region: c.region ? String(c.region) : undefined,
+      tier: c.tier != null ? Number(c.tier) : undefined,
+      enabled: c.enabled !== false,
+      maxMessages: c.maxMessages != null ? Number(c.maxMessages) : undefined,
+    }))
+    .filter(c => c.enabled);
+}
+
 function loadTelegramChannels() {
   // Product-managed curated list lives in repo root under data/ (shared by web + desktop).
   // Relay is executed from scripts/, so resolve ../data.
@@ -815,21 +840,20 @@ function loadTelegramChannels() {
   const set = String(process.env.TELEGRAM_CHANNEL_SET || 'full').toLowerCase();
   try {
     const raw = JSON.parse(readFileSync(p, 'utf8'));
-    const bucket = raw?.channels?.[set];
-    const channels = Array.isArray(bucket) ? bucket : [];
+    const buckets = raw?.channels && typeof raw.channels === 'object' ? raw.channels : {};
+    const primary = Array.isArray(buckets[set]) ? buckets[set] : [];
+    // Operator default: also poll the tech/cyber set on the same MTProto session.
+    const extra = set === 'full' && Array.isArray(buckets.tech) ? buckets.tech : [];
+    const seen = new Set();
+    const merged = [];
+    for (const c of [...primary, ...extra]) {
+      const handle = String(c?.handle || '').replace(/^@/, '').toLowerCase();
+      if (!handle || seen.has(handle)) continue;
+      seen.add(handle);
+      merged.push(c);
+    }
 
-    telegramState.channels = channels
-      .filter(c => c && typeof c.handle === 'string' && c.handle.length > 1)
-      .map(c => ({
-        handle: String(c.handle).replace(/^@/, ''),
-        label: c.label ? String(c.label) : undefined,
-        topic: c.topic ? String(c.topic) : undefined,
-        region: c.region ? String(c.region) : undefined,
-        tier: c.tier != null ? Number(c.tier) : undefined,
-        enabled: c.enabled !== false,
-        maxMessages: c.maxMessages != null ? Number(c.maxMessages) : undefined,
-      }))
-      .filter(c => c.enabled);
+    telegramState.channels = normalizeTelegramChannelList(merged);
 
     if (!telegramState.channels.length) {
       console.warn(`[Relay] Telegram channel set "${set}" is empty — no channels to poll`);
@@ -844,7 +868,7 @@ function loadTelegramChannels() {
 }
 
 function normalizeTelegramMessage(msg, channel) {
-  const textRaw = String(msg?.message || '');
+  const textRaw = String(msg?.message || telegramMediaCaption(msg) || '');
   const text = textRaw.slice(0, TELEGRAM_MAX_TEXT_CHARS);
   const ts = msg?.date ? new Date(msg.date * 1000).toISOString() : new Date().toISOString();
   return {
@@ -981,7 +1005,7 @@ async function pollTelegramOnce() {
 
       for (const msg of msgs) {
         if (!msg || !msg.id) continue;
-        if (!msg.message) { mediaSkipped++; continue; }
+        if (!msg.message && !telegramMediaCaption(msg)) { mediaSkipped++; continue; }
         const item = normalizeTelegramMessage(msg, channel);
         newItems.push(item);
         if (!telegramState.cursorByHandle[handle] || msg.id > telegramState.cursorByHandle[handle]) {
@@ -9892,7 +9916,7 @@ const server = http.createServer(async (req, res) => {
     // Telegram Early Signals feed (public channels)
     try {
       const url = new URL(req.url, `http://localhost:${PORT}`);
-      const limit = Math.max(1, Math.min(200, Number(url.searchParams.get('limit') || 50)));
+      const limit = Math.max(1, Math.min(200, Number(url.searchParams.get('limit') || 200)));
       const topic = (url.searchParams.get('topic') || '').trim().toLowerCase();
       const channel = (url.searchParams.get('channel') || '').trim().toLowerCase();
 
