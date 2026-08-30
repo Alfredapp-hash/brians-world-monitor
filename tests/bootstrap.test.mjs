@@ -487,7 +487,7 @@ describe('Bootstrap tier definitions', () => {
     const fast = tierKeys('fast');
     const onDemand = tierKeys('on-demand');
 
-    assert.ok(onDemand.has('cyberThreats'), 'cyberThreats must stay on-demand: its layer is off by default in every variant');
+    assert.ok(onDemand.has('cyberThreats'), 'cyberThreats must stay on-demand: the map layer fetches it when enabled');
     assert.ok(!slow.has('cyberThreats') && !fast.has('cyberThreats'), 'cyberThreats must not ride in a tier');
   });
 });

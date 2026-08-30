@@ -139,7 +139,8 @@ import { captureReferralFromUrl } from '@/services/referral-capture';
 // referenced via the inline `import(...)` type in app-context.ts (erased at build).
 import type { CorrelationPanel } from '@/components/CorrelationPanel';
 
-const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
+// Operator fork: cyber layer ships on unless explicitly disabled.
+const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER !== 'false';
 const FREE_MAP_PANEL_ACCESS_KEY = 'worldmonitor-free-map-panel-access-v1';
 type SignalModalInstance = import('@/components/SignalModal').SignalModal;
 
@@ -860,9 +861,9 @@ export class App {
 
       // One-time: undo the free-tier 40-panel clamp and paint live map
       // layers whose feeds already hydrate. Returning visitors otherwise
-      // keep the clamped-off localStorage set forever. v2 also turns on
-      // cables/AIS/flights/pipelines and remaining seeded panels.
-      const JSAM_LIVE_DISPLAY_KEY = 'jsam-live-display-v2';
+      // keep the clamped-off localStorage set forever. v3 adds cyber,
+      // satellites, day/night, datacenters, spaceports, and irradiators.
+      const JSAM_LIVE_DISPLAY_KEY = 'jsam-live-display-v3';
       if (!localStorage.getItem(JSAM_LIVE_DISPLAY_KEY)) {
         const variantKeys = VARIANT_DEFAULTS[currentVariant] ?? [];
         for (const key of variantKeys) {
