@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 183
 tags: [code-review, phase-0, regional-intelligence, api-design, refactor]
@@ -46,6 +46,8 @@ Change `_seed-utils.mjs` to accept `{ canonicalKey, payload, ttlSec, persisted, 
 - [ ] OR add a wrapper helper in seed-regional-snapshots that names the arguments
 
 ## Work Log
+
+- undefined: Fixed (Option 1) — added a local `writeSummaryWithMeta({ canonicalKey, payload, ttlSec, persisted, metaKey })` named-argument wrapper in `scripts/seed-regional-snapshots.mjs` around the shared `writeExtraKeyWithMeta`; the call site now passes named fields instead of 6 positional args with `ttlSec` duplicated. The shared `_seed-utils.mjs` helper signature was left untouched (used by ~157 other seeders).
 
 ## Resources
 - PR #2940

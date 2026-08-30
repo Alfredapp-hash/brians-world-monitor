@@ -94,9 +94,9 @@ describe('GlobeMap AIS ship traffic markers', () => {
   it('buildMarkerElement renders aisDisruption with severity-appropriate color', () => {
     assert.match(src, /d\._kind === 'aisDisruption'/,
       'buildMarkerElement must handle aisDisruption case');
-    // Color is severity-based
-    assert.match(src, /d\.severity === 'high'.*#ff2020.*d\.severity === 'elevated'.*#ff8800/s,
-      'aisDisruption marker should use red for high, orange for elevated');
+    // Color is severity-based (JSA severity ramp tokens: s5 critical, s3 warn)
+    assert.match(src, /d\.severity === 'high'.*SEVERITY\.s5.*d\.severity === 'elevated'.*SEVERITY\.s3/s,
+      'aisDisruption marker should use SEVERITY.s5 for high, SEVERITY.s3 for elevated');
   });
 
   it('showMarkerTooltip renders aisDisruption with name/type/severity fields', () => {

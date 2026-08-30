@@ -1,5 +1,6 @@
 import { h, Component } from 'preact';
 import { t } from '@/services/i18n';
+import { STATUS } from '@/styles/tokens';
 
 export interface VerificationCheck {
   id: string;
@@ -71,11 +72,14 @@ export class VerificationChecklist extends Component {
   render() {
     const result = this.calculateResult();
 
+    // Confidence ladder on the status scale, best → worst. Raw token
+    // constants (not CSS vars) because the score-display background
+    // derives an alpha variant via hex concatenation below.
     const verdictColors: Record<string, string> = {
-      verified: '#22c55e',
-      likely: '#84cc16',
-      uncertain: '#eab308',
-      unreliable: '#ef4444',
+      verified: STATUS.good,
+      likely: STATUS.info,
+      uncertain: STATUS.watch,
+      unreliable: STATUS.alert,
     };
 
     const verdictLabels: Record<string, string> = {

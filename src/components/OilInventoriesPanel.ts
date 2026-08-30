@@ -1,6 +1,7 @@
 import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { CATEGORY, NEUTRAL } from '@/styles/tokens';
 import { toApiUrl } from '@/services/runtime';
 
 // SVG chart constants
@@ -92,13 +93,13 @@ function buildStackedCrudeSprChart(merged: MergedWeek[]): string {
 
   // SPR area (bottom layer)
   const sprPts = complete.map((w, i) => ({ x: toX(i), y: toY(w.sprMb!) }));
-  const sprArea = `<path d="${areaPath(sprPts)}" fill="#f59e0b" opacity="0.25"/>`;
-  const sprLine = `<polyline points="${sprPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}" fill="none" stroke="#f59e0b" stroke-width="1.5" opacity="0.8"/>`;
+  const sprArea = `<path d="${areaPath(sprPts)}" fill="${CATEGORY.orange}" opacity="0.25"/>`;
+  const sprLine = `<polyline points="${sprPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}" fill="none" stroke="${CATEGORY.orange}" stroke-width="1.5" opacity="0.8"/>`;
 
   // Crude area (top layer, from sprMb to sprMb+crudeMb)
   const totalPts = complete.map((w, i) => ({ x: toX(i), y: toY(w.crudeMb! + w.sprMb!) }));
-  const crudeArea = `<path d="M${totalPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L')} L${sprPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).reverse().join(' L')} Z" fill="#3b82f6" opacity="0.2"/>`;
-  const totalLine = `<polyline points="${totalPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}" fill="none" stroke="#3b82f6" stroke-width="1.5" opacity="0.9"/>`;
+  const crudeArea = `<path d="M${totalPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L')} L${sprPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).reverse().join(' L')} Z" fill="${CATEGORY.blue}" opacity="0.2"/>`;
+  const totalLine = `<polyline points="${totalPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}" fill="none" stroke="${CATEGORY.blue}" stroke-width="1.5" opacity="0.9"/>`;
 
   const yAxis = buildYAxis(minV, maxV, '');
   const xAxis = buildXAxis(complete.map(w => fmtDate(w.period)), complete.length);
@@ -108,7 +109,7 @@ function buildStackedCrudeSprChart(merged: MergedWeek[]): string {
 
 function buildCrudeOnlyChart(weeks: MergedWeek[]): string {
   const data = weeks.map(w => ({ x: w.period, y: w.crudeMb! }));
-  return buildLineChart(data, '#3b82f6', '');
+  return buildLineChart(data, CATEGORY.blue, '');
 }
 
 function buildLineChart(data: Array<{ x: string; y: number }>, color: string, unit: string, h = CHART_H): string {
@@ -152,7 +153,7 @@ function buildIeaBarChart(members: IeaMember[]): string {
     const d = m.daysOfCover ?? 0;
     const barW = Math.max(0, (d / maxDays) * plotW);
     const y = 15 + i * barH;
-    const color = m.netExporter ? '#6b7280' : m.belowObligation ? '#ef4444' : '#22c55e';
+    const color = m.netExporter ? NEUTRAL.slateDim : m.belowObligation ? 'var(--status-alert)' : 'var(--status-good)';
     const label = m.netExporter ? 'Exp' : d > 0 ? `${d.toFixed(0)}d` : 'N/A';
     return `<rect x="${ML}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${(barH - 2).toFixed(1)}" fill="${color}" opacity="0.6" rx="1"/>
       <text x="${ML - 3}" y="${(y + barH / 2).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,0.5)" font-size="7" dominant-baseline="middle">${escapeHtml(m.iso2)}</text>
@@ -230,7 +231,7 @@ export class OilInventoriesPanel extends Panel {
     if (d.natGasWeeks?.length) {
       const reversed = [...d.natGasWeeks].reverse();
       const chartData = reversed.map(w => ({ x: w.period, y: w.storBcf }));
-      const chart = buildLineChart(chartData, '#22c55e', '', 120);
+      const chart = buildLineChart(chartData, CATEGORY.green, '', 120);
       const latest = d.natGasWeeks[0];
       const meta = latest
         ? `Storage: ${escapeHtml(fmtNum(latest.storBcf, 0))} Bcf ${changeBadge(latest.weeklyChangeBcf, 'WoW')}`
@@ -242,7 +243,7 @@ export class OilInventoriesPanel extends Panel {
     if (d.euGas && d.euGas.history?.length) {
       const reversed = [...d.euGas.history].reverse();
       const chartData = reversed.map(h => ({ x: h.date, y: h.fillPct }));
-      const chart = buildLineChart(chartData, '#14b8a6', '%', 100);
+      const chart = buildLineChart(chartData, CATEGORY.aqua, '%', 100);
       const sign = d.euGas.fillPctChange1d >= 0 ? '+' : '';
       const meta = `Fill: ${escapeHtml(fmtNum(d.euGas.fillPct))}% | Trend: ${escapeHtml(d.euGas.trend)} | ${escapeHtml(sign + fmtNum(d.euGas.fillPctChange1d, 2))}%/d`;
       parts.push(section('EU Gas Storage Fill', chart, meta));
@@ -256,7 +257,7 @@ export class OilInventoriesPanel extends Panel {
         d.ieaStocks.asiaPacific?.avgDays != null ? `AsiaPac avg ${d.ieaStocks.asiaPacific.avgDays.toFixed(0)}d` : '',
       ].filter(Boolean).join(' | ');
       const below = d.ieaStocks.members.filter(m => m.belowObligation).length;
-      const meta = `${reg}${below > 0 ? ` | <span style="color:#ef4444">${below} below 90d</span>` : ''} | Data: ${escapeHtml(d.ieaStocks.dataMonth)}`;
+      const meta = `${reg}${below > 0 ? ` | <span style="color:var(--status-alert)">${below} below 90d</span>` : ''} | Data: ${escapeHtml(d.ieaStocks.dataMonth)}`;
       parts.push(section('IEA OECD Oil Stocks (Days of Cover)', chart, meta));
     }
 
@@ -272,8 +273,8 @@ export class OilInventoriesPanel extends Panel {
     }
 
     const legend = `<div style="display:flex;gap:12px;font-size:9px;color:var(--text-dim);margin-top:2px">
-      <span><svg width="14" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="14" y2="2" stroke="#3b82f6" stroke-width="2"/></svg> Commercial</span>
-      <span><svg width="14" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="14" y2="2" stroke="#f59e0b" stroke-width="2"/></svg> SPR</span>
+      <span><svg width="14" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="14" y2="2" stroke="${CATEGORY.blue}" stroke-width="2"/></svg> Commercial</span>
+      <span><svg width="14" height="4" style="vertical-align:middle"><line x1="0" y1="2" x2="14" y2="2" stroke="${CATEGORY.orange}" stroke-width="2"/></svg> SPR</span>
     </div>`;
 
     this.setSafeContent(unsafeRawHtml(`<div class="energy-complex-content">${parts[0]}${legend}${parts.slice(1).join('')}

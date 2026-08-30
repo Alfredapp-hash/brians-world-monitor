@@ -7,6 +7,7 @@
  */
 
 import { createCircuitBreaker } from '@/utils/circuit-breaker';
+import { CATEGORY } from '@/styles/tokens';
 import { getHydratedData } from '@/services/bootstrap';
 import { toApiUrl } from '@/services/runtime';
 
@@ -22,7 +23,7 @@ export interface ProgressIndicator {
   code: string;         // World Bank indicator code
   label: string;
   unit: string;         // e.g., "years", "%", "per 1,000"
-  color: string;        // CSS color from happy theme
+  color: string;        // series hue from the CATEGORY token palette
   years: number;        // How many years of data to fetch
   invertTrend: boolean; // true for metrics where DOWN is good (mortality, poverty)
 }
@@ -67,7 +68,7 @@ export const PROGRESS_INDICATORS: ProgressIndicator[] = [
     code: 'SP.DYN.LE00.IN',
     label: 'Life Expectancy',
     unit: 'years',
-    color: '#6B8F5E',   // sage green
+    color: CATEGORY.green,
     years: 65,
     invertTrend: false,
   },
@@ -76,7 +77,7 @@ export const PROGRESS_INDICATORS: ProgressIndicator[] = [
     code: 'SE.ADT.LITR.ZS',
     label: 'Literacy Rate',
     unit: '%',
-    color: '#7BA5C4',   // soft blue
+    color: CATEGORY.blue,
     years: 55,
     invertTrend: false,
   },
@@ -85,7 +86,7 @@ export const PROGRESS_INDICATORS: ProgressIndicator[] = [
     code: 'SH.DYN.MORT',
     label: 'Child Mortality',
     unit: 'per 1,000',
-    color: '#C4A35A',   // warm gold
+    color: CATEGORY.gold,
     years: 65,
     invertTrend: true,
   },
@@ -94,7 +95,7 @@ export const PROGRESS_INDICATORS: ProgressIndicator[] = [
     code: 'SI.POV.DDAY',
     label: 'Extreme Poverty',
     unit: '%',
-    color: '#C48B9F',   // muted rose
+    color: CATEGORY.magenta,
     years: 45,
     invertTrend: true,
   },

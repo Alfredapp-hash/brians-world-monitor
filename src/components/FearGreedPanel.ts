@@ -2,6 +2,7 @@ import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
 import { getHydratedData } from '@/services/bootstrap';
+import { STATUS, withAlpha } from '@/styles/tokens';
 
 interface FearGreedData {
   compositeScore: number;
@@ -40,11 +41,11 @@ interface CategoryData {
 }
 
 function scoreColor(score: number): string {
-  if (score <= 20) return '#e74c3c';
-  if (score <= 40) return '#e67e22';
-  if (score <= 60) return '#f1c40f';
-  if (score <= 80) return '#2ecc71';
-  return '#27ae60';
+  if (score <= 20) return 'var(--status-alert)';
+  if (score <= 40) return 'var(--status-warn)';
+  if (score <= 60) return 'var(--status-watch)';
+  if (score <= 80) return withAlpha(STATUS.good, 0.72);
+  return 'var(--status-good)';
 }
 
 function fmt(v: number | null | undefined, digits = 2): string {
@@ -53,11 +54,11 @@ function fmt(v: number | null | undefined, digits = 2): string {
 }
 
 function getRegimeState(score: number): { state: string; stance: string; color: string } {
-  if (score <= 20) return { state: 'Crisis / Risk-Off',    stance: 'CASH',        color: '#c0392b' };
-  if (score <= 35) return { state: 'Stressed / Defensive', stance: 'DEFENSIVE',   color: '#e67e22' };
-  if (score <= 50) return { state: 'Fragile / Hedged',     stance: 'HEDGED',      color: '#f1c40f' };
-  if (score <= 65) return { state: 'Stable / Normal',      stance: 'NORMAL',      color: '#2ecc71' };
-  return               { state: 'Strong / Risk-On',       stance: 'AGGRESSIVE',  color: '#27ae60' };
+  if (score <= 20) return { state: 'Crisis / Risk-Off',    stance: 'CASH',        color: 'var(--status-alert)' };
+  if (score <= 35) return { state: 'Stressed / Defensive', stance: 'DEFENSIVE',   color: 'var(--status-warn)' };
+  if (score <= 50) return { state: 'Fragile / Hedged',     stance: 'HEDGED',      color: 'var(--status-watch)' };
+  if (score <= 65) return { state: 'Stable / Normal',      stance: 'NORMAL',      color: withAlpha(STATUS.good, 0.72) };
+  return               { state: 'Strong / Risk-On',       stance: 'AGGRESSIVE',  color: 'var(--status-good)' };
 }
 
 function getDivergenceWarnings(d: FearGreedData): string[] {
@@ -83,11 +84,11 @@ function renderGauge(score: number, label: string, delta: number | null, color: 
   }
 
   const zones = [
-    { a1: 180, a2: 144, fill: '#c0392b' },
-    { a1: 144, a2: 108, fill: '#e67e22' },
-    { a1: 108, a2:  72, fill: '#f1c40f' },
-    { a1:  72, a2:  36, fill: '#2ecc71' },
-    { a1:  36, a2:   0, fill: '#27ae60' },
+    { a1: 180, a2: 144, fill: 'var(--status-alert)' },
+    { a1: 144, a2: 108, fill: 'var(--status-warn)' },
+    { a1: 108, a2:  72, fill: 'var(--status-watch)' },
+    { a1:  72, a2:  36, fill: withAlpha(STATUS.good, 0.72) },
+    { a1:  36, a2:   0, fill: 'var(--status-good)' },
   ];
 
   const segs = zones.map(z =>
@@ -99,7 +100,7 @@ function renderGauge(score: number, label: string, delta: number | null, color: 
   const ny = (cy - 75 * Math.sin(na)).toFixed(1);
 
   const dStr = delta != null ? `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} vs prev` : '';
-  const dFill = delta != null ? (delta >= 0 ? '#2ecc71' : '#e74c3c') : '';
+  const dFill = delta != null ? (delta >= 0 ? 'var(--status-good)' : 'var(--status-alert)') : '';
   const deltaLine = dStr
     ? `<text x="${cx}" y="111" text-anchor="middle" font-size="9" fill="${dFill}" font-family="system-ui,-apple-system,sans-serif">${dStr}</text>`
     : '';
@@ -236,7 +237,7 @@ export class FearGreedPanel extends Panel {
       const s = Math.round(c.score ?? 50);
       const w = Math.round((c.weight ?? 0) * 100);
       const contrib = (c.contribution ?? 0).toFixed(1);
-      const deg = c.degraded ? ' <span style="color:#e67e22;font-size:10px">degraded</span>' : '';
+      const deg = c.degraded ? ' <span style="color:var(--status-warn);font-size:10px">degraded</span>' : '';
       const barColor = scoreColor(s);
       const displayName = CAT_DISPLAY[name] ?? name;
       return `
@@ -272,7 +273,7 @@ export class FearGreedPanel extends Panel {
 
     const warningsHtml = warnings.length > 0
       ? `<div style="margin-bottom:10px">
-          ${warnings.map(w => `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;margin-bottom:4px;border-radius:4px;border:1px solid #e67e22;background:rgba(230,126,34,0.08);font-size:10px;color:#e67e22">&#9888; ${escapeHtml(w)}</div>`).join('')}
+          ${warnings.map(w => `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;margin-bottom:4px;border-radius:4px;border:1px solid var(--status-warn);background:${withAlpha(STATUS.warn, 0.08)};font-size:10px;color:var(--status-warn)">&#9888; ${escapeHtml(w)}</div>`).join('')}
         </div>`
       : '';
 
@@ -282,7 +283,7 @@ export class FearGreedPanel extends Panel {
           <div style="text-align:center;font-size:11px;font-weight:600;color:${regime.color};letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px">${escapeHtml(regime.state)}</div>
           ${renderGauge(score, label, delta, color)}
           <div style="text-align:center;margin-top:6px;margin-bottom:8px">
-            <span style="display:inline-block;padding:3px 12px;border-radius:999px;font-size:10px;font-weight:700;color:#fff;background:${regime.color};letter-spacing:0.08em">${escapeHtml(regime.stance)}</span>
+            <span style="display:inline-block;padding:3px 12px;border-radius:999px;font-size:10px;font-weight:700;color:var(--text);background:${regime.color};letter-spacing:0.08em">${escapeHtml(regime.stance)}</span>
           </div>
         </div>
         ${warningsHtml}

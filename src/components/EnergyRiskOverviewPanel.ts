@@ -53,10 +53,10 @@ const CRISIS_START_MS = Date.parse(`${CRISIS_START_DATE}T00:00:00Z`);
 // NOT 'normal'/'reduced'/'critical' — that triplet was a misread in earlier
 // drafts and would silently render as undefined.
 const HORMUZ_STATUS_COLOR: Record<HormuzTrackerData['status'], string> = {
-  closed:     '#e74c3c', // red — passage closed
-  disrupted:  '#e74c3c', // red — significant disruption
-  restricted: '#f39c12', // amber — partial constraints
-  open:       '#27ae60', // green — flowing normally
+  closed:     'var(--status-alert)', // alert — passage closed
+  disrupted:  'var(--status-alert)', // alert — significant disruption
+  restricted: 'var(--status-watch)', // watch — partial constraints
+  open:       'var(--status-good)',  // good — flowing normally
 };
 const HORMUZ_STATUS_LABEL: Record<HormuzTrackerData['status'], string> = {
   closed:     'Closed',
@@ -150,13 +150,13 @@ export class EnergyRiskOverviewPanel extends Panel {
   private renderHormuzTile(): string {
     const t = this.state.hormuz;
     if (t.status !== 'fulfilled' || !t.value) {
-      return tileHtml('Hormuz', '—', '#7f8c8d', 'data-degraded="true"');
+      return tileHtml('Hormuz', '—', 'var(--text-dim)', 'data-degraded="true"');
     }
     // After extracting state-builder into a Vite-free module, the Hormuz
     // tile's value.status is typed as plain string (not the enum literal
     // union). Cast at use site so the lookup tables index correctly.
     const status = t.value.status as HormuzTrackerData['status'];
-    const color = HORMUZ_STATUS_COLOR[status] ?? '#7f8c8d';
+    const color = HORMUZ_STATUS_COLOR[status] ?? 'var(--text-dim)';
     const label = HORMUZ_STATUS_LABEL[status] ?? t.value.status;
     return tileHtml('Hormuz', label, color);
   }
@@ -164,18 +164,18 @@ export class EnergyRiskOverviewPanel extends Panel {
   private renderEuGasTile(): string {
     const t = this.state.euGas;
     if (t.status !== 'fulfilled' || !t.value) {
-      return tileHtml('EU Gas', '—', '#7f8c8d', 'data-degraded="true"');
+      return tileHtml('EU Gas', '—', 'var(--text-dim)', 'data-degraded="true"');
     }
     const fill = t.value.fillPct.toFixed(0);
     // Below 30% during refill season is critical; below 50% is amber.
-    const color = t.value.fillPct < 30 ? '#e74c3c' : t.value.fillPct < 50 ? '#f39c12' : '#27ae60';
+    const color = t.value.fillPct < 30 ? 'var(--status-alert)' : t.value.fillPct < 50 ? 'var(--status-watch)' : 'var(--status-good)';
     return tileHtml('EU Gas', `${fill}%`, color);
   }
 
   private renderBrentTile(): string {
     const t = this.state.brent;
     if (t.status !== 'fulfilled' || !t.value) {
-      return tileHtml('Brent', '—', '#7f8c8d', 'data-degraded="true"');
+      return tileHtml('Brent', '—', 'var(--text-dim)', 'data-degraded="true"');
     }
     const price = `$${t.value.price.toFixed(2)}`;
     const change = t.value.change;
@@ -183,17 +183,17 @@ export class EnergyRiskOverviewPanel extends Panel {
     const deltaText = `${sign}${change.toFixed(2)}%`;
     // Oil price up = bad for energy importers (the dominant Atlas reader).
     // Up = red. Down = green. Inverted from a usual market panel.
-    const color = change >= 0 ? '#e74c3c' : '#27ae60';
+    const color = change >= 0 ? 'var(--status-alert)' : 'var(--status-good)';
     return tileHtml('Brent', price, color, '', deltaText);
   }
 
   private renderActiveDisruptionsTile(): string {
     const t = this.state.activeDisruptions;
     if (t.status !== 'fulfilled' || !t.value) {
-      return tileHtml('Active disruptions', '—', '#7f8c8d', 'data-degraded="true"');
+      return tileHtml('Active disruptions', '—', 'var(--text-dim)', 'data-degraded="true"');
     }
     const n = t.value.count;
-    const color = n === 0 ? '#27ae60' : n < 5 ? '#f39c12' : '#e74c3c';
+    const color = n === 0 ? 'var(--status-good)' : n < 5 ? 'var(--status-watch)' : 'var(--status-alert)';
     return tileHtml('Active disruptions', String(n), color);
   }
 
@@ -204,26 +204,26 @@ export class EnergyRiskOverviewPanel extends Panel {
       .map(t => t.fetchedAt)
       .filter((v): v is number => typeof v === 'number');
     if (fetchedAts.length === 0) {
-      return tileHtml('Updated', '—', '#7f8c8d', 'data-degraded="true"');
+      return tileHtml('Updated', '—', 'var(--text-dim)', 'data-degraded="true"');
     }
     const youngest = Math.max(...fetchedAts);
     const ageMin = Math.floor((Date.now() - youngest) / 60_000);
     const label = ageMin <= 0 ? 'just now' : ageMin === 1 ? '1 min ago' : `${ageMin} min ago`;
-    return tileHtml('Updated', label, '#7f8c8d');
+    return tileHtml('Updated', label, 'var(--text-dim)');
   }
 
   private renderCrisisDayTile(): string {
     if (!Number.isFinite(CRISIS_START_MS)) {
       // Mis-configured env (Date.parse returned NaN). Fail loudly via "—"
       // rather than rendering "Day NaN" or "Day -50".
-      return tileHtml('Hormuz crisis', '—', '#7f8c8d', 'data-degraded="true"');
+      return tileHtml('Hormuz crisis', '—', 'var(--text-dim)', 'data-degraded="true"');
     }
     const days = Math.floor((Date.now() - CRISIS_START_MS) / 86_400_000);
     if (days < 0) {
       // Future-dated start: still render but with a sentinel value.
-      return tileHtml('Hormuz crisis', 'pending', '#7f8c8d');
+      return tileHtml('Hormuz crisis', 'pending', 'var(--text-dim)');
     }
-    return tileHtml('Hormuz crisis', `Day ${days}`, '#7f8c8d');
+    return tileHtml('Hormuz crisis', `Day ${days}`, 'var(--text-dim)');
   }
 }
 

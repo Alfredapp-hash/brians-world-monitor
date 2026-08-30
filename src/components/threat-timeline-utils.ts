@@ -1,5 +1,6 @@
 import type { ServerInsightStory, ServerInsights } from '@/services/insights-loader';
 import type { ClusteredEvent } from '@/types';
+import { SEVERITY } from '@/styles/tokens';
 
 export const THREAT_LEVELS = ['critical', 'high', 'medium', 'low', 'info'] as const;
 export type TimelineThreatLevel = typeof THREAT_LEVELS[number];
@@ -12,12 +13,16 @@ export const THREAT_LEVEL_LABELS: Record<TimelineThreatLevel, string> = {
   info: 'Info',
 };
 
+// Five-tier threat ladder mapped onto the ordered severity ramp
+// (s1 calm … s5 critical). Raw constants (not CSS vars) because these
+// colors are also written into SVG `fill` attributes, where custom
+// properties cannot resolve.
 export const THREAT_LEVEL_COLORS: Record<TimelineThreatLevel, string> = {
-  critical: '#ef4444',
-  high: '#f97316',
-  medium: '#eab308',
-  low: '#38bdf8',
-  info: '#94a3b8',
+  critical: SEVERITY.s5,
+  high: SEVERITY.s4,
+  medium: SEVERITY.s3,
+  low: SEVERITY.s2,
+  info: SEVERITY.s1,
 };
 
 const SEVERITY_RANK: Record<TimelineThreatLevel, number> = {

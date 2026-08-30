@@ -164,7 +164,7 @@ export class TechReadinessPanel extends Panel {
     this.hideCountBadge();
     this.setSafeContent(unsafeRawHtml(`
       <div class="panel-error-state" style="padding:24px 16px;text-align:center">
-        <div class="panel-error-msg" style="color:var(--danger,#e0654b);font-size:13px">
+        <div class="panel-error-msg" style="color:var(--danger, var(--status-alert));font-size:13px">
           ${escapeHtml(t('common.failedTechReadiness'))}
         </div>
       </div>

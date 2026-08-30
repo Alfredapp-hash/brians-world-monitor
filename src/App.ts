@@ -857,6 +857,34 @@ export class App {
         }
         localStorage.setItem(LAYOUT_RESET_MIGRATION_KEY, 'done');
       }
+
+      // One-time: undo the free-tier 40-panel clamp and paint live map
+      // layers whose feeds already hydrate. Returning visitors otherwise
+      // keep the clamped-off localStorage set forever. v2 also turns on
+      // cables/AIS/flights/pipelines and remaining seeded panels.
+      const JSAM_LIVE_DISPLAY_KEY = 'jsam-live-display-v2';
+      if (!localStorage.getItem(JSAM_LIVE_DISPLAY_KEY)) {
+        const variantKeys = VARIANT_DEFAULTS[currentVariant] ?? [];
+        for (const key of variantKeys) {
+          const config = getEffectivePanelConfig(key, currentVariant);
+          if (!config.enabled) continue;
+          const prev = panelSettings[key];
+          panelSettings[key] = { ...(prev ?? config), ...config, enabled: true };
+        }
+        if (currentVariant === 'full') {
+          const nextLayers: MapLayers = { ...mapLayers };
+          for (const [key, on] of Object.entries(defaultLayers) as Array<[keyof MapLayers, boolean]>) {
+            if (on) nextLayers[key] = true;
+          }
+          mapLayers = normalizeExclusiveChoropleths(
+            sanitizeLayersForVariant(nextLayers, currentVariant as MapVariant),
+            null,
+          );
+          saveToStorage(STORAGE_KEYS.mapLayers, mapLayers);
+        }
+        saveToStorage(STORAGE_KEYS.panels, panelSettings);
+        localStorage.setItem(JSAM_LIVE_DISPLAY_KEY, 'done');
+      }
     }
 
     // Desktop key management panel must always remain accessible in Tauri.

@@ -2,8 +2,8 @@
   "ignoreCommand": "bash scripts/vercel-ignore.sh",
   "crons": [],
   "redirects": [
-    { "source": "/docs/:match*", "has": [{ "type": "host", "value": "^(?:tech|finance|commodity|happy|energy|api)\\.worldmonitor\\.app$" }], "destination": "https://www.worldmonitor.app/docs/:match*", "permanent": true },
-    { "source": "/api-reference/:match*", "destination": "https://www.worldmonitor.app/docs/api-reference/:match*", "permanent": true },
+    { "source": "/docs/:match*", "has": [{ "type": "host", "value": "^(?:tech|finance|commodity|happy|energy|api)\\.worldmonitor\\.app$" }], "destination": "https://brians-world-monitor.vercel.app/docs/:match*", "permanent": true },
+    { "source": "/api-reference/:match*", "destination": "https://brians-world-monitor.vercel.app/docs/api-reference/:match*", "permanent": true },
     { "source": "/docs", "destination": "/docs/documentation", "permanent": false },
     { "source": "/security.txt", "destination": "/.well-known/security.txt", "permanent": true },
     { "source": "/index.html", "destination": "/", "permanent": true },
@@ -136,7 +136,7 @@
         { "key": "Content-Type", "value": "text/markdown; charset=utf-8" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Cache-Control", "value": "public, max-age=3600" },
-        { "key": "Link", "value": "<https://www.worldmonitor.app/pricing.md>; rel=\"canonical\"" }
+        { "key": "Link", "value": "<https://brians-world-monitor.vercel.app/pricing.md>; rel=\"canonical\"" }
       ]
     },
     {
@@ -145,7 +145,7 @@
         { "key": "Content-Type", "value": "text/markdown; charset=utf-8" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Cache-Control", "value": "public, max-age=3600" },
-        { "key": "Link", "value": "<https://www.worldmonitor.app/support.md>; rel=\"canonical\"" }
+        { "key": "Link", "value": "<https://brians-world-monitor.vercel.app/support.md>; rel=\"canonical\"" }
       ]
     },
     {
@@ -154,7 +154,7 @@
         { "key": "Content-Type", "value": "text/markdown; charset=utf-8" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Cache-Control", "value": "public, max-age=3600" },
-        { "key": "Link", "value": "<https://www.worldmonitor.app/ai-search.md>; rel=\"canonical\"" }
+        { "key": "Link", "value": "<https://brians-world-monitor.vercel.app/ai-search.md>; rel=\"canonical\"" }
       ]
     },
     {
@@ -171,7 +171,7 @@
         { "key": "Content-Type", "value": "text/markdown; charset=utf-8" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Cache-Control", "value": "public, max-age=3600" },
-        { "key": "Link", "value": "<https://www.worldmonitor.app/developers.md>; rel=\"canonical\"" }
+        { "key": "Link", "value": "<https://brians-world-monitor.vercel.app/developers.md>; rel=\"canonical\"" }
       ]
     },
     {
@@ -180,7 +180,7 @@
         { "key": "Content-Type", "value": "text/markdown; charset=utf-8" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Cache-Control", "value": "public, max-age=3600" },
-        { "key": "Link", "value": "<https://www.worldmonitor.app/mcp-server.md>; rel=\"canonical\"" }
+        { "key": "Link", "value": "<https://brians-world-monitor.vercel.app/mcp-server.md>; rel=\"canonical\"" }
       ]
     },
     {
@@ -189,7 +189,7 @@
         { "key": "Content-Type", "value": "text/markdown; charset=utf-8" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Cache-Control", "value": "public, max-age=3600" },
-        { "key": "Link", "value": "<https://www.worldmonitor.app/openapi.md>; rel=\"canonical\"" }
+        { "key": "Link", "value": "<https://brians-world-monitor.vercel.app/openapi.md>; rel=\"canonical\"" }
       ]
     },
     {
@@ -198,7 +198,7 @@
         { "key": "Content-Type", "value": "text/markdown; charset=utf-8" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Cache-Control", "value": "public, max-age=3600" },
-        { "key": "Link", "value": "<https://www.worldmonitor.app/sdks.md>; rel=\"canonical\"" }
+        { "key": "Link", "value": "<https://brians-world-monitor.vercel.app/sdks.md>; rel=\"canonical\"" }
       ]
     },
     {
@@ -229,7 +229,7 @@
         { "key": "Cross-Origin-Opener-Policy-Report-Only", "value": "same-origin; report-to=\"wm-coop-coep\"" },
         { "key": "Cross-Origin-Embedder-Policy-Report-Only", "value": "require-corp; report-to=\"wm-coop-coep\"" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(self), accelerometer=(), autoplay=(self \"https://www.youtube.com\" \"https://www.youtube-nocookie.com\"), bluetooth=(), display-capture=(), encrypted-media=(self \"https://www.youtube.com\" \"https://www.youtube-nocookie.com\"), gyroscope=(), hid=(), idle-detection=(), magnetometer=(), midi=(), payment=(self \"https://checkout.dodopayments.com\" \"https://test.checkout.dodopayments.com\" \"https://pay.google.com\" \"https://hooks.stripe.com\" \"https://js.stripe.com\"), picture-in-picture=(self \"https://www.youtube.com\" \"https://www.youtube-nocookie.com\" \"https://challenges.cloudflare.com\"), unload=(*), screen-wake-lock=(), serial=(), usb=(), xr-spatial-tracking=(\"https://challenges.cloudflare.com\")" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; connect-src 'self' https: wss: blob: data: https://*.ingest.sentry.io https://*.ingest.us.sentry.io; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'strict-dynamic' 'nonce-wm-static-bootstrap' 'sha256-+SFBjfmi2XfnyAT3POBxf6JIKYDcNXtllPclOcaNBI0=' 'sha256-7oZNrsyfSuHAVU4KcnfCYgflzMCUu6NcFnN8paFIf0A=' 'sha256-lKs3SvF31U/ZDoqILsGd1YpSh0LSw9Xlo0hNHcX8Wqk=' 'sha256-jAPaz07sLDJ3o7wlzW1l2gFp/IZLG9nMWVawE66s8RI=' 'sha256-DCDo2unz6DEq+oBPIxXwk7diDnnNQnrNGubqxxaQacU=' 'sha256-XsSfnJeoJYzlhuBF8lmmhxzSpSgSecVttS4CzI5UqnM=' 'sha256-M3GydVdbubLekVFqzDQ03pV3WB5L4u7xNF85Zd2Y5Aw=' 'sha256-DBygHK4Vd1M2piqQKA8UmH8MJuQCAbkQSQN2PUR6IjY=' 'wasm-unsafe-eval'; worker-src 'self' blob:; font-src 'self' data:; media-src 'self' data: blob: https:; frame-src 'self' https://www.worldmonitor.app https://worldmonitor.app https://tech.worldmonitor.app https://finance.worldmonitor.app https://commodity.worldmonitor.app https://happy.worldmonitor.app https://energy.worldmonitor.app https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com https://webcams.windy.com https://challenges.cloudflare.com https://*.clerk.accounts.dev https://clerk.worldmonitor.app https://vercel.live https://*.vercel.app https://*.dodopayments.com https://checkout.dodopayments.com https://test.checkout.dodopayments.com https://*.hs.dodopayments.com https://*.custom.hs.dodopayments.com https://pay.google.com https://hooks.stripe.com https://js.stripe.com; frame-ancestors 'self' https://www.worldmonitor.app https://tech.worldmonitor.app https://finance.worldmonitor.app https://commodity.worldmonitor.app https://happy.worldmonitor.app https://energy.worldmonitor.app https://worldmonitor.app https://vercel.live https://*.vercel.app; base-uri 'self'; object-src 'none'; form-action 'self' https://api.worldmonitor.app" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; connect-src 'self' https: wss: blob: data: https://*.ingest.sentry.io https://*.ingest.us.sentry.io; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'strict-dynamic' 'nonce-wm-static-bootstrap' 'sha256-+SFBjfmi2XfnyAT3POBxf6JIKYDcNXtllPclOcaNBI0=' 'sha256-7oZNrsyfSuHAVU4KcnfCYgflzMCUu6NcFnN8paFIf0A=' 'sha256-lKs3SvF31U/ZDoqILsGd1YpSh0LSw9Xlo0hNHcX8Wqk=' 'sha256-jAPaz07sLDJ3o7wlzW1l2gFp/IZLG9nMWVawE66s8RI=' 'sha256-RCU2yjEClaVIDK7b2mOb2DGO3kM3SIepL0fW1n1/dbE=' 'sha256-XsSfnJeoJYzlhuBF8lmmhxzSpSgSecVttS4CzI5UqnM=' 'sha256-tQe6t8ds3ULnD6kRmhbSQCjcm1Kz6gTCYDPb6AZr+vk=' 'sha256-0cPk88Sy+gyKEhi3A74ZEtvDUqC+HNXkwj56RPaR1tk=' 'wasm-unsafe-eval'; worker-src 'self' blob:; font-src 'self' data:; media-src 'self' data: blob: https:; frame-src 'self' https://brians-world-monitor.vercel.app https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com https://webcams.windy.com https://challenges.cloudflare.com https://*.clerk.accounts.dev https://vercel.live https://*.vercel.app https://*.dodopayments.com https://checkout.dodopayments.com https://test.checkout.dodopayments.com https://*.hs.dodopayments.com https://*.custom.hs.dodopayments.com https://pay.google.com https://hooks.stripe.com https://js.stripe.com; frame-ancestors 'self' https://brians-world-monitor.vercel.app https://vercel.live https://*.vercel.app; base-uri 'self'; object-src 'none'; form-action 'self' https://brians-world-monitor.vercel.app" }
       ]
     },
     {
@@ -269,7 +269,7 @@
     {
       "source": "/api/brief/(.*)",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self' https://www.worldmonitor.app https://worldmonitor.app; base-uri 'self'; object-src 'none'; form-action 'none'" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'self' https://brians-world-monitor.vercel.app; base-uri 'self'; object-src 'none'; form-action 'none'" }
       ]
     },
     {

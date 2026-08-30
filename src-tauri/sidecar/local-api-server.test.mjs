@@ -1010,8 +1010,8 @@ test('uses canonical app origin when proxying to cloud fallback (cloudFallback e
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.source, 'remote');
-    assert.equal(body.origin, 'https://worldmonitor.app');
-    assert.equal(remote.origins[0], 'https://worldmonitor.app');
+    assert.equal(body.origin, 'https://brians-world-monitor.vercel.app');
+    assert.equal(remote.origins[0], 'https://brians-world-monitor.vercel.app');
   } finally {
     await app.close();
     await localApi.cleanup();

@@ -1,6 +1,7 @@
 import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { h, replaceChildren } from '@/utils/dom-utils';
+import { CATEGORY, SEVERITY } from '@/styles/tokens';
 import type { InternetOutage } from '@/types';
 import type {
   ListInternetDdosAttacksResponse,
@@ -105,7 +106,9 @@ export class InternetDisruptionsPanel extends Panel {
   }
 
   private buildOutageRow(o: InternetOutage): HTMLElement {
-    const severityColor = o.severity === 'total' ? '#ff2020' : o.severity === 'major' ? '#ff8800' : '#ffcc00';
+    // 'total' (nationwide outage) is the reserved extreme tier — SEVERITY.s5
+    // has no CSS custom property, hence the token constant.
+    const severityColor = o.severity === 'total' ? SEVERITY.s5 : o.severity === 'major' ? 'var(--status-warn)' : 'var(--status-watch)';
     const badge = o.severity === 'total' ? 'NATIONWIDE' : o.severity === 'major' ? 'REGIONAL' : 'PARTIAL';
     const ongoing = !o.endDate;
     return h('div', { className: 'id-row' },
@@ -137,14 +140,14 @@ export class InternetDisruptionsPanel extends Panel {
       d.protocol.length > 0
         ? h('div', { className: 'id-section' },
             h('div', { className: 'id-section-title' }, t('components.internetDisruptions.byProtocol')),
-            ...d.protocol.slice(0, 6).map(e => this.buildBar(e.label, e.percentage, '#b400ff')),
+            ...d.protocol.slice(0, 6).map(e => this.buildBar(e.label, e.percentage, CATEGORY.violet)),
           )
         : false,
 
       d.vector.length > 0
         ? h('div', { className: 'id-section' },
             h('div', { className: 'id-section-title' }, t('components.internetDisruptions.byVector')),
-            ...d.vector.slice(0, 6).map(e => this.buildBar(e.label, e.percentage, '#ff4400')),
+            ...d.vector.slice(0, 6).map(e => this.buildBar(e.label, e.percentage, CATEGORY.orange)),
           )
         : false,
 
@@ -152,7 +155,7 @@ export class InternetDisruptionsPanel extends Panel {
         ? h('div', { className: 'id-section' },
             h('div', { className: 'id-section-title' }, t('components.internetDisruptions.topTargets')),
             ...d.topTargetLocations.slice(0, 8).map(loc =>
-              this.buildBar(loc.countryName || loc.countryCode, loc.percentage, '#cc0044'),
+              this.buildBar(loc.countryName || loc.countryCode, loc.percentage, CATEGORY.magenta),
             ),
           )
         : false,

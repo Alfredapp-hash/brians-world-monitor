@@ -1075,9 +1075,9 @@ export class PanelLayoutManager implements AppModule {
     this.snapshotActiveTab();
 
     const defaults = buildDefaultTabPanels(this.ctx.panelSettings);
-    // The variant default set can exceed FREE_MAX_PANELS (e.g. 81 panels in the
-    // full variant); clamp it to the free-tier cap so a new tab can't bypass
-    // the limit that settings/search/boot all enforce.
+    // The variant default set can exceed FREE_MAX_PANELS (e.g. 81 panels in
+    // the full variant). enforceFreePanelLimit still runs so cw-* widgets
+    // stay pro-only; the operator fork lifts the 40-slot ceiling.
     const tab: PanelTab = {
       id: generateTabId(),
       name: t('dashboardTabs.newTabName'),

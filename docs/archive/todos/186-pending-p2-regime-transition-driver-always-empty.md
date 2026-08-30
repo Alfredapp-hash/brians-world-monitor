@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 186
 tags: [code-review, phase-0, regional-intelligence, dead-code, schema]
@@ -48,6 +48,8 @@ Function: `inferTriggerReason(diff)` - would populate the field.
 - [ ] OR document the field as Phase 2 and keep empty
 
 ## Work Log
+
+- undefined: Already resolved / not reproducible — current `scripts/seed-regional-snapshots.mjs` (lines ~197-204, comment tags it "PR #2981 review fix") already backfills `regime.transition_driver = triggerReason` after the diff step runs, whenever `diff.regime_changed && triggerReason !== 'scheduled_6h'`, and re-splices the updated `regime` into the snapshot before persistence. This matches Option 1's recommendation exactly and predates this pass. No code change made.
 
 ## Resources
 - PR #2940

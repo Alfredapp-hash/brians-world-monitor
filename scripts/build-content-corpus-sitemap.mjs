@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const SITE_ORIGIN = 'https://www.worldmonitor.app';
+export const SITE_ORIGIN = 'https://brians-world-monitor.vercel.app';
 export const CONTENT_CORPUS_PREFIXES = ['countries', 'chokepoints', 'reference', 'changelog'];
 export const CONTENT_CORPUS_START_MARKER = '<!-- content-corpus:start -->';
 export const CONTENT_CORPUS_END_MARKER = '<!-- content-corpus:end -->';

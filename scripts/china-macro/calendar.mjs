@@ -143,7 +143,7 @@ function requiredSourceError(prefix, reason) {
 
 async function fetchText(fetchFn, url) {
   const response = await fetchFn(url, {
-    headers: { Accept: 'text/html,application/xhtml+xml', 'User-Agent': 'WorldMonitor/2.10 (+https://worldmonitor.app)' },
+    headers: { Accept: 'text/html,application/xhtml+xml', 'User-Agent': 'WorldMonitor/2.10 (+https://brians-world-monitor.vercel.app)' },
     signal: AbortSignal.timeout(20_000),
   });
   if (!response.ok) throw Object.assign(new Error(`HTTP_${response.status}`), { status: response.status });
@@ -156,7 +156,7 @@ async function fetchChinaMoneyNotices(fetchFn) {
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-      'User-Agent': 'WorldMonitor/2.10 (+https://worldmonitor.app)',
+      'User-Agent': 'WorldMonitor/2.10 (+https://brians-world-monitor.vercel.app)',
     },
     body: new URLSearchParams({ channelId: CHINAMONEY_LPR_CHANNEL_ID, pageSize: '24', pageNo: '1' }).toString(),
     signal: AbortSignal.timeout(20_000),

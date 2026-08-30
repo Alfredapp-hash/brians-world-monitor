@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "011"
 tags: [code-review, deep-forecast, simulation-package, correctness]
@@ -53,3 +53,4 @@ Effort: Small | Risk: Medium (schema change)
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:kieran-typescript-reviewer in PR #2204 review
+- undefined: Already resolved / not reproducible — `buildSimulationPackageEntities` already keys `su:`/`ev:` entries on `candidate.candidateStateId` (Option A) instead of `dominantRegion`; no code change needed.

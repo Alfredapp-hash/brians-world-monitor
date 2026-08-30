@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "055"
 tags: [code-review, reliability, seeding, social-velocity, ttl, pr-2375]
@@ -41,3 +41,4 @@ Keep 1800s TTL but reduce interval to 8min. Increases Reddit API call frequency.
 ## Work Log
 
 - 2026-03-27: Identified by code-review agents during PR #2375 review. Borderline compliance with gold standard.
+- undefined: Already resolved / not reproducible — current code (scripts/ais-relay.cjs) has `SOCIAL_VELOCITY_TTL = 43200` (12h) and `SOCIAL_VELOCITY_INTERVAL_MS = 3h`, a 4x ratio, and `api/health.js` `socialVelocity.maxStaleMin = 540` (3x interval), both well beyond this doc's 2700s/4.5x recommendation. No code change made.

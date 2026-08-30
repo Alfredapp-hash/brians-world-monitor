@@ -323,7 +323,7 @@ export class RegionalIntelligenceBoard extends Panel {
     if (fallbackFrom) {
       const requestedLabel = BOARD_REGIONS.find(r => r.id === fallbackFrom)?.label ?? fallbackFrom;
       const actualLabel = BOARD_REGIONS.find(r => r.id === snapshot.regionId)?.label ?? snapshot.regionId;
-      html += `<div class="rib-fallback-notice" style="padding:10px 16px;margin:0 0 8px;background:var(--bg-elevated,rgba(255,255,255,0.04));border-left:3px solid var(--warning,#d4a015);font-size:12px;color:var(--text-dim);line-height:1.5">${escapeHtml(requestedLabel)} is being refreshed — showing ${escapeHtml(actualLabel)} in the meantime.</div>`;
+      html += `<div class="rib-fallback-notice" style="padding:10px 16px;margin:0 0 8px;background:var(--bg-elevated,rgba(255,255,255,0.04));border-left:3px solid var(--status-watch);font-size:12px;color:var(--text-dim);line-height:1.5">${escapeHtml(requestedLabel)} is being refreshed — showing ${escapeHtml(actualLabel)} in the meantime.</div>`;
     }
     html += buildBoardHtml(snapshot);
     // Phase 3 blocks: only render when the RPC succeeded (non-null).

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "067"
 tags: [code-review, performance, analytical-frameworks]
@@ -38,3 +38,4 @@ const isPremium = frameworkRaw ? await isCallerPremium(ctx.request) : false;
 
 ## Work Log
 - 2026-03-28: Identified by performance-oracle during PR #2386 review
+- undefined: Fixed in `deduct-situation.ts` only — `isCallerPremium` is now gated behind a non-empty `rawFramework` check there (the field is that handler's only use of `isPremium`). Deliberately NOT applied to `summarize-article.ts` or `get-country-intel-brief.ts`: in both, `isPremium` also gates unrelated behavior that must run regardless of whether `systemAppend`/`framework` is present — `summarize-article.ts` uses it for the `requiresPremium` mode gate (brief/analysis require premium even with no `systemAppend`), and `get-country-intel-brief.ts` uses it to decide whether to parse caller `contextSnapshot` and to select the cache-key/response shape. Skipping the call there when the field is empty would incorrectly demote premium callers to free-tier behavior for those other code paths, so the optimization is not safely applicable to those two files as currently structured.

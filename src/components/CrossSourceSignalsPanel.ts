@@ -1,5 +1,6 @@
 import { Panel } from './Panel';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { STATUS, withAlpha } from '@/styles/tokens';
 
 interface CrossSourceSignal {
   id: string;
@@ -21,7 +22,7 @@ interface CrossSourceSignalsData {
 
 const SEVERITY_COLOR: Record<string, string> = {
   CROSS_SOURCE_SIGNAL_SEVERITY_CRITICAL: 'var(--semantic-critical)',
-  CROSS_SOURCE_SIGNAL_SEVERITY_HIGH: '#ff8c8c',
+  CROSS_SOURCE_SIGNAL_SEVERITY_HIGH: 'var(--status-alert)',
   CROSS_SOURCE_SIGNAL_SEVERITY_MEDIUM: 'var(--yellow)',
   CROSS_SOURCE_SIGNAL_SEVERITY_LOW: 'var(--text-dim)',
 };
@@ -36,7 +37,7 @@ const SEVERITY_LABEL: Record<string, string> = {
 // Filled badge styles: bg + border + text per severity
 const SEVERITY_BADGE_STYLE: Record<string, string> = {
   CROSS_SOURCE_SIGNAL_SEVERITY_CRITICAL: 'background:var(--semantic-critical);color:#fff;border:1px solid var(--semantic-critical)',
-  CROSS_SOURCE_SIGNAL_SEVERITY_HIGH: 'background:rgba(255,140,140,0.15);color:#ff8c8c;border:1px solid rgba(255,140,140,0.4)',
+  CROSS_SOURCE_SIGNAL_SEVERITY_HIGH: `background:var(--status-alert-bg);color:var(--status-alert);border:1px solid ${withAlpha(STATUS.alert, 0.4)}`,
   CROSS_SOURCE_SIGNAL_SEVERITY_MEDIUM: 'background:rgba(245,197,66,0.08);color:var(--yellow);border:1px solid rgba(245,197,66,0.35)',
   CROSS_SOURCE_SIGNAL_SEVERITY_LOW: 'background:transparent;color:var(--text-dim);border:1px solid var(--border)',
 };

@@ -21,7 +21,7 @@
  *
  * Usage:
  *   node scripts/measure-composited-layers.mjs [url] [--cpu 1] [--settle 15000] [--json]
- *   (default url: https://www.worldmonitor.app/dashboard; run against a local
+ *   (default url: https://www.brians-world-monitor.vercel.app/dashboard; run against a local
  *    `vite preview` build for in-session before/after per #4630 KTD3)
  */
 import { pathToFileURL } from 'node:url';
@@ -39,7 +39,7 @@ function parsePositiveNumberFlag(name, raw) {
 }
 
 export function parseArgs(argv) {
-  const args = { url: 'https://www.worldmonitor.app/dashboard', cpu: 1, settle: 15000, json: false };
+  const args = { url: 'https://www.brians-world-monitor.vercel.app/dashboard', cpu: 1, settle: 15000, json: false };
   const rest = argv.slice(2);
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];

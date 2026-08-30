@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p3
 issue_id: "059"
 tags: [code-review, quality, seeding, disease-outbreaks, duplication, pr-2375]
@@ -45,3 +45,4 @@ function detectDisease(text) {
 ## Work Log
 
 - 2026-03-27: Identified by simplicity-reviewer agent during PR #2375 review.
+- undefined: Fixed — the code has since diverged from the doc's premise (`detectDisease()` now lives in `scripts/_disease-outbreaks-helpers.mjs`, not this file, and the local `diseaseKeywords` array in `seed-disease-outbreaks.mjs` is a broad relevance *filter* for RSS items, not an input to `detectDisease()`). Rather than a literal merge, removed every specific disease-name literal that duplicated `detectDisease()`'s list from the local array (now `GENERIC_OUTBREAK_TERMS`, holding only non-disease-specific terms like "outbreak"/"epidemic"/"fever"), and the relevance filter now also calls the already-imported `detectDisease()` so specific disease names are matched from that single source instead of being re-listed locally.

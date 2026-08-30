@@ -283,39 +283,39 @@ describe('crawlable content corpus deployment contracts', () => {
       writeFixturePage(
         publicDir,
         'countries/ukraine/index.html',
-        '<link rel="canonical" href="https://www.worldmonitor.app/countries/ukraine/" /><meta name="lastmod" content="2026-07-08" />'
+        '<link rel="canonical" href="https://brians-world-monitor.vercel.app/countries/ukraine/" /><meta name="lastmod" content="2026-07-08" />'
       );
       writeFixturePage(
         publicDir,
         'chokepoints/suez-canal/index.html',
-        '<link rel="canonical" href="https://www.worldmonitor.app/chokepoints/suez-canal/" />'
+        '<link rel="canonical" href="https://brians-world-monitor.vercel.app/chokepoints/suez-canal/" />'
       );
       writeFixturePage(
         publicDir,
         'reference/changelog/page/1/index.html',
-        '<link rel="canonical" href="https://www.worldmonitor.app/reference/changelog/page/1/" /><link rel="next" href="https://www.worldmonitor.app/reference/changelog/page/2/" />'
+        '<link rel="canonical" href="https://brians-world-monitor.vercel.app/reference/changelog/page/1/" /><link rel="next" href="https://brians-world-monitor.vercel.app/reference/changelog/page/2/" />'
       );
       writeFixturePage(
         publicDir,
         'reference/changelog/page/2/index.html',
-        '<link rel="canonical" href="https://www.worldmonitor.app/reference/changelog/page/2/" /><link rel="prev" href="https://www.worldmonitor.app/reference/changelog/page/1/" />'
+        '<link rel="canonical" href="https://brians-world-monitor.vercel.app/reference/changelog/page/2/" /><link rel="prev" href="https://brians-world-monitor.vercel.app/reference/changelog/page/1/" />'
       );
 
       const pages = discoverContentCorpusPages({ publicDir });
       const locations = pages.map((page) => page.loc).sort();
       assert.deepEqual(locations, [
-        'https://www.worldmonitor.app/reference/changelog/page/1/',
-        'https://www.worldmonitor.app/reference/changelog/page/2/',
-        'https://www.worldmonitor.app/chokepoints/suez-canal/',
-        'https://www.worldmonitor.app/countries/ukraine/',
+        'https://brians-world-monitor.vercel.app/reference/changelog/page/1/',
+        'https://brians-world-monitor.vercel.app/reference/changelog/page/2/',
+        'https://brians-world-monitor.vercel.app/chokepoints/suez-canal/',
+        'https://brians-world-monitor.vercel.app/countries/ukraine/',
       ].sort());
 
       const block = buildContentCorpusSitemapBlock(pages);
-      assert.match(block, /<loc>https:\/\/www\.worldmonitor\.app\/countries\/ukraine\/<\/loc>/);
+      assert.match(block, /<loc>https:\/\/brians-world-monitor\.vercel\.app\/countries\/ukraine\/<\/loc>/);
       assert.match(block, /<lastmod>2026-07-08<\/lastmod>/);
 
       const injected = injectContentCorpusSitemapBlock(
-        '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://www.worldmonitor.app/</loc></url>\n</urlset>\n',
+        '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://brians-world-monitor.vercel.app/</loc></url>\n</urlset>\n',
         pages
       );
       assert.match(injected, /<!-- content-corpus:start -->[\s\S]*\/countries\/ukraine\/[\s\S]*<!-- content-corpus:end -->/);
@@ -327,7 +327,7 @@ describe('crawlable content corpus deployment contracts', () => {
       writeFixturePage(
         publicDir,
         'reference/changelog/page/3/index.html',
-        '<link rel="canonical" href="https://www.worldmonitor.app/reference/changelog/page/3/" />'
+        '<link rel="canonical" href="https://brians-world-monitor.vercel.app/reference/changelog/page/3/" />'
       );
       assert.throws(
         () => discoverContentCorpusPages({ publicDir }),
@@ -538,23 +538,35 @@ describe('welcome landing page routing', () => {
   });
 
   it('routes app roots to welcome and leaves non-app roots on the dashboard catch-all', () => {
+    // The `/` → /pro/welcome.html host-match rule is still keyed to the
+    // upstream worldmonitor.app pattern (deliberately left inert rather than
+    // rewired to this fork's own domain — public/pro/welcome.html still
+    // bakes in the original founder's identity/traction claims and isn't
+    // safe to publish as-is; see the pro-test/ rebrand flag). Those upstream
+    // hosts aren't reachable on this fork's deployment, but the regex match
+    // itself is still exercised here as a config-shape check.
     assert.equal(rootDestinationForHost('worldmonitor.app'), '/pro/welcome.html');
     assert.equal(rootDestinationForHost('www.worldmonitor.app'), '/pro/welcome.html');
     assert.equal(rootDestinationForHost('worldmonitor.app.evil.example'), DASHBOARD_HTML_DESTINATION);
 
+    // variant-meta.ts now points every variant at this fork's single real
+    // domain (brians-world-monitor.vercel.app) rather than 5 distinct
+    // subdomains, so it no longer matches APP_ROOT_HOST_PATTERN — root
+    // requests correctly fall through to the dashboard catch-all until the
+    // welcome page above is rebranded and wired up for this fork's domain.
     const variantHosts = getVariantHosts().filter((host) => host !== 'www.worldmonitor.app');
     for (const host of variantHosts) {
       assert.equal(
         rootDestinationForHost(host),
-        '/pro/welcome.html',
-        `${host}/ must serve the welcome page; the variant dashboard route is /dashboard`
+        DASHBOARD_HTML_DESTINATION,
+        `${host}/ falls through to the dashboard until the welcome page is rebranded for this fork`
       );
     }
   });
 
   it('keeps variant canonicals aligned with the /dashboard routing strategy', () => {
     const variantUrls = getVariantUrls();
-    assert.equal(variantUrls.full, 'https://www.worldmonitor.app/dashboard');
+    assert.equal(variantUrls.full, 'https://brians-world-monitor.vercel.app/dashboard');
 
     const nonFullUrls = Object.entries(variantUrls).filter(([variant]) => variant !== 'full');
     assert.ok(nonFullUrls.length >= 5, 'expected non-full variant metadata entries');
@@ -739,7 +751,7 @@ describe('welcome landing page routing', () => {
       'generated welcome HTML must launch the dashboard at /dashboard'
     );
     assert.ok(
-      dashboardHtml.includes('<link rel="canonical" href="https://www.worldmonitor.app/dashboard" />'),
+      dashboardHtml.includes('<link rel="canonical" href="https://brians-world-monitor.vercel.app/dashboard" />'),
       'dashboard shell must canonicalize to /dashboard'
     );
   });
@@ -1424,10 +1436,10 @@ describe('agent readiness: api-catalog + openapi build', () => {
   const pkg = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf-8'));
 
   const catalogEntry = apiCatalog.linkset[0];
-  const apiEntry = apiCatalog.linkset.find((entry) => entry.anchor === 'https://api.worldmonitor.app/');
+  const apiEntry = apiCatalog.linkset.find((entry) => entry.anchor === 'https://brians-world-monitor.vercel.app/api');
 
   it('linkset[0] is the catalog anchor and enumerates each API via RFC 9727 item links', () => {
-    assert.equal(catalogEntry.anchor, 'https://worldmonitor.app/.well-known/api-catalog');
+    assert.equal(catalogEntry.anchor, 'https://brians-world-monitor.vercel.app/.well-known/api-catalog');
     assert.ok(Array.isArray(catalogEntry.item), 'linkset[0] must carry an "item" array (RFC 9727 §4)');
     assert.ok(catalogEntry.item.length > 0, 'linkset[0].item must enumerate at least one API');
     // Each item MUST resolve to a linkset context object that describes that API.
@@ -1440,10 +1452,10 @@ describe('agent readiness: api-catalog + openapi build', () => {
       );
     }
     const itemHrefs = catalogEntry.item.map((i) => i.href);
-    assert.ok(itemHrefs.includes('https://api.worldmonitor.app/'), 'item list must enumerate the REST API host root');
-    assert.ok(itemHrefs.includes('https://worldmonitor.app/mcp'), 'item list must enumerate the MCP server');
+    assert.ok(itemHrefs.includes('https://brians-world-monitor.vercel.app/api'), 'item list must enumerate the REST API host root');
+    assert.ok(itemHrefs.includes('https://brians-world-monitor.vercel.app/mcp'), 'item list must enumerate the MCP server');
     assert.ok(
-      itemHrefs.includes('https://www.worldmonitor.app/docs/mcp'),
+      itemHrefs.includes('https://brians-world-monitor.vercel.app/docs/mcp'),
       'item list must enumerate the docs MCP server (#4958 — it ran unadvertised for weeks)'
     );
   });
@@ -1461,12 +1473,12 @@ describe('agent readiness: api-catalog + openapi build', () => {
   });
 
   it('the docs MCP anchor describes itself with the first-party server-card (service-desc parity with product MCP)', () => {
-    const docsAnchor = apiCatalog.linkset.find((e) => e.anchor === 'https://www.worldmonitor.app/docs/mcp');
+    const docsAnchor = apiCatalog.linkset.find((e) => e.anchor === 'https://brians-world-monitor.vercel.app/docs/mcp');
     assert.ok(docsAnchor, 'api-catalog must carry a context object anchored at the docs MCP endpoint');
     const desc = docsAnchor['service-desc'] ?? [];
     // Must be the first-party card, NOT Mintlify's card (whose url 404s) — #4964 review.
     assert.ok(
-      desc.some((d) => d.href === 'https://www.worldmonitor.app/.well-known/mcp/docs-server-card.json'),
+      desc.some((d) => d.href === 'https://brians-world-monitor.vercel.app/.well-known/mcp/docs-server-card.json'),
       'docs MCP anchor must advertise the first-party server-card as service-desc'
     );
     assert.ok(
@@ -1483,7 +1495,7 @@ describe('agent readiness: api-catalog + openapi build', () => {
     const card = JSON.parse(
       readFileSync(resolve(__dirname, '../public/.well-known/mcp/docs-server-card.json'), 'utf-8')
     );
-    const WORKING = 'https://www.worldmonitor.app/docs/mcp';
+    const WORKING = 'https://brians-world-monitor.vercel.app/docs/mcp';
     assert.equal(card.url, WORKING, 'docs card url must be the working /docs/mcp facade');
     assert.equal(card.serverUrl, WORKING, 'docs card serverUrl must be the working /docs/mcp facade');
     assert.ok(
@@ -1494,7 +1506,7 @@ describe('agent readiness: api-catalog + openapi build', () => {
   });
 
   it('the api host root has its own context object', () => {
-    assert.ok(apiEntry, 'linkset must contain a context object anchored at https://api.worldmonitor.app/');
+    assert.ok(apiEntry, 'linkset must contain a context object anchored at https://brians-world-monitor.vercel.app/api');
   });
 
   it('status href points at the KEYLESS compact form of /api/health', () => {
@@ -1508,12 +1520,12 @@ describe('agent readiness: api-catalog + openapi build', () => {
     //       and flagged the whole status surface as broken).
     const statusHref = apiEntry.status[0].href;
     assert.ok(
-      statusHref.startsWith('https://api.worldmonitor.app'),
-      `status href must be on api.worldmonitor.app, got: ${statusHref}`
+      statusHref.startsWith('https://brians-world-monitor.vercel.app/api'),
+      `status href must be under the /api namespace, got: ${statusHref}`
     );
     assert.equal(
       statusHref,
-      'https://api.worldmonitor.app/api/health?compact=1',
+      'https://brians-world-monitor.vercel.app/api/health?compact=1',
       'status href must be the keyless compact health form'
     );
   });
@@ -1541,18 +1553,18 @@ describe('agent readiness: api-catalog + openapi build', () => {
     const meta = apiEntry['service-meta'];
     assert.ok(Array.isArray(meta) && meta.length > 0, 'api context must carry service-meta entries');
     const hrefs = meta.map((entry) => entry.href);
-    assert.ok(hrefs.includes('https://worldmonitor.app/pricing.md'), 'service-meta must advertise pricing.md');
+    assert.ok(hrefs.includes('https://brians-world-monitor.vercel.app/pricing.md'), 'service-meta must advertise pricing.md');
     assert.ok(
-      hrefs.includes('https://www.worldmonitor.app/api/product-catalog'),
+      hrefs.includes('https://brians-world-monitor.vercel.app/api/product-catalog'),
       'service-meta must advertise the live product-catalog JSON endpoint'
     );
-    assert.ok(hrefs.includes('https://worldmonitor.app/support.md'), 'service-meta must advertise support.md');
-    assert.ok(hrefs.includes('https://worldmonitor.app/agents.md'), 'service-meta must advertise agents.md (#4952)');
+    assert.ok(hrefs.includes('https://brians-world-monitor.vercel.app/support.md'), 'service-meta must advertise support.md');
+    assert.ok(hrefs.includes('https://brians-world-monitor.vercel.app/agents.md'), 'service-meta must advertise agents.md (#4952)');
     // The Commerce spec lives outside the root openapi bundle (size budget,
     // #4853) — without this link no advertised descriptor reaches it
     // (post-#4867 review finding); Mintlify serves the raw YAML at this URL.
     const commerceSpec = meta.find(
-      (entry) => entry.href === 'https://www.worldmonitor.app/docs/openapi/CommerceService.openapi.yaml'
+      (entry) => entry.href === 'https://brians-world-monitor.vercel.app/docs/openapi/CommerceService.openapi.yaml'
     );
     assert.ok(commerceSpec, 'service-meta must link the Commerce OpenAPI spec');
     assert.equal(commerceSpec.type, 'application/vnd.oai.openapi');
@@ -1586,8 +1598,8 @@ describe('agent readiness: api-catalog + openapi build', () => {
   });
 
   it('has a second anchor for the MCP server-card', () => {
-    const mcpEntry = apiCatalog.linkset.find((entry) => entry.anchor === 'https://worldmonitor.app/mcp');
-    assert.ok(mcpEntry, 'linkset must contain an anchor for https://worldmonitor.app/mcp');
+    const mcpEntry = apiCatalog.linkset.find((entry) => entry.anchor === 'https://brians-world-monitor.vercel.app/mcp');
+    assert.ok(mcpEntry, 'linkset must contain an anchor for https://brians-world-monitor.vercel.app/mcp');
     const mcpServiceDesc = mcpEntry['service-desc']?.[0];
     assert.ok(mcpServiceDesc, 'mcp anchor must have a service-desc entry');
     assert.ok(
@@ -1684,7 +1696,9 @@ describe('agent readiness: MCP/OAuth origin alignment', () => {
     const handler = mod.default;
     assert.equal(typeof handler, 'function', 'handler must be the default export');
 
-    const hosts = ['worldmonitor.app', 'www.worldmonitor.app', 'api.worldmonitor.app'];
+    // Only this fork's own deployment (apex + preview builds) is trusted —
+    // see api/_agent-metadata.ts's ALLOWED_HOST regex.
+    const hosts = ['brians-world-monitor.vercel.app', 'brians-world-monitor-git-preview.vercel.app'];
     for (const host of hosts) {
       const req = new Request(`https://${host}/.well-known/oauth-protected-resource`, {
         headers: { host },
@@ -1708,7 +1722,7 @@ describe('agent readiness: MCP/OAuth origin alignment', () => {
     const u = new URL(mcpCard.authentication.resource);
     assert.equal(u.protocol, 'https:');
     assert.ok(
-      ['worldmonitor.app', 'www.worldmonitor.app', 'api.worldmonitor.app'].includes(u.host),
+      ['brians-world-monitor.vercel.app'].includes(u.host),
       `unexpected host: ${u.host}`
     );
   });
@@ -1762,7 +1776,9 @@ describe('agent readiness: MCP/OAuth origin alignment', () => {
     const handler = mod.default;
     assert.equal(typeof handler, 'function', 'handler must be the default export');
 
-    const hosts = ['worldmonitor.app', 'www.worldmonitor.app', 'api.worldmonitor.app'];
+    // Only this fork's own deployment (apex + preview builds) is trusted —
+    // see api/_agent-metadata.ts's ALLOWED_HOST regex.
+    const hosts = ['brians-world-monitor.vercel.app', 'brians-world-monitor-git-preview.vercel.app'];
     for (const host of hosts) {
       const req = new Request(`https://${host}/.well-known/oauth-authorization-server`, {
         headers: { host },
@@ -1822,37 +1838,41 @@ describe('agent readiness: MCP/OAuth origin alignment', () => {
     const prm = (await import('../api/oauth-protected-resource.ts')).default;
     const as = (await import('../api/oauth-authorization-server.ts')).default;
 
-    // Spoofed / unrecognized Host → apex fallback, never reflected.
-    for (const host of ['evil.com', 'worldmonitor.app.evil.com', 'evilworldmonitor.app', 'x.y.worldmonitor.app']) {
-      const prmRes = await prm(new Request('https://worldmonitor.app/.well-known/oauth-protected-resource', { headers: { host } }));
-      const prmJson = await prmRes.json();
-      assert.equal(prmJson.resource, 'https://worldmonitor.app', `PRM must not reflect spoofed host ${host}`);
-      assert.deepEqual(prmJson.authorization_servers, ['https://worldmonitor.app']);
+    const APEX = 'https://brians-world-monitor.vercel.app';
 
-      const asRes = await as(new Request('https://worldmonitor.app/.well-known/oauth-authorization-server', { headers: { host } }));
+    // Spoofed / unrecognized Host → apex fallback, never reflected. Includes
+    // the upstream worldmonitor.app hosts this fork no longer trusts.
+    for (const host of ['evil.com', 'worldmonitor.app', 'www.worldmonitor.app', 'tech.worldmonitor.app', 'brians-world-monitor.vercel.app.evil.com', 'evilbrians-world-monitor.vercel.app']) {
+      const prmRes = await prm(new Request(`${APEX}/.well-known/oauth-protected-resource`, { headers: { host } }));
+      const prmJson = await prmRes.json();
+      assert.equal(prmJson.resource, APEX, `PRM must not reflect spoofed host ${host}`);
+      assert.deepEqual(prmJson.authorization_servers, [APEX]);
+
+      const asRes = await as(new Request(`${APEX}/.well-known/oauth-authorization-server`, { headers: { host } }));
       const asJson = await asRes.json();
-      assert.equal(asJson.issuer, 'https://worldmonitor.app', `AS must not reflect spoofed host ${host}`);
-      assert.equal(asJson.token_endpoint, 'https://worldmonitor.app/oauth/token', `AS token_endpoint must not carry spoofed host ${host}`);
-      assert.equal(asJson.agent_auth.register_uri, 'https://worldmonitor.app/oauth/register');
-      assert.equal(asJson.agent_auth.claim_uri, 'https://worldmonitor.app/oauth/authorize', `AS claim_uri must not carry spoofed host ${host}`);
-      assert.equal(asJson.agent_auth.anonymous.claim_uri, 'https://worldmonitor.app/oauth/authorize');
+      assert.equal(asJson.issuer, APEX, `AS must not reflect spoofed host ${host}`);
+      assert.equal(asJson.token_endpoint, `${APEX}/oauth/token`, `AS token_endpoint must not carry spoofed host ${host}`);
+      assert.equal(asJson.agent_auth.register_uri, `${APEX}/oauth/register`);
+      assert.equal(asJson.agent_auth.claim_uri, `${APEX}/oauth/authorize`, `AS claim_uri must not carry spoofed host ${host}`);
+      assert.equal(asJson.agent_auth.anonymous.claim_uri, `${APEX}/oauth/authorize`);
     }
 
-    // Legit subdomain still self-describes.
-    const variant = await as(new Request('https://tech.worldmonitor.app/.well-known/oauth-authorization-server', { headers: { host: 'tech.worldmonitor.app' } }));
-    assert.equal((await variant.json()).issuer, 'https://tech.worldmonitor.app');
+    // Legit preview deployment still self-describes.
+    const previewHost = 'brians-world-monitor-git-preview.vercel.app';
+    const variant = await as(new Request(`https://${previewHost}/.well-known/oauth-authorization-server`, { headers: { host: previewHost } }));
+    assert.equal((await variant.json()).issuer, `https://${previewHost}`);
 
     // Method guard: OPTIONS → 204 preflight, other verbs → 405 + Allow, GET → 200.
     for (const handler of [prm, as]) {
-      const opt = await handler(new Request('https://worldmonitor.app/x', { method: 'OPTIONS', headers: { host: 'worldmonitor.app' } }));
+      const opt = await handler(new Request(`${APEX}/x`, { method: 'OPTIONS', headers: { host: 'brians-world-monitor.vercel.app' } }));
       assert.equal(opt.status, 204, 'OPTIONS is a CORS preflight');
       assert.equal(opt.headers.get('access-control-allow-methods'), 'GET, HEAD, OPTIONS');
 
-      const post = await handler(new Request('https://worldmonitor.app/x', { method: 'POST', headers: { host: 'worldmonitor.app' } }));
+      const post = await handler(new Request(`${APEX}/x`, { method: 'POST', headers: { host: 'brians-world-monitor.vercel.app' } }));
       assert.equal(post.status, 405, 'non-GET/HEAD is rejected');
       assert.equal(post.headers.get('allow'), 'GET, HEAD, OPTIONS');
 
-      const get = await handler(new Request('https://worldmonitor.app/x', { headers: { host: 'worldmonitor.app' } }));
+      const get = await handler(new Request(`${APEX}/x`, { headers: { host: 'brians-world-monitor.vercel.app' } }));
       assert.equal(get.status, 200, 'GET is served');
     }
   });
@@ -2352,8 +2372,8 @@ describe('agent readiness: registry branding + ARD catalog', () => {
     assert.ok(serverCard.description, 'server-card must have a description');
     assert.match(
       serverCard.icon ?? '',
-      /^https:\/\/(www\.)?worldmonitor\.app\//,
-      'server-card icon must be an absolute worldmonitor.app URL'
+      /^https:\/\/brians-world-monitor\.vercel\.app\//,
+      'server-card icon must be an absolute brians-world-monitor.vercel.app URL'
     );
     const iconPath = new URL(serverCard.icon).pathname;
     assert.ok(
@@ -2365,7 +2385,7 @@ describe('agent readiness: registry branding + ARD catalog', () => {
   it('ai-catalog.json declares the World Monitor host identity', () => {
     assert.strictEqual(aiCatalog.specVersion, '1.0');
     assert.strictEqual(aiCatalog.host?.displayName, 'World Monitor');
-    assert.strictEqual(aiCatalog.host?.identifier, 'did:web:worldmonitor.app');
+    assert.strictEqual(aiCatalog.host?.identifier, 'did:web:brians-world-monitor.vercel.app');
     assert.ok(Array.isArray(aiCatalog.entries) && aiCatalog.entries.length >= 2);
   });
 
@@ -2374,7 +2394,7 @@ describe('agent readiness: registry branding + ARD catalog', () => {
       const label = `ai-catalog entry ${entry.identifier}`;
       assert.match(
         entry.identifier ?? '',
-        /^urn:air:worldmonitor\.app:[a-z-]+:[a-z0-9-]+$/,
+        /^urn:air:brians-world-monitor\.vercel\.app:[a-z-]+:[a-z0-9-]+$/,
         `${label} must be a domain-anchored urn:air URN`
       );
       assert.ok(entry.displayName, `${label} needs a displayName`);
@@ -2382,12 +2402,12 @@ describe('agent readiness: registry branding + ARD catalog', () => {
       assert.ok(entry.description, `${label} needs a description`);
       assert.match(
         entry.url ?? '',
-        /^https:\/\/(www\.)?worldmonitor\.app\//,
+        /^https:\/\/brians-world-monitor\.vercel\.app\//,
         `${label} URL must be same-origin`
       );
       assert.strictEqual(
         entry.trustManifest?.identity,
-        'did:web:worldmonitor.app',
+        'did:web:brians-world-monitor.vercel.app',
         `${label} trust identity must be the domain DID`
       );
     }
@@ -2495,7 +2515,7 @@ describe('docs host scoping — Mintlify proxy is www-only (#5345)', () => {
 
   it('redirects subdomain /docs/* to www permanently', () => {
     assert.ok(docsHostRedirect, 'expected a host-conditioned redirect for /docs/:match*');
-    assert.equal(docsHostRedirect.destination, 'https://www.worldmonitor.app/docs/:match*');
+    assert.equal(docsHostRedirect.destination, 'https://brians-world-monitor.vercel.app/docs/:match*');
     assert.equal(docsHostRedirect.permanent, true);
   });
 
@@ -2516,7 +2536,7 @@ describe('docs host scoping — Mintlify proxy is www-only (#5345)', () => {
     // catch-all excludes ^api), flooding GSC.
     const redirect = vercelConfig.redirects.find((r) => r.source === '/api-reference/:match*');
     assert.ok(redirect, 'expected a redirect for /api-reference/:match*');
-    assert.equal(redirect.destination, 'https://www.worldmonitor.app/docs/api-reference/:match*');
+    assert.equal(redirect.destination, 'https://brians-world-monitor.vercel.app/docs/api-reference/:match*');
     assert.equal(redirect.permanent, true);
     assert.equal(redirect.has, undefined, 'must apply on every host, www included');
   });
@@ -2539,7 +2559,7 @@ describe('markdown canonical Link headers (#4999)', () => {
     it(`${page} declares a self-referencing canonical Link header`, () => {
       assert.strictEqual(
         getHeaderValueForSource(page, 'Link'),
-        `<https://www.worldmonitor.app${page}>; rel="canonical"`,
+        `<https://brians-world-monitor.vercel.app${page}>; rel="canonical"`,
         `${page} must self-canonicalize on the www host via the Link header`
       );
       assert.strictEqual(
@@ -2616,7 +2636,7 @@ describe('agent readiness: named developer-resource pages (#4953)', () => {
     // with the blog-site subproject.)
     const sitemap = readFileSync(resolve(__dirname, '../public/sitemap.xml'), 'utf-8');
     for (const page of DEV_PAGES) {
-      const url = `https://worldmonitor.app${page.path}`;
+      const url = `https://brians-world-monitor.vercel.app${page.path}`;
       assert.ok(catalogHrefs.includes(url), `api-catalog must advertise ${url}`);
       for (const [name, content] of surfaces) {
         assert.ok(content.includes(page.path), `public/${name} must link ${page.path}`);

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 180
 tags: [code-review, phase-0, regional-intelligence, refactor, dry]
@@ -54,6 +54,7 @@ export function getRegion(regionId) { ... }
 - [ ] Tests still pass
 
 ## Work Log
+- undefined: Fixed — replaced inline `REGIONS.find((r) => r.id === regionId)` with `getRegion(regionId)` in actor-scoring.mjs, balance-vector.mjs (both call sites), evidence-collector.mjs, and scenario-builder.mjs, and dropped the now-unused `REGIONS` import from all four files.
 
 ## Resources
 - PR #2940

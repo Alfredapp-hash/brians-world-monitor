@@ -67,7 +67,7 @@ function lastTwo(obs: { date: string; value: number }[]): { value: number | null
 function deltaColor(delta: number, lowerIsBetter: boolean, neutral: boolean): string {
   if (neutral) return 'var(--text-dim)';
   if (delta === 0) return 'var(--text-dim)';
-  return (lowerIsBetter ? delta < 0 : delta > 0) ? '#27ae60' : '#e74c3c';
+  return (lowerIsBetter ? delta < 0 : delta > 0) ? 'var(--status-good)' : 'var(--status-alert)';
 }
 
 function tileHtml(tile: MacroTile): string {
@@ -103,8 +103,8 @@ function chinaTileHtml(indicator: ChinaMacroIndicator): string {
   // alarm red) and a stale one as amber watch — a dashboard with sources down
   // should look intentional, not crashed.
   const stateColor = indicator.stale
-    ? 'var(--status-warn, #e08a3c)'
-    : (indicator.unavailableReason || !available ? 'var(--text-dim-safe, #a9a49b)' : '#27ae60');
+    ? 'var(--status-warn)'
+    : (indicator.unavailableReason || !available ? 'var(--text-dim-safe)' : 'var(--status-good)');
   const observed = indicator.observationDate || 'No observation date';
   const source = indicator.source || 'Source unavailable';
 

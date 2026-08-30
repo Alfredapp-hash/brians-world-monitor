@@ -37,9 +37,9 @@ export default function handler(req: Request): Response {
     error: {
       code: 'not_found',
       message: `No API endpoint matches ${pathname}.`,
-      hint: 'Check the endpoint path against the OpenAPI spec at https://worldmonitor.app/openapi.yaml or the API reference at https://www.worldmonitor.app/docs/api-reference.',
+      hint: 'Check the endpoint path against the OpenAPI spec at https://brians-world-monitor.vercel.app/openapi.yaml or the API reference at https://brians-world-monitor.vercel.app/docs/api-reference.',
     },
-    documentation: 'https://www.worldmonitor.app/docs/api-reference',
+    documentation: 'https://brians-world-monitor.vercel.app/docs/api-reference',
   };
 
   return new Response(JSON.stringify(body), {

@@ -8,6 +8,7 @@ import {
   isPanelEntitled,
   FREE_MAX_PANELS,
   countFreePanelCapUsage,
+  isFreePanelCapBlocking,
   isFreePanelCapCounted,
 } from '@/config/panels';
 import { isProUser } from '@/services/widget-store';
@@ -34,6 +35,7 @@ import {
   type ApiPlanLimitNotice,
 } from '@/services/api-plan-limit-notices';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
+import { STATUS, withAlpha } from '@/styles/tokens';
 
 
 function showToast(msg: string): void {
@@ -642,9 +644,10 @@ export class UnifiedSettings {
     if (isEntitled()) {
       const sub = getSubscription();
       const planName = sub?.displayName ?? 'Pro';
-      const statusColor = sub?.status === 'active' ? '#22c55e' : sub?.status === 'on_hold' ? '#eab308' : '#ef4444';
-      const statusBorderColor = sub?.status === 'active' ? '#22c55e33' : sub?.status === 'on_hold' ? '#eab30833' : '#ef444433';
-      const statusBgColor = sub?.status === 'active' ? '#22c55e0a' : sub?.status === 'on_hold' ? '#eab3080a' : '#ef44440a';
+      const statusBase = sub?.status === 'active' ? STATUS.good : sub?.status === 'on_hold' ? STATUS.watch : STATUS.alert;
+      const statusColor = statusBase;
+      const statusBorderColor = withAlpha(statusBase, 0.2);
+      const statusBgColor = withAlpha(statusBase, 0.04);
 
       let statusLine = '';
       if (sub?.currentPeriodEnd) {
@@ -726,11 +729,11 @@ export class UnifiedSettings {
     }
     this.close();
     if (this.config.isDesktopApp) {
-      window.open('https://worldmonitor.app/pro', '_blank', 'noopener,noreferrer');
+      window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer');
       return;
     }
     import('@/services/checkout').then(m => import('@/config/products').then(p => m.startCheckout(p.DEFAULT_UPGRADE_PRODUCT))).catch(() => {
-      window.open('https://worldmonitor.app/pro', '_blank', 'noopener,noreferrer');
+      window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer');
     });
   }
 
@@ -842,7 +845,7 @@ export class UnifiedSettings {
     // collapse to getEffectivePanelConfig's disabled synthetic fallback.
     const resolvedPanel = ALL_PANELS[key] ? getEffectivePanelConfig(key, SITE_VARIANT) : panel;
     if (!panel.enabled && !isPanelEntitled(key, resolvedPanel, isProUser())) return;
-    if (!panel.enabled && !isProUser() && isFreePanelCapCounted(key)) {
+    if (!panel.enabled && isFreePanelCapBlocking(isProUser()) && isFreePanelCapCounted(key)) {
       const enabledCount = countFreePanelCapUsage(this.draftPanelSettings);
       if (enabledCount >= FREE_MAX_PANELS) {
         showToast(t('modals.settingsWindow.freePanelLimit', { max: String(FREE_MAX_PANELS) }));
@@ -1113,7 +1116,7 @@ export class UnifiedSettings {
           : p.DODO_PRODUCTS.PRO_MONTHLY;
         return m.startCheckout(product);
       })).catch(() => {
-        window.open('https://worldmonitor.app/pro', '_blank', 'noopener,noreferrer');
+        window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer');
       });
       return;
     }
@@ -1145,7 +1148,7 @@ export class UnifiedSettings {
         } else {
           this.close();
           import('@/services/checkout').then(m => import('@/config/products').then(p => m.startCheckout(p.DODO_PRODUCTS.API_STARTER_MONTHLY))).catch(() => {
-            window.open('https://worldmonitor.app/pro', '_blank', 'noopener,noreferrer');
+            window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer');
           });
         }
       });
@@ -1502,7 +1505,7 @@ export class UnifiedSettings {
     const revoked = this.mcpClients.filter(c => c.revokedAt);
 
     if (active.length === 0 && revoked.length === 0) {
-      const mcpUrl = 'https://api.worldmonitor.app/mcp';
+      const mcpUrl = 'https://brians-world-monitor.vercel.app/mcp';
       setTrustedHtml(container, trustedHtml(`
         <div class="mcp-clients-empty">
           <div class="mcp-clients-empty-title">No connected MCP clients yet</div>

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "050"
 tags: [code-review, performance, analytical-frameworks]
@@ -49,3 +49,4 @@ Pass an `AbortSignal` to the RPC and cancel it when a new framework change fires
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by performance-oracle
+- undefined: Already resolved / not reproducible — `src/app/country-intel.ts` `init()` already wraps the `subscribeFrameworkChange('country-brief', ...)` callback in a 400ms `setTimeout` debounce (`this._fwDebounce`), clearing any pending timer before scheduling a new one, and `destroy()` clears the timer on teardown. Matches the recommended Option A. No code change needed.

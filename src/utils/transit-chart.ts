@@ -1,5 +1,6 @@
 import type { TransitDayCount } from '../generated/client/worldmonitor/supply_chain/v1/service_client';
 import { getCSSColor } from '@/utils';
+import { BRAND, CATEGORY } from '@/styles/tokens';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 
 
@@ -11,9 +12,9 @@ const GRID_LINES = 4;
 
 const VESSEL_KEYS: Array<keyof TransitDayCount & string> = ['container', 'dryBulk', 'generalCargo', 'roro', 'tanker'];
 const CAP_KEYS: Array<keyof TransitDayCount & string> = ['capContainer', 'capDryBulk', 'capGeneralCargo', 'capRoro', 'capTanker'];
-const VESSEL_COLORS = ['#dc2626', '#ea580c', '#ca8a04', '#0284c7', '#15803d'];
+const VESSEL_COLORS = [CATEGORY.blue, CATEGORY.orange, CATEGORY.aqua, CATEGORY.gold, CATEGORY.magenta];
 const VESSEL_LABELS = ['Container', 'Dry Bulk', 'Gen. Cargo', 'RoRo', 'Tanker'];
-const MA_COLOR = '#f59e0b';
+const MA_COLOR = BRAND.accent;
 
 function compute7dMA(values: number[]): number[] {
   return values.map((_, i) => {
@@ -65,7 +66,7 @@ export class TransitChart {
     this.tooltip = document.createElement('div');
     Object.assign(this.tooltip.style, {
       position: 'absolute', display: 'none', pointerEvents: 'none', zIndex: '10',
-      background: 'var(--bg-elevated, #1a1a2e)', border: '1px solid var(--border-subtle, #444)',
+      background: `var(--bg-elevated, ${BRAND.surface})`, border: `1px solid var(--border-subtle, ${BRAND.borderSubtle})`,
       borderRadius: '4px', padding: '6px 9px', fontSize: '11px', color: 'var(--text-primary, #eee)',
       whiteSpace: 'nowrap', lineHeight: '1.6',
     });
@@ -194,8 +195,8 @@ export class TransitChart {
     if (!ctx) return;
     ctx.scale(dpr, dpr);
 
-    const textColor = getCSSColor('--text-dim') || '#888';
-    const gridColor = getCSSColor('--border') || '#2a2a2a';
+    const textColor = getCSSColor('--text-dim') || BRAND.textDim;
+    const gridColor = getCSSColor('--border') || BRAND.border;
 
     // Build stacked totals per day
     const stacks: number[][] = data.map(d =>

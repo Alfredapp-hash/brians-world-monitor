@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 184
 tags: [code-review, phase-0, regional-intelligence, persistence, consistency, redis]
@@ -53,6 +53,8 @@ Commands in the current pipeline:
 - [ ] Document the partial-persist contract and add a repair job
 
 ## Work Log
+
+- undefined: Fixed (Option 1) — `scripts/regional-snapshot/persist-snapshot.mjs`'s 6-command write pipeline (SET ts/id/latest, ZADD index, ZREMRANGEBYSCORE, DEL live) now posts to Upstash's `/multi-exec` endpoint instead of `/pipeline`, making the writes an all-or-nothing MULTI/EXEC transaction so a partial failure can no longer leave the `:latest` pointer and the sorted-set index referencing different snapshot ids. Response shape is unchanged (array of `{result}`), so no other call-site changes were needed.
 
 ## Resources
 - PR #2940

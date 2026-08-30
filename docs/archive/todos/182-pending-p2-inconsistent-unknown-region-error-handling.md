@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 182
 tags: [code-review, phase-0, regional-intelligence, error-handling, consistency]
@@ -51,6 +51,7 @@ Files involved:
 - [ ] Or: every module throws on unknown region
 
 ## Work Log
+- undefined: Fixed — implemented Option 2 (all compute modules throw on unknown region): `scoreActors`, `collectEvidence`, and `buildScenarioSets` now `throw new Error(\`Unknown region: ${regionId}\`)` instead of silently returning empty results, matching `computeBalanceVector`'s existing behavior; the orchestrator's per-region try/catch in scripts/seed-regional-snapshots.mjs already handles this thrown-error contract (it already had to, for balance-vector), so no orchestrator change was needed or made.
 
 ## Resources
 - PR #2940

@@ -1,5 +1,6 @@
 import { Panel } from './Panel';
 import { escapeHtml, sanitizeUrl, unsafeRawHtml } from '@/utils/sanitize';
+import { BRAND, CATEGORY } from '@/styles/tokens';
 import { createLazyClient, getRpcBaseUrl, rpcFetch } from '@/services/rpc-client';
 import { attributionFooterHtml, ATTRIBUTION_FOOTER_CSS } from '@/utils/attribution-footer';
 
@@ -40,10 +41,10 @@ const getSupplyChainClient = createLazyClient(() => new SupplyChainServiceClient
 type RawBootstrapRegistry = RawPipelineRegistry;
 
 const BADGE_COLOR: Record<string, string> = {
-  flowing:  '#2ecc71',
-  reduced:  '#f39c12',
-  offline:  '#e74c3c',
-  disputed: '#9b59b6',
+  flowing:  'var(--status-good)',
+  reduced:  'var(--status-watch)',
+  offline:  'var(--status-alert)',
+  disputed: CATEGORY.violet,
 };
 
 function badgeLabel(badge: string): string {
@@ -62,7 +63,7 @@ function capacityLabel(p: PipelineEntry): string {
 
 function badgeChip(badge: string | undefined): string {
   const safe = badge && BADGE_COLOR[badge] ? badge : 'disputed';
-  const color = BADGE_COLOR[safe] ?? '#7f8c8d';
+  const color = BADGE_COLOR[safe] ?? 'var(--text-dim)';
   return `<span class="pp-badge" style="background:${color}">${escapeHtml(badgeLabel(safe))}</span>`;
 }
 
@@ -383,15 +384,15 @@ export class PipelineStatusPanel extends Panel {
         .pp-table tr.pp-row:hover td { background: rgba(255,255,255,0.03); }
         .pp-name { font-weight: 600; color: var(--text, #eee); }
         .pp-sub  { font-size: 9px; color: var(--text-dim, #888); text-transform: uppercase; letter-spacing: 0.04em; }
-        .pp-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; }
-        .pp-drawer { position: absolute; inset: 0; background: var(--panel-bg, #0f1218); padding: 12px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; }
+        .pp-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.04em; }
+        .pp-drawer { position: absolute; inset: 0; background: var(--panel-bg, ${BRAND.bgSecondary}); padding: 12px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; }
         .pp-drawer-close { position: absolute; top: 8px; right: 10px; background: transparent; border: 0; color: var(--text-dim, #888); cursor: pointer; font-size: 14px; }
         .pp-drawer h3 { margin: 0 0 6px 0; font-size: 13px; color: var(--text, #eee); }
         .pp-drawer .pp-kv { display: grid; grid-template-columns: 120px 1fr; gap: 4px 10px; font-size: 10px; margin-bottom: 10px; }
         .pp-drawer .pp-kv-key { color: var(--text-dim, #888); text-transform: uppercase; letter-spacing: 0.04em; font-size: 9px; padding-top: 2px; }
         .pp-evidence { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); }
         .pp-ev-item { font-size: 10px; color: var(--text, #eee); margin-bottom: 6px; }
-        .pp-ev-item a { color: #4ade80; text-decoration: none; }
+        .pp-ev-item a { color: var(--status-good); text-decoration: none; }
         .pp-ev-item a:hover { text-decoration: underline; }
       </style>
     `, 'legacy Panel.setContent() migration'));

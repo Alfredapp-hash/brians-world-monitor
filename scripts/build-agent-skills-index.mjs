@@ -20,7 +20,7 @@ const __filename = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(__filename), '..');
 const SKILLS_DIR = resolve(ROOT, 'public/.well-known/agent-skills');
 const INDEX_PATH = join(SKILLS_DIR, 'index.json');
-const PUBLIC_BASE = 'https://worldmonitor.app';
+const PUBLIC_BASE = 'https://brians-world-monitor.vercel.app';
 
 // Canonical v0.2.0 discovery-schema URL. Graders (orank/ora.ai Identity
 // `agent-skills-index-v2`) string-match this exact value; the earlier
@@ -70,10 +70,10 @@ const INSTRUCTIONS = [
   'When NOT to use: World Monitor is not a general web-search engine, a historical archive, or a trading-execution venue — it places no orders and stores no user documents. For a one-off narrative that needs no correlation across live layers, a plain LLM is cheaper and faster.',
   '',
   'How an agent should call it:',
-  '- MCP server (recommended): https://worldmonitor.app/mcp — Streamable HTTP; issue `tools/list` for the live inventory.',
-  '- REST API: base https://api.worldmonitor.app — OpenAPI spec at https://worldmonitor.app/openapi.yaml.',
+  '- MCP server (recommended): https://brians-world-monitor.vercel.app/mcp — Streamable HTTP; issue `tools/list` for the live inventory.',
+  '- REST API: base https://brians-world-monitor.vercel.app/api — OpenAPI spec at https://brians-world-monitor.vercel.app/openapi.yaml.',
   '- CLI (shell/scripts): the `worldmonitor` npm package wraps these tools — `npx worldmonitor tools` (public, no key) or `npm i -g worldmonitor`, then pass `--api-key` for data calls. https://www.npmjs.com/package/worldmonitor',
-  '- Auth: OAuth2 (`scope=mcp`) or an API-key header `X-WorldMonitor-Key: wm_<40-hex>`. Issue a key at https://worldmonitor.app/pro.',
+  '- Auth: OAuth2 (`scope=mcp`) or an API-key header `X-WorldMonitor-Key: wm_<40-hex>`. Issue a key at https://brians-world-monitor.vercel.app/pro.',
 ].join('\n');
 
 // Closing fence must be anchored to its own line so values that happen to

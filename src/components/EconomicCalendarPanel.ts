@@ -33,8 +33,8 @@ const EU_COUNTRIES = new Set(['EU', 'EA', 'EUR', 'DE', 'FR', 'IT', 'ES', 'NL', '
 type RegionFilter = 'all' | 'us' | 'eu';
 
 const IMPACT_COLORS: Record<string, string> = {
-  high: '#e74c3c',
-  medium: '#f39c12',
+  high: 'var(--status-alert)',
+  medium: 'var(--status-watch)',
   low: 'rgba(255,255,255,0.3)',
 };
 

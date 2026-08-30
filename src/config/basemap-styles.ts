@@ -94,6 +94,11 @@ export const TERRAIN_ATTRIBUTION_HTML =
 
 const TERRAIN_DEM_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
 
+// NOTE (token migration): every hex in this file is basemap terrain/raster
+// *material* tuning — texture-like values art-directed against the specific
+// hillshade + charcoal basemap stack — not data encodings, so they stay
+// deliberate file-local constants rather than design tokens.
+
 /** Waterway line color tuned for the amber-on-charcoal theme (#0a0c10 bg). */
 const TERRAIN_WATERWAY_COLOR = '#3d5a6b';
 /** Water polygon fill: a shade above the charcoal bg so lakes/seas read. */
@@ -101,6 +106,12 @@ const TERRAIN_WATER_FILL = '#14212b';
 /** Physical-feature label ink: desaturated blue-gray, halo near-black. */
 const TERRAIN_LABEL_COLOR = '#8299a8';
 const TERRAIN_LABEL_HALO = '#05070b';
+/** Hillshade paint: shadows near-black, highlights a warm dark gray so
+ * ridgelines pick up a faint amber warmth without washing out the dark
+ * identity. */
+const TERRAIN_HILLSHADE_SHADOW = '#03050a';
+const TERRAIN_HILLSHADE_HIGHLIGHT = '#6b6350';
+const TERRAIN_HILLSHADE_ACCENT = '#10141a';
 
 const WATERWAY_SOURCE_LAYER_RE = /^(waterway|physical_line)$/;
 const WATER_FILL_SOURCE_LAYER_RE = /^(water|ocean|lake)$/;
@@ -136,13 +147,10 @@ export function addHillshadeLayers(map: maplibregl.Map): void {
       type: 'hillshade',
       source: TERRAIN_DEM_SOURCE_ID,
       paint: {
-        // Subtle relief: shadows near-black, highlights a warm dark gray so
-        // ridgelines pick up a faint amber warmth without washing out the
-        // dark identity.
         'hillshade-exaggeration': 0.55,
-        'hillshade-shadow-color': '#03050a',
-        'hillshade-highlight-color': '#6b6350',
-        'hillshade-accent-color': '#10141a',
+        'hillshade-shadow-color': TERRAIN_HILLSHADE_SHADOW,
+        'hillshade-highlight-color': TERRAIN_HILLSHADE_HIGHLIGHT,
+        'hillshade-accent-color': TERRAIN_HILLSHADE_ACCENT,
       },
     }, firstSymbol);
   }

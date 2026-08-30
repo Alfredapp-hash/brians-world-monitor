@@ -3,7 +3,7 @@
   "name": "app.worldmonitor/mcp",
   "title": "World Monitor",
   "description": "Live global intelligence: real-time markets, conflicts, country risk, chokepoints, energy. 39 tools.",
-  "websiteUrl": "https://www.worldmonitor.app",
+  "websiteUrl": "https://brians-world-monitor.vercel.app",
   "repository": {
     "url": "https://github.com/koala73/worldmonitor",
     "source": "github"
@@ -12,7 +12,7 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://worldmonitor.app/mcp"
+      "url": "https://brians-world-monitor.vercel.app/mcp"
     }
   ]
 }

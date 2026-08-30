@@ -55,9 +55,11 @@ export {
   enforceFreePanelLimit,
   countFreePanelCapUsage,
   isFreePanelCapCounted,
+  isFreePanelCapBlocking,
   restoreFreeMapPanelAccess,
   FREE_MAX_PANELS,
   FREE_MAX_SOURCES,
+  OPERATOR_UNLIMITED_PANELS,
 } from './panels';
 
 // ============================================

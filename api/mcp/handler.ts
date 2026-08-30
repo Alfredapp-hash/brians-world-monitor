@@ -365,7 +365,7 @@ const MCP_TRANSPORT_PATH = '/mcp';
 // without this Vary.
 const DISCOVERY_VARY = 'Accept, Last-Event-ID';
 const STATIC_ASSET_FETCH_TIMEOUT_MS = 5_000;
-const STATIC_ASSET_USER_AGENT = 'WorldMonitor-MCP/1.0 (+https://worldmonitor.app)';
+const STATIC_ASSET_USER_AGENT = 'WorldMonitor-MCP/1.0 (+https://brians-world-monitor.vercel.app)';
 
 // Module-scope caches: both documents are static assets, immutable per deployment.
 let serverCardCache: string | null = null;
@@ -453,7 +453,7 @@ async function serveMcpGuide(req: Request, corsHeaders: Record<string, string>, 
       'Content-Type': 'text/markdown; charset=utf-8',
       ...corsHeaders,
       Vary: DISCOVERY_VARY,
-      Link: '<https://worldmonitor.app/mcp>; rel="canonical"',
+      Link: '<https://brians-world-monitor.vercel.app/mcp>; rel="canonical"',
     },
   });
 }

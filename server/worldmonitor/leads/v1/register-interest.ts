@@ -128,7 +128,7 @@ async function verifyDesktopAuth(request: Request, req: RegisterInterestRequest)
 }
 
 async function sendConfirmationEmail(email: string, referralCode: string): Promise<void> {
-  const referralLink = `https://worldmonitor.app/pro?ref=${referralCode}`;
+  const referralLink = `https://brians-world-monitor.vercel.app/pro?ref=${referralCode}`;
   const shareText = encodeURIComponent("I just joined the JSA's Monitor Pro waitlist \u2014 real-time global intelligence powered by AI. Join me:");
   const shareUrl = encodeURIComponent(referralLink);
   const twitterShare = `https://x.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
@@ -149,7 +149,7 @@ async function sendConfirmationEmail(email: string, referralCode: string): Promi
         'Authorization': `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: "JSA's Monitor <noreply@worldmonitor.app>",
+        from: "JSA's Monitor <noreply@brians-world-monitor.vercel.app>",
         to: [email],
         subject: "You\u2019re on the JSA's Monitor Pro waitlist",
         html: `
@@ -159,7 +159,7 @@ async function sendConfirmationEmail(email: string, referralCode: string): Promi
               <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 32px;">
                 <tr>
                   <td style="width: 40px; height: 40px; vertical-align: middle;">
-                    <img src="https://www.worldmonitor.app/favico/android-chrome-192x192.png" width="40" height="40" alt="JSA's Monitor" style="border-radius: 50%; display: block;" />
+                    <img src="https://brians-world-monitor.vercel.app/favico/android-chrome-192x192.png" width="40" height="40" alt="JSA's Monitor" style="border-radius: 50%; display: block;" />
                   </td>
                   <td style="padding-left: 12px;">
                     <div style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.5px;">WORLD MONITOR</div>
@@ -250,19 +250,19 @@ async function sendConfirmationEmail(email: string, referralCode: string): Promi
                 </table>
               </div>
               <div style="text-align: center; margin-bottom: 36px;">
-                <a href="https://worldmonitor.app/dashboard" style="display: inline-block; background: #4ade80; color: #0a0a0a; padding: 14px 36px; text-decoration: none; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; border-radius: 2px;">Explore the Free Dashboard</a>
+                <a href="https://brians-world-monitor.vercel.app/dashboard" style="display: inline-block; background: #4ade80; color: #0a0a0a; padding: 14px 36px; text-decoration: none; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; border-radius: 2px;">Explore the Free Dashboard</a>
                 <p style="font-size: 12px; color: #555; margin-top: 12px;">The free dashboard stays free forever. Pro adds intelligence on top.</p>
               </div>
             </div>
             <div style="border-top: 1px solid #1a1a1a; padding: 24px 32px; text-align: center;">
               <div style="margin-bottom: 16px;">
                 <a href="https://x.com/eliehabib" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">X / Twitter</a>
-                <a href="https://github.com/koala73/worldmonitor" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">GitHub</a>
-                <a href="https://worldmonitor.app/pro" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">Pro Waitlist</a>
+                <a href="https://github.com/Alfredapp-hash/brians-world-monitor" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">GitHub</a>
+                <a href="https://brians-world-monitor.vercel.app/pro" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">Pro Waitlist</a>
               </div>
               <p style="font-size: 11px; color: #444; margin: 0; line-height: 1.6;">
                 JSA's Monitor \u2014 Real-time intelligence for a connected world.<br />
-                <a href="https://worldmonitor.app" style="color: #4ade80; text-decoration: none;">worldmonitor.app</a>
+                <a href="https://brians-world-monitor.vercel.app" style="color: #4ade80; text-decoration: none;">brians-world-monitor.vercel.app</a>
               </p>
             </div>
           </div>`,

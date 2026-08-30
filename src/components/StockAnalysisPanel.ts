@@ -6,6 +6,7 @@ import { getMarketWatchlistEntries } from '@/services/market-watchlist';
 import type { AnalystConsensus, PriceTarget, UpgradeDowngrade } from '@/generated/client/worldmonitor/market/v1/service_client';
 import type { InsiderTransactionsResult } from '@/services/insider-transactions';
 import { escapeHtml, sanitizeUrl, unsafeRawHtml } from '@/utils/sanitize';
+import { STATUS, withAlpha } from '@/styles/tokens';
 import type { StockAnalysisHistory } from '@/services/stock-analysis-history';
 import { sparkline } from '@/utils/sparkline';
 import { createWatchlistButton } from './watchlist-modal';
@@ -317,11 +318,11 @@ export class StockAnalysisPanel extends Panel {
     const total = c.total || 1;
     const pct = (v: number) => ((v / total) * 100).toFixed(1);
     const segments = [
-      { label: 'Strong Buy', count: c.strongBuy, color: '#16a34a', pct: pct(c.strongBuy) },
-      { label: 'Buy', count: c.buy, color: '#4ade80', pct: pct(c.buy) },
-      { label: 'Hold', count: c.hold, color: '#facc15', pct: pct(c.hold) },
-      { label: 'Sell', count: c.sell, color: '#f87171', pct: pct(c.sell) },
-      { label: 'Strong Sell', count: c.strongSell, color: '#dc2626', pct: pct(c.strongSell) },
+      { label: 'Strong Buy', count: c.strongBuy, color: 'var(--status-good)', pct: pct(c.strongBuy) },
+      { label: 'Buy', count: c.buy, color: withAlpha(STATUS.good, 0.72), pct: pct(c.buy) },
+      { label: 'Hold', count: c.hold, color: 'var(--status-watch)', pct: pct(c.hold) },
+      { label: 'Sell', count: c.sell, color: withAlpha(STATUS.alert, 0.72), pct: pct(c.sell) },
+      { label: 'Strong Sell', count: c.strongSell, color: 'var(--status-alert)', pct: pct(c.strongSell) },
     ].filter((s) => s.count > 0);
 
     const bar = segments.map((s) =>

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "042"
 tags: [code-review, security, premium-gating, analytical-frameworks]
@@ -50,3 +50,4 @@ Premium gate is UI-only. The feature degrades gracefully (free users just don't 
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by security-sentinel and architecture-strategist
+- undefined: Already resolved / not reproducible — all three handlers already call `isCallerPremium(ctx.request)` server-side and only honor `req.framework`/`req.systemAppend` when the caller is premium (`deduct-situation.ts`, `get-country-intel-brief.ts`, `summarize-article.ts`); Option A is in place. No code change needed.

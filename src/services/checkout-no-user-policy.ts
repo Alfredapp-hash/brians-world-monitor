@@ -26,7 +26,10 @@ export type NoUserPathOutcome =
   | { kind: 'redirect-pro'; persist: false; redirectUrl: string }
   | { kind: 'inline-signin'; persist: true };
 
-const PRO_URL = 'https://worldmonitor.app/pro';
+// Relative path — vercel.json routes /pro -> /pro/index.html to this fork's
+// own locally-built pricing page. Must NOT point at worldmonitor.app, which
+// is a separate product this fork does not control.
+const PRO_URL = '/pro';
 
 export function decideNoUserPathOutcome(fallbackToPricingPage: boolean): NoUserPathOutcome {
   if (fallbackToPricingPage) {

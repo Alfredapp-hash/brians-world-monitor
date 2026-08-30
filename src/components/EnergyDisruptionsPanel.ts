@@ -1,5 +1,6 @@
 import { Panel } from './Panel';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { CATEGORY, NEUTRAL, withAlpha } from '@/styles/tokens';
 import { createLazyClient, getRpcBaseUrl, rpcFetch } from '@/services/rpc-client';
 import { attributionFooterHtml, ATTRIBUTION_FOOTER_CSS } from '@/utils/attribution-footer';
 
@@ -33,9 +34,9 @@ const EVENT_GLYPH: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<DisruptionStatus, string> = {
-  ongoing:  '#e74c3c',
-  resolved: '#7f8c8d',
-  unknown:  '#95a5a6',
+  ongoing:  'var(--status-alert)',
+  resolved: 'var(--text-dim)',
+  unknown:  NEUTRAL.slate,
 };
 
 const EVENT_TYPE_FILTERS: Array<{ key: string; label: string }> = [
@@ -236,8 +237,8 @@ export class EnergyDisruptionsPanel extends Panel {
         .ed-filters { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
         .ed-chip { background: rgba(255,255,255,0.04); color: var(--text-dim, #aaa); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 2px 8px; font-size: 10px; cursor: pointer; }
         .ed-chip:hover { background: rgba(255,255,255,0.08); color: var(--text, #eee); }
-        .ed-chip-active { background: #2980b9; border-color: #2980b9; color: #fff; }
-        .ed-chip-active:hover { background: #2471a3; }
+        .ed-chip-active { background: ${CATEGORY.blue}; border-color: ${CATEGORY.blue}; color: var(--text); }
+        .ed-chip-active:hover { background: ${withAlpha(CATEGORY.blue, 0.85)}; }
         .ed-table { width: 100%; border-collapse: collapse; }
         .ed-table th { text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim, #888); padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.08); }
         .ed-table td { padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
@@ -246,7 +247,7 @@ export class EnergyDisruptionsPanel extends Panel {
         .ed-event { font-weight: 600; color: var(--text, #eee); }
         .ed-sub { font-size: 9px; color: var(--text-dim, #888); text-transform: uppercase; letter-spacing: 0.04em; }
         .ed-asset-type { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(255,255,255,0.08); color: var(--text-dim, #aaa); margin-right: 4px; }
-        .ed-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; }
+        .ed-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.04em; }
         .ed-empty { text-align: center; color: var(--text-dim, #888); padding: 20px; font-style: italic; }
         .ed-offline { font-family: monospace; font-size: 10px; color: var(--text, #eee); }
       </style>

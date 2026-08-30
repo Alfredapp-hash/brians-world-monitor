@@ -1,5 +1,6 @@
 // Base configuration shared across all variants
 import type { PanelConfig, MapLayers } from '@/types';
+import { CATEGORY_ORDER, NEUTRAL, STATUS } from '@/styles/tokens';
 
 // Shared exports (re-exported by all variants)
 export { SECTORS, COMMODITIES, MARKET_SYMBOLS } from '../markets';
@@ -79,18 +80,13 @@ export const REFRESH_INTERVALS = {
   marketBreadth: 60 * 60 * 1000, // seeded daily; hourly refresh is sufficient
 };
 
-// Monitor colors - shared
+// Monitor colors - shared. JSA CATEGORY hues in declared order, extended to
+// 10 entries with the neutral slate and status-info blue (mirrors
+// MONITOR_COLORS in src/config/panels.ts).
 export const MONITOR_COLORS = [
-  '#44ff88',
-  '#ff8844',
-  '#4488ff',
-  '#ff44ff',
-  '#ffff44',
-  '#ff4444',
-  '#44ffff',
-  '#88ff44',
-  '#ff88ff',
-  '#88ffff',
+  ...CATEGORY_ORDER,
+  NEUTRAL.slate,
+  STATUS.info,
 ];
 
 // Storage keys - shared

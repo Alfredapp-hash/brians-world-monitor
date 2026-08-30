@@ -3,9 +3,11 @@ import { escapeHtml } from '@/services/forecast';
 import type { Forecast } from '@/services/forecast';
 import { t } from '@/services/i18n';
 import { getForecastMacroRegion } from '../../shared/forecast-macro-regions.js';
+import { REGIONS } from '../../shared/geography.js';
 import { unsafeRawHtml } from '@/utils/sanitize';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { mergeCachedCaseFiles, needsCaseFileRefetch, shouldFetchCaseFile } from './forecast-case-files';
+import { CATEGORY, NEUTRAL, STATUS, withAlpha } from '@/styles/tokens';
 
 const DOMAINS = ['all', 'conflict', 'market', 'supply_chain', 'political', 'military', 'cyber', 'infrastructure'] as const;
 const PANEL_MIN_PROBABILITY = 0.1;
@@ -25,16 +27,15 @@ interface ForecastSourceState {
 // refresh-time updateForecasts() calls. The '' (empty) id means
 // "All Regions" — no filter applied. Forecasts whose region does not
 // classify (unknown or 'global') only appear under "All Regions".
+//
+// Derived from shared/geography.js's REGIONS — the canonical region taxonomy
+// — rather than a hardcoded duplicate, so adding/renaming a region there
+// automatically updates these pills (#175). 'global' is excluded: it has no
+// dedicated pill and only surfaces under "All Regions".
 const FORECAST_REGIONS = [
   { id: '', label: 'All Regions' },
-  { id: 'mena', label: 'MENA' },
-  { id: 'east-asia', label: 'East Asia' },
-  { id: 'europe', label: 'Europe' },
-  { id: 'south-asia', label: 'South Asia' },
-  { id: 'sub-saharan-africa', label: 'Africa' },
-  { id: 'latam', label: 'LatAm' },
-  { id: 'north-america', label: 'N. America' },
-] as const;
+  ...REGIONS.filter(r => r.id !== 'global').map(r => ({ id: r.id, label: r.forecastLabel })),
+];
 
 const DOMAIN_LABELS: Record<string, string> = {
   all: 'All',
@@ -47,14 +48,17 @@ const DOMAIN_LABELS: Record<string, string> = {
   infrastructure: 'Infra',
 };
 
+// Qualitative domain identity hues — raw constants (not CSS vars) because
+// they're combined with hex-alpha suffixes via withAlpha() and set as SVG
+// presentation attributes. One meaning per hue within this layer.
 const DOMAIN_COLORS: Record<string, string> = {
-  conflict:       '#e05252',
-  market:         '#d29922',
-  supply_chain:   '#58a6ff',
-  political:      '#bc8cff',
-  military:       '#f85149',
-  cyber:          '#bc8cff',
-  infrastructure: '#3fb950',
+  conflict:       CATEGORY.red,
+  market:         CATEGORY.gold,
+  supply_chain:   CATEGORY.blue,
+  political:      CATEGORY.violet,
+  military:       CATEGORY.orange,
+  cyber:          CATEGORY.violet,
+  infrastructure: CATEGORY.green,
 };
 
 // Derived from stateKind — maps to a domain color bucket for the theater card accent
@@ -114,16 +118,16 @@ function injectStyles(): void {
   const style = document.createElement('style');
   style.textContent = `
     .fc-panel { font-size: 12px; }
-    .fc-filters { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--border-color, #333); }
-    .fc-filter { background: transparent; border: 1px solid var(--border-color, #444); color: var(--text-secondary, #aaa); padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; font-family: inherit; }
-    .fc-filter.fc-active { background: var(--accent-color, #3b82f6); color: #fff; border-color: var(--accent-color, #3b82f6); }
+    .fc-filters { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    .fc-filter { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; font-family: inherit; }
+    .fc-filter.fc-active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 
     /* ── NEXUS: theater grid ─────────────────────────────────────────────── */
     .fc-nexus { padding: 8px; }
     .fc-theater-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 10px; }
     .fc-theater-card {
-      background: var(--panel-bg, #161b22);
-      border: 1px solid var(--border-color, #30363d);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 18px 16px;
       cursor: pointer;
@@ -136,22 +140,22 @@ function injectStyles(): void {
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 2px;
-      background: var(--fc-theater-color, #58a6ff);
+      background: var(--fc-theater-color, var(--status-info));
     }
-    .fc-theater-card:hover { border-color: #40464f; transform: translateY(-1px); }
-    .fc-theater-card.fc-theater-selected { border-color: var(--accent-color, #58a6ff); background: rgba(88,166,255,0.04); }
+    .fc-theater-card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+    .fc-theater-card.fc-theater-selected { border-color: var(--accent); background: var(--overlay-subtle); }
     .fc-theater-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
-    .fc-theater-name { font-size: 11px; font-weight: 700; line-height: 1.3; color: var(--text-primary, #e6edf3); flex: 1; padding-right: 8px; }
+    .fc-theater-name { font-size: 11px; font-weight: 700; line-height: 1.3; color: var(--text); flex: 1; padding-right: 8px; }
     .fc-gauge-wrap { position: relative; width: 38px; height: 38px; flex-shrink: 0; }
     .fc-gauge-svg { width: 38px; height: 38px; transform: rotate(-90deg); }
-    .fc-gauge-bg { fill: none; stroke: var(--border-color, #30363d); stroke-width: 4; }
+    .fc-gauge-bg { fill: none; stroke: var(--border); stroke-width: 4; }
     .fc-gauge-fill { fill: none; stroke-width: 4; stroke-linecap: round; }
     .fc-gauge-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 9px; font-weight: 700; }
-    .fc-theater-path { font-size: 9px; color: var(--text-secondary, #7d8590); line-height: 1.4; margin-top: 4px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .fc-theater-path { font-size: 9px; color: var(--text-secondary); line-height: 1.4; margin-top: 4px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
     .fc-path-type { font-size: 8px; padding: 1px 4px; border-radius: 2px; font-weight: 600; letter-spacing: 0.03em; opacity: 0.75; white-space: nowrap; }
-    .fc-path-type-escalation    { background: rgba(224,82,82,0.2); color: #e05252; border: 1px solid rgba(224,82,82,0.3); }
-    .fc-path-type-containment   { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.25); }
-    .fc-path-type-market_cascade { background: rgba(210,153,34,0.15); color: #d29922; border: 1px solid rgba(210,153,34,0.25); }
+    .fc-path-type-escalation    { background: ${withAlpha(STATUS.alert, 0.2)}; color: var(--status-alert); border: 1px solid ${withAlpha(STATUS.alert, 0.3)}; }
+    .fc-path-type-containment   { background: ${withAlpha(STATUS.good, 0.15)}; color: var(--status-good); border: 1px solid ${withAlpha(STATUS.good, 0.25)}; }
+    .fc-path-type-market_cascade { background: ${withAlpha(STATUS.watch, 0.15)}; color: var(--status-watch); border: 1px solid ${withAlpha(STATUS.watch, 0.25)}; }
     .fc-cat-tag {
       font-size: 9px; padding: 1px 5px; border-radius: 3px; white-space: nowrap;
       flex-shrink: 0; font-weight: 500; display: inline-block;
@@ -159,46 +163,46 @@ function injectStyles(): void {
 
     /* ── NEXUS: expanded theater detail ─────────────────────────────────── */
     .fc-theater-detail {
-      background: var(--panel-bg, #161b22);
-      border: 1px solid var(--border-color, #30363d);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 5px;
       margin-bottom: 10px;
       overflow: hidden;
     }
-    .fc-theater-detail-hdr { padding: 10px 12px; border-bottom: 1px solid var(--border-color, #30363d); display: flex; align-items: center; gap: 8px; }
-    .fc-theater-detail-name { font-size: 12px; font-weight: 700; color: var(--text-primary, #e6edf3); }
+    .fc-theater-detail-hdr { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+    .fc-theater-detail-name { font-size: 12px; font-weight: 700; color: var(--text); }
     .fc-theater-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px 12px; }
     @media (max-width: 480px) { .fc-theater-paths { grid-template-columns: 1fr; } }
-    .fc-path-card { background: rgba(0,0,0,0.25); border: 1px solid var(--border-color, #30363d); border-radius: 4px; padding: 9px 10px; }
-    .fc-path-label { font-size: 10px; font-weight: 700; color: var(--text-primary, #e6edf3); margin-bottom: 2px; }
-    .fc-path-conf { font-size: 9px; color: var(--text-secondary, #7d8590); margin-bottom: 5px; }
+    .fc-path-card { background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 4px; padding: 9px 10px; }
+    .fc-path-label { font-size: 10px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .fc-path-conf { font-size: 9px; color: var(--text-secondary); margin-bottom: 5px; }
     .fc-path-bar { height: 2px; border-radius: 1px; margin: 4px 0; }
-    .fc-path-summary { font-size: 10px; color: var(--text-secondary, #7d8590); line-height: 1.5; }
+    .fc-path-summary { font-size: 10px; color: var(--text-secondary); line-height: 1.5; }
     .fc-path-actors { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
-    .fc-actor-chip { font-size: 9px; padding: 1px 5px; border: 1px solid var(--border-color, #30363d); border-radius: 2px; color: var(--text-secondary, #7d8590); background: rgba(255,255,255,0.02); }
-    .fc-theater-footer { padding: 8px 12px; border-top: 1px solid var(--border-color, #30363d); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .fc-actor-chip { font-size: 9px; padding: 1px 5px; border: 1px solid var(--border); border-radius: 2px; color: var(--text-secondary); background: rgba(255,255,255,0.02); }
+    .fc-theater-footer { padding: 8px 12px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .fc-theater-footer-section { }
-    .fc-footer-title { font-size: 9px; color: var(--text-secondary, #7d8590); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
-    .fc-footer-item { font-size: 9px; color: var(--text-secondary, #7d8590); padding: 2px 0; line-height: 1.4; }
+    .fc-footer-title { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+    .fc-footer-item { font-size: 9px; color: var(--text-secondary); padding: 2px 0; line-height: 1.4; }
     .fc-footer-item::before { content: '›'; margin-right: 4px; }
-    .fc-stab-item::before { color: #3fb950; }
-    .fc-inval-item::before { color: #e05252; }
-    .fc-react-item::before { color: #58a6ff; }
+    .fc-stab-item::before { color: var(--status-good); }
+    .fc-inval-item::before { color: var(--status-alert); }
+    .fc-react-item::before { color: var(--status-info); }
 
     /* ── Section label ───────────────────────────────────────────────────── */
-    .fc-section-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary, #7d8590); padding: 6px 8px 4px; }
+    .fc-section-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); padding: 6px 8px 4px; }
 
     /* ── Forecast probability table ──────────────────────────────────────── */
-    .fc-prob-table { border: 1px solid var(--border-color, #30363d); border-radius: 4px; overflow: hidden; margin: 0 8px 8px; }
-    .fc-prob-hdr { display: grid; grid-template-columns: 1fr 80px 100px 60px; padding: 8px 14px; border-bottom: 1px solid var(--border-color, #30363d); }
-    .fc-prob-hdr span { font-size: 9px; color: var(--text-secondary, #7d8590); text-transform: uppercase; letter-spacing: 0.08em; }
-    .fc-prob-item { border-bottom: 1px solid var(--border-color, #30363d); }
+    .fc-prob-table { border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin: 0 8px 8px; }
+    .fc-prob-hdr { display: grid; grid-template-columns: 1fr 80px 100px 60px; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+    .fc-prob-hdr span { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; }
+    .fc-prob-item { border-bottom: 1px solid var(--border); }
     .fc-prob-item:last-child { border-bottom: none; }
     .fc-prob-row { display: grid; grid-template-columns: 1fr 80px 100px 60px; align-items: center; padding: 9px 14px; cursor: pointer; transition: background 0.1s; }
     .fc-prob-item:hover .fc-prob-row { background: rgba(255,255,255,0.02); }
-    .fc-prob-label { font-size: 10px; color: var(--text-secondary, #7d8590); line-height: 1.4; }
+    .fc-prob-label { font-size: 10px; color: var(--text-secondary); line-height: 1.4; }
     .fc-bar-wrap { display: flex; align-items: center; gap: 8px; }
-    .fc-prob-bar-track { flex: 1; height: 4px; background: var(--border-color, #30363d); border-radius: 2px; overflow: hidden; min-width: 40px; }
+    .fc-prob-bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; min-width: 40px; }
     .fc-prob-bar-fill { height: 100%; border-radius: 2px; }
     .fc-prob-pct { font-size: 11px; font-weight: 700; min-width: 30px; text-align: right; }
     .fc-trend-text { font-size: 10px; }
@@ -208,28 +212,28 @@ function injectStyles(): void {
     .fc-hidden { display: none; }
     .fc-toggle-row { display: none; flex-wrap: wrap; gap: 8px; padding: 0 14px 8px; }
     .fc-prob-item:hover .fc-toggle-row { display: flex; }
-    .fc-toggle { cursor: pointer; color: var(--text-secondary, #7d8590); font-size: 11px; }
-    .fc-toggle:hover { color: var(--text-primary, #e6edf3); }
-    .fc-detail { padding: 8px 14px 4px; border-top: 1px solid var(--border-color, #2a2a2a); }
+    .fc-toggle { cursor: pointer; color: var(--text-secondary); font-size: 11px; }
+    .fc-toggle:hover { color: var(--text); }
+    .fc-detail { padding: 8px 14px 4px; border-top: 1px solid var(--border); }
     .fc-detail-grid { display: grid; gap: 8px; }
     .fc-section { display: grid; gap: 4px; }
-    .fc-section-title { color: var(--text-secondary, #888); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
-    .fc-section-copy { font-size: 11px; color: var(--text-primary, #d3d3d3); line-height: 1.45; }
+    .fc-section-title { color: var(--text-secondary); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .fc-section-copy { font-size: 11px; color: var(--text); line-height: 1.45; }
     .fc-list-block { display: grid; gap: 4px; }
-    .fc-list-item { font-size: 11px; color: var(--text-secondary, #a0a0a0); line-height: 1.4; }
-    .fc-list-item::before { content: ''; display: inline-block; width: 6px; height: 1px; background: var(--text-secondary, #666); margin-right: 6px; vertical-align: middle; }
+    .fc-list-item { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+    .fc-list-item::before { content: ''; display: inline-block; width: 6px; height: 1px; background: var(--text-secondary); margin-right: 6px; vertical-align: middle; }
     .fc-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
-    .fc-chip { border: 1px solid var(--border-color, #363636); border-radius: 999px; padding: 2px 8px; font-size: 10px; color: var(--text-secondary, #9a9a9a); background: rgba(255,255,255,0.02); }
+    .fc-chip { border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; font-size: 10px; color: var(--text-secondary); background: rgba(255,255,255,0.02); }
     .fc-perspectives { margin-top: 2px; }
-    .fc-perspective { font-size: 11px; color: var(--text-secondary, #999); padding: 2px 0; line-height: 1.4; }
-    .fc-perspective strong { color: var(--text-primary, #ccc); font-weight: 600; }
+    .fc-perspective { font-size: 11px; color: var(--text-secondary); padding: 2px 0; line-height: 1.4; }
+    .fc-perspective strong { color: var(--text); font-weight: 600; }
     .fc-scenario { font-style: italic; }
-    .fc-signals { padding: 8px 14px 4px; border-top: 1px solid var(--border-color, #2a2a2a); }
-    .fc-signals-title { color: var(--text-secondary, #888); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
-    .fc-signal { color: var(--text-secondary, #a0a0a0); font-size: 11px; padding: 3px 0 3px 12px; line-height: 1.45; position: relative; margin-top: 2px; }
-    .fc-signal::before { content: ''; position: absolute; left: 0; top: 9px; display: inline-block; width: 6px; height: 1px; background: var(--text-secondary, #555); }
-    .fc-empty { padding: 20px; text-align: center; color: var(--text-secondary, #888); }
-    .fc-source-notice { margin: 6px 8px 0; padding: 6px 8px; border: 1px solid rgba(210,153,34,0.35); border-radius: 4px; color: #d29922; background: rgba(210,153,34,0.08); font-size: 10px; line-height: 1.35; }
+    .fc-signals { padding: 8px 14px 4px; border-top: 1px solid var(--border); }
+    .fc-signals-title { color: var(--text-secondary); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .fc-signal { color: var(--text-secondary); font-size: 11px; padding: 3px 0 3px 12px; line-height: 1.45; position: relative; margin-top: 2px; }
+    .fc-signal::before { content: ''; position: absolute; left: 0; top: 9px; display: inline-block; width: 6px; height: 1px; background: var(--text-secondary); }
+    .fc-empty { padding: 20px; text-align: center; color: var(--text-secondary); }
+    .fc-source-notice { margin: 6px 8px 0; padding: 6px 8px; border: 1px solid ${withAlpha(STATUS.watch, 0.35)}; border-radius: 4px; color: var(--status-watch); background: ${withAlpha(STATUS.watch, 0.08)}; font-size: 10px; line-height: 1.35; }
 
     /* ── Simulation confidence sub-bar (Option D) ────────────────────────── */
     /* Thin colored underbar below the forecast title. Width encodes sim       */
@@ -244,12 +248,12 @@ function injectStyles(): void {
     /* ── Simulation verdict chip ─────────────────────────────────────────── */
     .fc-sim-chip { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 600; letter-spacing: 0.03em; white-space: nowrap; flex-shrink: 0; line-height: 1.6; }
     .fc-sim-chip::before { content: ''; display: inline-block; width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
-    .fc-sim-chip--backed   { background: rgba(63,185,80,0.12);  color: #3fb950; border: 1px solid rgba(63,185,80,0.28); }
-    .fc-sim-chip--backed::before   { background: #3fb950; }
-    .fc-sim-chip--flagged  { background: rgba(210,153,34,0.12); color: #d29922; border: 1px solid rgba(210,153,34,0.28); }
-    .fc-sim-chip--flagged::before  { background: #d29922; }
-    .fc-sim-chip--skeptical { background: rgba(224,82,82,0.10); color: #e05252; border: 1px solid rgba(224,82,82,0.28); }
-    .fc-sim-chip--skeptical::before { background: #e05252; }
+    .fc-sim-chip--backed   { background: var(--status-good-bg);  color: var(--status-good); border: 1px solid ${withAlpha(STATUS.good, 0.28)}; }
+    .fc-sim-chip--backed::before   { background: var(--status-good); }
+    .fc-sim-chip--flagged  { background: var(--status-watch-bg); color: var(--status-watch); border: 1px solid ${withAlpha(STATUS.watch, 0.28)}; }
+    .fc-sim-chip--flagged::before  { background: var(--status-watch); }
+    .fc-sim-chip--skeptical { background: ${withAlpha(STATUS.alert, 0.10)}; color: var(--status-alert); border: 1px solid ${withAlpha(STATUS.alert, 0.28)}; }
+    .fc-sim-chip--skeptical::before { background: var(--status-alert); }
     .fc-label-inner { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
     .fc-forecast-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   `;
@@ -533,12 +537,14 @@ export class ForecastPanel extends Panel {
 
   private renderTheaterCard(t: SimulationTheater): string {
     const domain = STATE_KIND_DOMAIN[t.stateKind] || 'supply_chain';
-    const color = DOMAIN_COLORS[domain] || '#58a6ff';
+    const color = DOMAIN_COLORS[domain] || CATEGORY.blue;
     const catLabel = DOMAIN_LABELS[domain] || domain;
     const dominantPath = t.topPaths[0];
     const conf = dominantPath?.confidence ?? 0;
     const confPct = Math.round(conf * 100);
-    const confColor = conf >= 0.65 ? '#3fb950' : conf >= 0.45 ? '#d29922' : '#e05252';
+    // Raw constants: feeds an SVG stroke presentation attribute, where CSS
+    // custom properties don't resolve.
+    const confColor = conf >= 0.65 ? STATUS.good : conf >= 0.45 ? STATUS.watch : STATUS.alert;
     const isSelected = this.expandedTheaterId === t.theaterId;
 
     // SVG gauge: circumference for r=15 is 94.25; stroke-dashoffset = circ * (1 - conf)
@@ -572,11 +578,11 @@ export class ForecastPanel extends Panel {
   private renderTheaterDetail(t: SimulationTheater | null): string {
     if (!t) return '';
     const domain = STATE_KIND_DOMAIN[t.stateKind] || 'supply_chain';
-    const color = DOMAIN_COLORS[domain] || '#58a6ff';
+    const color = DOMAIN_COLORS[domain] || CATEGORY.blue;
     const catLabel = DOMAIN_LABELS[domain] || domain;
 
     const pathsHtml = t.topPaths.map(p => {
-      const pctColor = p.confidence >= 0.65 ? '#3fb950' : p.confidence >= 0.45 ? '#d29922' : '#e05252';
+      const pctColor = p.confidence >= 0.65 ? 'var(--status-good)' : p.confidence >= 0.45 ? 'var(--status-watch)' : 'var(--status-alert)';
       const actors = p.keyActors.map(a => `<span class="fc-actor-chip">${escapeHtml(a)}</span>`).join('');
       const typeTag = p.pathId ? `<span class="fc-path-type fc-path-type-${escapeHtml(p.pathId)}">${escapeHtml(PATH_ID_LABELS[p.pathId] ?? p.pathId)}</span>` : '';
       const confText = p.confidence > 0 ? `${Math.round(p.confidence * 100)}% confidence` : '—';
@@ -644,11 +650,11 @@ export class ForecastPanel extends Panel {
   private renderProbRow(f: Forecast): string {
     const pct      = Math.round((f.probability || 0) * 100);
     const domain   = f.domain || 'conflict';
-    const catColor = DOMAIN_COLORS[domain] || '#7d8590';
+    const catColor = DOMAIN_COLORS[domain] || NEUTRAL.slate;
     const catLabel = DOMAIN_LABELS[domain] || domain;
-    const probColor = pct >= 60 ? '#3fb950' : pct >= 40 ? '#d29922' : '#e05252';
+    const probColor = pct >= 60 ? 'var(--status-good)' : pct >= 40 ? 'var(--status-watch)' : 'var(--status-alert)';
     const trendText  = f.trend === 'rising' ? '↑ rising' : f.trend === 'falling' ? '↓ falling' : '→ stable';
-    const trendColor = f.trend === 'rising' ? '#3fb950' : f.trend === 'falling' ? '#e05252' : '#7d8590';
+    const trendColor = f.trend === 'rising' ? 'var(--status-good)' : f.trend === 'falling' ? 'var(--status-alert)' : 'var(--text-dim)';
 
     const sigs = f.signals || [];
     const signalsHtml = sigs.length > 0
@@ -708,13 +714,13 @@ export class ForecastPanel extends Panel {
     let labelText: string;
 
     if (demoted) {
-      barColor = '#e05252';
+      barColor = 'var(--status-alert)';
       labelText = `AI flag: dropped · −${adjPct}%`;
     } else if (adj > 0) {
-      barColor = conf >= 0.70 ? '#3fb950' : '#d29922';
+      barColor = conf >= 0.70 ? 'var(--status-good)' : 'var(--status-watch)';
       labelText = conf < 0.70 ? `AI signal (moderate) · +${adjPct}%` : `AI signal · +${adjPct}%`;
     } else {
-      barColor = '#ea580c';
+      barColor = 'var(--status-warn)';
       labelText = `AI caution · −${adjPct}%`;
     }
 

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "049"
 tags: [code-review, performance, analytical-frameworks]
@@ -54,3 +54,4 @@ Merge `loadFromStorage(PANEL_KEY)` and `loadFrameworkLibrary()` into a single fu
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by performance-oracle
+- undefined: Already resolved / not reproducible — `src/services/analysis-framework-store.ts` already implements the recommended module-level `_activeCache` Map, invalidated in `setActiveFrameworkForPanel`/`saveImportedFramework`/`deleteImportedFramework`/`renameImportedFramework`; `getActiveFrameworkForPanel` returns from cache on hit. No code change needed.

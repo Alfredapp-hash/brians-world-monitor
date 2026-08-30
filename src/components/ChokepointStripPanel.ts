@@ -36,10 +36,10 @@ function shortName(id: string): string {
 
 function statusColor(status: string): string {
   const s = (status || '').toLowerCase();
-  if (s.includes('closed') || s.includes('critical')) return '#e74c3c';
-  if (s.includes('disrupted') || s.includes('high')) return '#e67e22';
-  if (s.includes('restricted') || s.includes('elevated') || s.includes('medium')) return '#f39c12';
-  return '#2ecc71';
+  if (s.includes('closed') || s.includes('critical')) return 'var(--status-alert)';
+  if (s.includes('disrupted') || s.includes('high')) return 'var(--status-warn)';
+  if (s.includes('restricted') || s.includes('elevated') || s.includes('medium')) return 'var(--status-watch)';
+  return 'var(--status-good)';
 }
 
 function formatFlow(cp: ChokepointInfo): string {
@@ -145,7 +145,7 @@ export class ChokepointStripPanel extends Panel {
         .cp-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
         .cp-chip-body { display: flex; flex-direction: column; line-height: 1.2; }
         .cp-chip-name { font-weight: 600; color: var(--text, #eee); display: flex; align-items: center; gap: 4px; }
-        .cp-chip-warn { background:#e74c3c;color:#fff;border-radius:9px;padding:0 5px;font-size:9px;font-weight:700; }
+        .cp-chip-warn { background:var(--status-alert);color:var(--text);border-radius:9px;padding:0 5px;font-size:9px;font-weight:700; }
         .cp-chip-flow { color: var(--text-dim, #888); font-size: 10px; }
       </style>
     `);

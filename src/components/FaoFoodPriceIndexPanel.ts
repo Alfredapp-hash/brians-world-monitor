@@ -1,6 +1,7 @@
 import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { CATEGORY } from '@/styles/tokens';
 import { getHydratedData } from '@/services/bootstrap';
 import { createLazyClient, getRpcBaseUrl, rpcFetch } from '@/services/rpc-client';
 
@@ -19,12 +20,12 @@ const CW = SVG_W - ML - MR;
 const CH = SVG_H - MT - MB;
 
 const SERIES: { key: keyof FaoFoodPricePoint; color: string; label: string }[] = [
-  { key: 'ffpi',    color: '#f5a623', label: 'Food' },
-  { key: 'cereals', color: '#7ed321', label: 'Cereals' },
-  { key: 'meat',    color: '#e86c6c', label: 'Meat' },
-  { key: 'dairy',   color: '#74c8e8', label: 'Dairy' },
-  { key: 'oils',    color: '#b57ce8', label: 'Oils' },
-  { key: 'sugar',   color: '#f0c36a', label: 'Sugar' },
+  { key: 'ffpi',    color: CATEGORY.gold,    label: 'Food' },
+  { key: 'cereals', color: CATEGORY.green,   label: 'Cereals' },
+  { key: 'meat',    color: CATEGORY.red,     label: 'Meat' },
+  { key: 'dairy',   color: CATEGORY.blue,    label: 'Dairy' },
+  { key: 'oils',    color: CATEGORY.violet,  label: 'Oils' },
+  { key: 'sugar',   color: CATEGORY.orange,  label: 'Sugar' },
 ];
 
 function xPos(i: number, total: number): number {

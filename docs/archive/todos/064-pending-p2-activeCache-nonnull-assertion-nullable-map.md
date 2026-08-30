@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "064"
 tags: [code-review, typescript, correctness, analytical-frameworks]
@@ -30,3 +30,4 @@ if (_activeCache.has(panelId)) return _activeCache.get(panelId) ?? null;
 
 ## Work Log
 - 2026-03-28: Identified by kieran-typescript-reviewer and architecture-strategist during PR #2386 review
+- undefined: Fixed — replaced `_activeCache.get(panelId)!` with `_activeCache.get(panelId) ?? null` in `src/services/analysis-framework-store.ts`, removing the misleading non-null assertion.

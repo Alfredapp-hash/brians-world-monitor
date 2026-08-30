@@ -1289,11 +1289,18 @@ export default defineConfig(({ mode }) => {
         ],
       },
       proxy: {
-        // Widget agent — forward to Railway relay for SSE streaming
-        '/widget-agent': {
-          target: 'https://proxy.worldmonitor.app',
-          changeOrigin: true,
-        },
+        // Widget agent — forward to a relay for SSE streaming, ONLY if this
+        // fork has one configured. Previously hardcoded to
+        // https://proxy.worldmonitor.app, a third party's private relay this
+        // fork doesn't own; with no WIDGET_RELAY_BASE set, dev requests to
+        // /widget-agent now 404 locally instead of silently proxying to
+        // someone else's infrastructure with no auth headers attached.
+        ...(process.env.WIDGET_RELAY_BASE ? {
+          '/widget-agent': {
+            target: process.env.WIDGET_RELAY_BASE,
+            changeOrigin: true,
+          },
+        } : {}),
         // Yahoo Finance API
         '/api/yahoo': {
           target: 'https://query1.finance.yahoo.com',

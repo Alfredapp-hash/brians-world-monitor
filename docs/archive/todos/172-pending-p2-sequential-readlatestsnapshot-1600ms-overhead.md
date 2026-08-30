@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 172
 tags: [code-review, phase-0, regional-intelligence, performance, redis]
@@ -55,6 +55,8 @@ Pipeline API on the existing `redis.ts` helper supports batched GETs, so Option 
 - [ ] No regression in dedup/write semantics.
 
 ## Work Log
+
+- undefined: Fixed — rather than restructure `computeSnapshot`'s read step into a two-phase pipelined-GET batch (Option 1) or duplicate the snapshot payload into `:latest` (Option 2), `scripts/seed-regional-snapshots.mjs` now runs the whole per-region pipeline (which includes `readLatestSnapshot`) concurrently across all 8 regions via `Promise.allSettled` (see #173's fix); the 8 regions' `readLatestSnapshot` calls now execute concurrently instead of serially, which addresses the same wall-clock bottleneck without a schema change.
 
 ## Resources
 

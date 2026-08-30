@@ -64,6 +64,7 @@ function runtime).
 
 **Live with free API keys (add in Vercel → Project → Settings → Environment
 Variables):**
+
 - `FINNHUB_API_KEY` (finnhub.io) → richer Markets/Heatmap/Breadth
 - `FRED_API_KEY` (fred.stlouisfed.org) → Macro Stress, Yield Curve
 - `EIA_API_KEY` (eia.gov/opendata) → Oil Inventories, Energy Complex
@@ -78,11 +79,32 @@ Variables):**
 `scripts/panel-audit.mjs` re-runs the audit against any URL
 (`SMOKE_URL=https://your-app.vercel.app node scripts/panel-audit.mjs`).
 
+## Operator live display (2026-08-27)
+
+This fork is a personal dashboard, not the upstream SaaS free tier.
+
+- `OPERATOR_UNLIMITED_PANELS` lifts the 40-panel ceiling so default-on
+  live panels (fires, UCDP, climate, radiation, energy logs, etc.) are
+  not auto-disabled. Custom widgets (`cw-*`) stay pro-only.
+- Full-variant map defaults now paint already-hydrated feeds: protests,
+  GPS jamming, UCDP, climate, displacement, fires, CII choropleth,
+  disease outbreaks, radiation, cables, pipelines, storage, fuel
+  shortages, AIS, flights, trade routes, minerals, and webcams. Mobile
+  stays lighter (protests, fires, flights).
+- Full variant also shows Internet Disruptions, Service Status,
+  Chokepoint Status, Climate News, Energy Risk Overview, Gulf Economies,
+  Consumer Prices, grocery/Big Mac/fuel/FAO indexes, calendars, AAII,
+  FSI, yield curve, COT, giving, and geo hubs.
+- Returning browsers pick this up once via `jsam-live-display-v2`.
+  After deploy, hard-refresh. If an old layout is still stuck, clear
+  site data for the app origin.
+
 ## Seeded panels — Upstash Redis + scheduled seeders (full activation)
 
 Many panels render from a Redis cache that a background job fills. Two pieces:
 
 **1. Upstash Redis (free) — the cache.**
+
 - Sign up at https://upstash.com → Create Database → Redis → pick a region →
   copy the **REST URL** and **REST TOKEN** (the "REST API" section, not the
   redis:// URL).

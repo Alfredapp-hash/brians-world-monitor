@@ -2,24 +2,24 @@
   "name": "worldmonitor",
   "kind": "product",
   "description": "WorldMonitor's live global-intelligence stack as an MCP server: real-time markets, conflict events, aviation, maritime, energy, climate, health, displacement, supply chain, and AI-generated regional briefs.",
-  "icon": "https://www.worldmonitor.app/favico/apple-touch-icon.png",
+  "icon": "https://brians-world-monitor.vercel.app/favico/apple-touch-icon.png",
   "version": "1.15.0",
-  "url": "https://worldmonitor.app/mcp",
-  "serverUrl": "https://worldmonitor.app/mcp",
+  "url": "https://brians-world-monitor.vercel.app/mcp",
+  "serverUrl": "https://brians-world-monitor.vercel.app/mcp",
   "serverInfo": {
     "name": "worldmonitor",
     "version": "1.15.0",
     "description": "WorldMonitor's live global-intelligence stack as an MCP server: real-time markets, conflict events, aviation, maritime, energy, climate, health, displacement, supply chain, and AI-generated regional briefs.",
     "vendor": "WorldMonitor",
-    "homepage": "https://www.worldmonitor.app"
+    "homepage": "https://brians-world-monitor.vercel.app"
   },
   "protocolVersion": "2025-06-18",
   "transport": {
     "type": "streamableHttp",
-    "endpoint": "https://worldmonitor.app/mcp"
+    "endpoint": "https://brians-world-monitor.vercel.app/mcp"
   },
   "remotes": [
-    { "type": "streamable-http", "url": "https://worldmonitor.app/mcp" }
+    { "type": "streamable-http", "url": "https://brians-world-monitor.vercel.app/mcp" }
   ],
   "capabilities": {
     "tools": true,
@@ -206,8 +206,8 @@
   ],
   "authentication": {
     "type": "oauth2",
-    "authorization_servers": ["https://api.worldmonitor.app"],
-    "resource": "https://worldmonitor.app",
+    "authorization_servers": ["https://brians-world-monitor.vercel.app"],
+    "resource": "https://brians-world-monitor.vercel.app",
     "scopes": ["mcp"],
     "alternative_methods": [
       {
@@ -218,12 +218,12 @@
     ]
   },
   "documentation": {
-    "guide": "https://www.worldmonitor.app/docs/mcp-overview",
-    "toolReference": "https://www.worldmonitor.app/docs/mcp-tools-reference",
-    "apiReference": "https://www.worldmonitor.app/docs/api-reference",
-    "support": "https://www.worldmonitor.app/docs/support",
-    "pricing": "https://worldmonitor.app/pricing.md",
-    "productCatalog": "https://www.worldmonitor.app/api/product-catalog"
+    "guide": "https://brians-world-monitor.vercel.app/docs/mcp-overview",
+    "toolReference": "https://brians-world-monitor.vercel.app/docs/mcp-tools-reference",
+    "apiReference": "https://brians-world-monitor.vercel.app/docs/api-reference",
+    "support": "https://brians-world-monitor.vercel.app/docs/support",
+    "pricing": "https://brians-world-monitor.vercel.app/pricing.md",
+    "productCatalog": "https://brians-world-monitor.vercel.app/api/product-catalog"
   },
   "rateLimits": {
     "perMinute": 60,

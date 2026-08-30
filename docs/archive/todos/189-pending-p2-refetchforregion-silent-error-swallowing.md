@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: 189
 tags: [code-review, phase-0, regional-intelligence, error-handling, ui]
@@ -56,6 +56,8 @@ Pattern to mirror: the initial load's setDataBadge call on the same file.
 - [ ] User sees a clear failed-to-load indicator
 
 ## Work Log
+
+- undefined: Already resolved / not reproducible — `refetchForRegion` no longer exists in `ForecastPanel.ts`. Region-pill clicks are handled entirely client-side (filter `this.forecasts` via `getVisibleForecasts()` and re-render); there is no RPC call, and therefore no try/catch around one to silently swallow errors. The only `catch` blocks remaining in the file are `parseTheaters` (JSON parsing of simulation data, unrelated) and `loadCaseFiles` (on-demand dossier fetch, whose failure is documented as intentionally non-fatal). No code change made.
 
 ## Resources
 - PR #2940

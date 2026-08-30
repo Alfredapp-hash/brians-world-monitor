@@ -297,7 +297,7 @@ describe('middleware /mcp — variant subdomains redirect to apex, POST stays', 
     const res = call('https://tech.worldmonitor.app/mcp', CHROME_UA);
     assert.ok(res instanceof Response);
     assert.equal(res.status, 308);
-    assert.equal(res.headers.get('location'), 'https://worldmonitor.app/mcp');
+    assert.equal(res.headers.get('location'), 'https://brians-world-monitor.vercel.app/mcp');
   });
 
   it('redirects HEAD /mcp from finance.worldmonitor.app to apex', () => {
@@ -305,7 +305,7 @@ describe('middleware /mcp — variant subdomains redirect to apex, POST stays', 
     const res = middleware(req) as Response | void;
     assert.ok(res instanceof Response);
     assert.equal(res.status, 308);
-    assert.equal(res.headers.get('location'), 'https://worldmonitor.app/mcp');
+    assert.equal(res.headers.get('location'), 'https://brians-world-monitor.vercel.app/mcp');
   });
 
   it('redirects /mcp from every variant subdomain', () => {
@@ -313,7 +313,7 @@ describe('middleware /mcp — variant subdomains redirect to apex, POST stays', 
       const res = call(`https://${host}.worldmonitor.app/mcp`, CHROME_UA);
       assert.ok(res instanceof Response, `${host} must redirect`);
       assert.equal(res.status, 308, `${host} redirect status`);
-      assert.equal(res.headers.get('location'), 'https://worldmonitor.app/mcp', `${host} redirect location`);
+      assert.equal(res.headers.get('location'), 'https://brians-world-monitor.vercel.app/mcp', `${host} redirect location`);
     }
   });
 
@@ -360,6 +360,6 @@ describe('middleware /mcp — variant subdomains redirect to apex, POST stays', 
     const res = middleware(req) as Response | void;
     assert.ok(res instanceof Response);
     assert.equal(res.status, 308);
-    assert.equal(res.headers.get('location'), 'https://worldmonitor.app/mcp');
+    assert.equal(res.headers.get('location'), 'https://brians-world-monitor.vercel.app/mcp');
   });
 });

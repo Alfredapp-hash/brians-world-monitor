@@ -1,18 +1,19 @@
 import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { CATEGORY, STATUS, withAlpha } from '@/styles/tokens';
 import { fetchHormuzTracker } from '@/services/hormuz-tracker';
 import type { HormuzTrackerData, HormuzChart, HormuzSeries } from '@/services/hormuz-tracker';
 
-const CHART_COLORS = ['#e67e22', '#1abc9c', '#9b59b6', '#27ae60'];
-const ZERO_COLOR = 'rgba(231,76,60,0.5)';
+const CHART_COLORS = [CATEGORY.blue, CATEGORY.orange, CATEGORY.aqua, CATEGORY.gold];
+const ZERO_COLOR = withAlpha(STATUS.alert, 0.5);
 
 function statusColor(status: string): string {
   switch (status) {
-    case 'closed':     return '#e74c3c';
-    case 'disrupted':  return '#e67e22';
-    case 'restricted': return '#f39c12';
-    default:           return '#2ecc71';
+    case 'closed':     return 'var(--status-alert)';
+    case 'disrupted':  return 'var(--status-warn)';
+    case 'restricted': return 'var(--status-watch)';
+    default:           return 'var(--status-good)';
   }
 }
 
@@ -42,7 +43,7 @@ function barChart(series: HormuzSeries[], color: string, unit: string, width = 2
 }
 
 function renderChart(chart: HormuzChart, idx: number): string {
-  const color = CHART_COLORS[idx % CHART_COLORS.length] ?? '#3498db';
+  const color = CHART_COLORS[idx % CHART_COLORS.length] ?? CATEGORY.blue;
   const last = chart.series[chart.series.length - 1];
   const lastVal = last ? Number(last.value).toFixed(0) : t('components.hormuzTracker.notAvailable');
   const lastDate = last ? last.date.slice(5) : '';
@@ -123,7 +124,7 @@ export class HormuzPanel extends Panel {
 
     const html = `
       <div style="padding:12px 14px;position:relative">
-        <div class="hz-tip" style="position:fixed;pointer-events:none;background:rgba(15,17,26,0.95);border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:3px 8px;font-size:10px;color:#fff;white-space:nowrap;z-index:9999;opacity:0;transition:opacity 0.08s;letter-spacing:0.02em"></div>
+        <div class="hz-tip" style="position:fixed;pointer-events:none;background:rgba(15,17,26,0.95);border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:3px 8px;font-size:10px;color:var(--text);white-space:nowrap;z-index:9999;opacity:0;transition:opacity 0.08s;letter-spacing:0.02em"></div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <span style="background:${sColor};color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:0.08em">${d.status.toUpperCase()}</span>
           ${dateStr}

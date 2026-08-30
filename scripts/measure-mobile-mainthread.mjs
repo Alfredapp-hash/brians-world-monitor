@@ -19,7 +19,7 @@
  *
  * Usage:
  *   node scripts/measure-mobile-mainthread.mjs [url] [--cpu 4] [--settle 15000] [--json]
- *   (default url: https://worldmonitor.app/dashboard)
+ *   (default url: https://brians-world-monitor.vercel.app/dashboard)
  */
 import { pathToFileURL } from 'node:url';
 import {
@@ -160,7 +160,7 @@ export function attributeDomNodes(counts) {
 }
 
 export function parseArgs(argv) {
-  const args = { url: 'https://worldmonitor.app/dashboard', cpu: 4, settle: 15000, json: false };
+  const args = { url: 'https://brians-world-monitor.vercel.app/dashboard', cpu: 4, settle: 15000, json: false };
   const rest = argv.slice(2);
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];

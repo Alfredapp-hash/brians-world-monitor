@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "054"
 tags: [code-review, security, seeding, reddit, social-velocity, pr-2375]
@@ -59,3 +59,4 @@ Ensure the Social Velocity panel only renders URLs with `https:` scheme. Belt-an
 ## Work Log
 
 - 2026-03-27: Identified by security-sentinel agent during PR #2375 review.
+- undefined: Fixed — `seedSocialVelocity` now validates `p.permalink` starts with `/r/` before constructing the URL, skipping malformed items with a `console.warn` (Option A).

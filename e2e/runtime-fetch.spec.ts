@@ -53,8 +53,8 @@ test.describe('desktop runtime routing guardrails', () => {
           hasTauriGlobals: false,
           userAgent: 'Mozilla/5.0',
           locationProtocol: 'https:',
-          locationHost: 'worldmonitor.app',
-          locationOrigin: 'https://worldmonitor.app',
+          locationHost: 'brians-world-monitor.vercel.app',
+          locationOrigin: 'https://brians-world-monitor.vercel.app',
         }),
       };
     });
@@ -97,14 +97,14 @@ test.describe('desktop runtime routing guardrails', () => {
         if (url.includes('127.0.0.1:46123/api/fred-data')) {
           return responseJson({ error: 'missing local api key' }, 500);
         }
-        if (url.includes('worldmonitor.app/api/fred-data')) {
+        if (url.includes('brians-world-monitor.vercel.app/api/fred-data')) {
           return responseJson({ observations: [{ value: '321.5' }] }, 200);
         }
 
         if (url.includes('127.0.0.1:46123/api/stablecoin-markets')) {
           throw new Error('ECONNREFUSED');
         }
-        if (url.includes('worldmonitor.app/api/stablecoin-markets')) {
+        if (url.includes('brians-world-monitor.vercel.app/api/stablecoin-markets')) {
           return responseJson({ stablecoins: [{ symbol: 'USDT' }] }, 200);
         }
 
@@ -152,9 +152,9 @@ test.describe('desktop runtime routing guardrails', () => {
     expect(result.stableSymbol).toBe('USDT');
 
     expect(result.calls.some((url) => url.includes('127.0.0.1:46123/api/fred-data'))).toBe(true);
-    expect(result.calls.some((url) => url.includes('worldmonitor.app/api/fred-data'))).toBe(true);
+    expect(result.calls.some((url) => url.includes('brians-world-monitor.vercel.app/api/fred-data'))).toBe(true);
     expect(result.calls.some((url) => url.includes('127.0.0.1:46123/api/stablecoin-markets'))).toBe(true);
-    expect(result.calls.some((url) => url.includes('worldmonitor.app/api/stablecoin-markets'))).toBe(true);
+    expect(result.calls.some((url) => url.includes('brians-world-monitor.vercel.app/api/stablecoin-markets'))).toBe(true);
   });
 
   test('runtime fetch patch never sends local-only endpoints to cloud', async ({ page }) => {
@@ -188,10 +188,10 @@ test.describe('desktop runtime routing guardrails', () => {
           throw new Error('ECONNREFUSED');
         }
 
-        if (url.includes('worldmonitor.app/api/local-env-update')) {
+        if (url.includes('brians-world-monitor.vercel.app/api/local-env-update')) {
           return responseJson({ leaked: true }, 200);
         }
-        if (url.includes('worldmonitor.app/api/local-validate-secret')) {
+        if (url.includes('brians-world-monitor.vercel.app/api/local-validate-secret')) {
           return responseJson({ leaked: true }, 200);
         }
 
@@ -243,8 +243,8 @@ test.describe('desktop runtime routing guardrails', () => {
 
     expect(result.calls.some((url) => url.includes('127.0.0.1:46123/api/local-env-update'))).toBe(true);
     expect(result.calls.some((url) => url.includes('127.0.0.1:46123/api/local-validate-secret'))).toBe(true);
-    expect(result.calls.some((url) => url.includes('worldmonitor.app/api/local-env-update'))).toBe(false);
-    expect(result.calls.some((url) => url.includes('worldmonitor.app/api/local-validate-secret'))).toBe(false);
+    expect(result.calls.some((url) => url.includes('brians-world-monitor.vercel.app/api/local-env-update'))).toBe(false);
+    expect(result.calls.some((url) => url.includes('brians-world-monitor.vercel.app/api/local-validate-secret'))).toBe(false);
   });
 
   test('chunk preload reload guard is one-shot until app boot clears it', async ({ page }) => {
@@ -376,8 +376,8 @@ test.describe('desktop runtime routing guardrails', () => {
       }
     });
 
-    expect(result.macArm).toBe('https://worldmonitor.app/api/download?platform=macos-arm64&variant=full');
-    expect(result.windowsX64).toBe('https://worldmonitor.app/api/download?platform=windows-exe&variant=full');
+    expect(result.macArm).toBe('https://brians-world-monitor.vercel.app/api/download?platform=macos-arm64&variant=full');
+    expect(result.windowsX64).toBe('https://brians-world-monitor.vercel.app/api/download?platform=windows-exe&variant=full');
     expect(result.linuxFallback).toBe('https://github.com/koala73/worldmonitor/releases/latest');
   });
 
@@ -1626,7 +1626,7 @@ test.describe('desktop runtime routing guardrails', () => {
         if (url.includes('127.0.0.1:46123/api/fred-data')) {
           throw new Error('ECONNREFUSED');
         }
-        if (url.includes('worldmonitor.app/api/fred-data')) {
+        if (url.includes('brians-world-monitor.vercel.app/api/fred-data')) {
           return responseJson({ observations: [{ value: '999' }] }, 200);
         }
         return responseJson({ ok: true }, 200);
@@ -1646,7 +1646,7 @@ test.describe('desktop runtime routing guardrails', () => {
           fetchError = err instanceof Error ? err.message : String(err);
         }
 
-        const cloudCalls = calls.filter(u => u.includes('worldmonitor.app'));
+        const cloudCalls = calls.filter(u => u.includes('brians-world-monitor.vercel.app'));
 
         return {
           fetchError,
@@ -1696,7 +1696,7 @@ test.describe('desktop runtime routing guardrails', () => {
 
         calls.push(url);
 
-        if (url.includes('worldmonitor.app') && init?.headers) {
+        if (url.includes('brians-world-monitor.vercel.app') && init?.headers) {
           const h = new Headers(init.headers);
           const wmKey = h.get('X-WorldMonitor-Key');
           if (wmKey) capturedHeaders['X-WorldMonitor-Key'] = wmKey;
@@ -1705,7 +1705,7 @@ test.describe('desktop runtime routing guardrails', () => {
         if (url.includes('127.0.0.1:46123/api/market/v1/test')) {
           throw new Error('ECONNREFUSED');
         }
-        if (url.includes('worldmonitor.app/api/market/v1/test')) {
+        if (url.includes('brians-world-monitor.vercel.app/api/market/v1/test')) {
           return responseJson({ quotes: [] }, 200);
         }
         return responseJson({ ok: true }, 200);
@@ -1727,7 +1727,7 @@ test.describe('desktop runtime routing guardrails', () => {
         return {
           status: response.status,
           hasQuotes: Array.isArray(body.quotes),
-          cloudCalls: calls.filter(u => u.includes('worldmonitor.app')).length,
+          cloudCalls: calls.filter(u => u.includes('brians-world-monitor.vercel.app')).length,
           wmKeyHeader: capturedHeaders['X-WorldMonitor-Key'] || null,
         };
       } finally {

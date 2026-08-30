@@ -6,8 +6,8 @@ import { createWatchlistButton } from './watchlist-modal';
 import { WatchlistTableView } from './WatchlistTableView';
 
 function tone(value: number): string {
-  if (value > 0) return '#8df0b2';
-  if (value < 0) return '#ff8c8c';
+  if (value > 0) return 'var(--status-good)';
+  if (value < 0) return 'var(--status-alert)';
   return 'var(--text-dim)';
 }
 

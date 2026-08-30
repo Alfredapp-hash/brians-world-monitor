@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "013"
 tags: [code-review, deep-forecast, simulation-package, security]
@@ -62,3 +62,5 @@ Effort: Small | Risk: Low
 ## Work Log
 
 - 2026-03-24: Found by compound-engineering:review:security-sentinel and compound-engineering:research:learnings-researcher in PR #2204 review
+- undefined: Fixed — `buildSimulationRequirementText` (label/route/channel/critTypes) and `buildSimulationPackageEventSeeds` (`entry.text`) already applied `sanitizeForPrompt`; added the missing `sanitizeForPrompt` call to actor names in `buildSimulationPackageEntities` (both the `stateSummary.actors` branch and the evidence-table `remain the lead actors` regex branch) before they become entity `name`/`entityId`.
+- 2026-08-02: Adversarial verify found a remaining gap — the theater-level `actorRoles` array built from the same `stateSummary.actors` LLM field (used in `selectedTheaters[].actorRoles`, persisted verbatim to the R2 simulation-package.json) was only trimmed via `String(s||'').trim()`, not passed through `sanitizeForPrompt`. Fixed by wrapping that `.map()` call in `sanitizeForPrompt(...)` (`scripts/seed-forecasts.mjs`, `buildSimulationPackageFromDeepSnapshot`, `actorRoles:` construction). Verified: `npx biome lint scripts/seed-forecasts.mjs` clean; `npx tsx --test tests/forecast-trace-export.test.mjs` 333/333 pass.

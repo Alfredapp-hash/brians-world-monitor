@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p1
 issue_id: "035"
 tags: [code-review, security, auth, clerk, jwt]
@@ -50,3 +50,4 @@ const { payload } = await jwtVerify(token, jwks, {
 ## Work Log
 
 - 2026-03-26: Identified during PR #1812 security audit (security-sentinel agent). File: `server/auth-session.ts:43`.
+- undefined: Already resolved / not reproducible — current `server/auth-session.ts` already passes `algorithms: ['RS256']` to both `jwtVerify()` call sites (via `getClerkJwtVerifyOptions()` and the no-audience fallback), so no code change was needed.

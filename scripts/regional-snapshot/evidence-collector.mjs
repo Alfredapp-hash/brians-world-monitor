@@ -8,7 +8,7 @@ import { sanitizeEvidenceString } from './_sanitize.mjs';
 import { CII_RISK_SCORE_CACHE_KEYS } from '../_cii-risk-cache-keys.mjs';
 // Use scripts/shared mirror (not repo-root shared/): Railway service has
 // rootDirectory=scripts so ../../shared/ escapes the deploy root. See #2954.
-import { REGIONS, getRegionCorridors, isSignalInRegion } from '../shared/geography.js';
+import { getRegion, getRegionCorridors, isSignalInRegion } from '../shared/geography.js';
 
 const MAX_EVIDENCE_PER_SNAPSHOT = 30;
 
@@ -18,8 +18,8 @@ const MAX_EVIDENCE_PER_SNAPSHOT = 30;
  * @returns {import('../../shared/regions.types.js').EvidenceItem[]}
  */
 export function collectEvidence(regionId, sources) {
-  const region = REGIONS.find((r) => r.id === regionId);
-  if (!region) return [];
+  const region = getRegion(regionId);
+  if (!region) throw new Error(`Unknown region: ${regionId}`);
 
   /** @type {import('../../shared/regions.types.js').EvidenceItem[]} */
   const out = [];

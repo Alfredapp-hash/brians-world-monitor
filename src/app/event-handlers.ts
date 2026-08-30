@@ -12,6 +12,7 @@ import {
   FREE_MAX_PANELS,
   FREE_MAX_SOURCES,
   countFreePanelCapUsage,
+  isFreePanelCapBlocking,
   isFreePanelCapCounted,
 } from '@/config/panels';
 import type { McpDataPanel } from '@/components/McpDataPanel';
@@ -281,7 +282,7 @@ export class EventHandlerManager implements AppModule {
     const config = this.ctx.panelSettings[panelId];
     if (!config) return false;
     if (config.enabled) return true;
-    if (!isProUser() && isFreePanelCapCounted(panelId)) {
+    if (isFreePanelCapBlocking(isProUser()) && isFreePanelCapCounted(panelId)) {
       const enabledCount = countFreePanelCapUsage(this.ctx.panelSettings);
       if (enabledCount >= FREE_MAX_PANELS) {
         // Tell the user why nothing happened instead of failing silently.

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "046"
 tags: [code-review, quality, analytical-frameworks]
@@ -50,3 +50,4 @@ framework: '', // TODO #041: pass fw?.systemPromptAppend here once cache key is 
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by kieran-typescript-reviewer
+- undefined: Already resolved / not reproducible — `handleSubmit()` in `src/components/DeductionPanel.ts` already passes `framework: fw?.systemPromptAppend ?? ''` (the recommended Option A) via the dedicated RPC field with no manual `geoContext` append of the framework text; no code change needed.

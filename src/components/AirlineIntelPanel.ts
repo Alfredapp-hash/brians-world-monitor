@@ -21,25 +21,30 @@ import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
 import { t } from '@/services/i18n';
 import { Panel } from './Panel';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
+import { CATEGORY, SEVERITY } from '@/styles/tokens';
 
 
 // ---- Helpers ----
 
 const SEVERITY_COLOR: Record<FlightDelaySeverity, string> = {
-    normal: 'var(--color-success, #22c55e)',
-    minor: '#f59e0b',
-    moderate: '#f97316',
-    major: '#ef4444',
-    severe: '#dc2626',
+    normal: 'var(--status-good)',
+    minor: 'var(--status-watch)',
+    moderate: 'var(--status-warn)',
+    major: 'var(--status-alert)',
+    // 'severe' is the distinct extreme tier above 'major' — SEVERITY.s5 (no
+    // CSS custom property exists for s5, so the token constant is used).
+    severe: SEVERITY.s5,
     // 'unknown' = no telemetry. Render neutral grey so users don't read it
     // as "healthy / green" (#3707).
-    unknown: '#9ca3af',
+    unknown: 'var(--text-dim)',
 };
 
+// Qualitative flight-lifecycle states use CATEGORY hues (one meaning per
+// hue); semantically loaded states use the status scale.
 const STATUS_BADGE: Record<string, string> = {
-    scheduled: '#6b7280', boarding: '#3b82f6', departed: '#8b5cf6',
-    airborne: '#22c55e', landed: '#14b8a6', arrived: '#0ea5e9',
-    cancelled: '#ef4444', diverted: '#f59e0b', unknown: '#6b7280',
+    scheduled: 'var(--text-dim)', boarding: CATEGORY.blue, departed: CATEGORY.violet,
+    airborne: 'var(--status-good)', landed: CATEGORY.aqua, arrived: CATEGORY.green,
+    cancelled: 'var(--status-alert)', diverted: 'var(--status-watch)', unknown: 'var(--text-dim)',
 };
 
 function fmt(n: number | null | undefined): string { return n == null ? '—' : String(Math.round(n)); }
@@ -122,7 +127,7 @@ export class AirlineIntelPanel extends Panel {
         this.liveIndicator = document.createElement('span');
         this.liveIndicator.className = 'live-badge';
         this.liveIndicator.textContent = '\u25CF LIVE';
-        this.liveIndicator.style.cssText = 'display:none;color:#22c55e;font-size:10px;font-weight:700;margin-left:8px;letter-spacing:0.5px;';
+        this.liveIndicator.style.cssText = 'display:none;color:var(--status-good);font-size:10px;font-weight:700;margin-left:8px;letter-spacing:0.5px;';
         this.header.querySelector('.panel-title')?.appendChild(this.liveIndicator);
 
         // Insert tab bar between header and content
@@ -395,7 +400,7 @@ export class AirlineIntelPanel extends Panel {
       <div class="ops-row">
         <div class="ops-iata">${escapeHtml(s.iata)}</div>
         <div class="ops-name">${escapeHtml(s.name || s.iata)}</div>
-        <div class="ops-severity" style="color:${SEVERITY_COLOR[s.severity] ?? '#aaa'}">${s.severity.toUpperCase()}</div>
+        <div class="ops-severity" style="color:${SEVERITY_COLOR[s.severity] ?? 'var(--text-dim)'}">${s.severity.toUpperCase()}</div>
         <div class="ops-delay">${s.avgDelayMinutes > 0 ? `+${s.avgDelayMinutes}m` : '—'}</div>
         <div class="ops-cancel">${s.cancellationRate > 0 ? `${s.cancellationRate.toFixed(1)}% cxl` : ''}</div>
         ${s.closureStatus ? '<div class="ops-closed">CLOSED</div>' : ''}
@@ -411,13 +416,13 @@ export class AirlineIntelPanel extends Panel {
             return;
         }
         const rows = this.flightsData.map(f => {
-            const color = STATUS_BADGE[f.status] ?? '#6b7280';
+            const color = STATUS_BADGE[f.status] ?? 'var(--text-dim)';
             return `
         <div class="flight-row">
           <div class="flight-num">${escapeHtml(f.flightNumber)}</div>
           <div class="flight-route">${escapeHtml(f.origin.iata)} → ${escapeHtml(f.destination.iata)}</div>
           <div class="flight-time">${fmtTime(f.scheduledDeparture)}</div>
-          <div class="flight-delay" style="color:${f.delayMinutes > 0 ? '#f97316' : '#aaa'}">${f.delayMinutes > 0 ? `+${f.delayMinutes}m` : ''}</div>
+          <div class="flight-delay" style="color:${f.delayMinutes > 0 ? 'var(--status-warn)' : 'var(--text-dim)'}">${f.delayMinutes > 0 ? `+${f.delayMinutes}m` : ''}</div>
           <div class="flight-status" style="color:${color}">${f.status}</div>
         </div>`;
         }).join('');
@@ -434,7 +439,7 @@ export class AirlineIntelPanel extends Panel {
       <div class="carrier-row">
         <div class="carrier-name">${escapeHtml(c.carrierName || c.carrierIata)}</div>
         <div class="carrier-flights">${c.totalFlights} flt</div>
-        <div class="carrier-delay" style="color:${c.delayPct > 30 ? '#ef4444' : '#aaa'}">${c.delayPct.toFixed(1)}% delayed</div>
+        <div class="carrier-delay" style="color:${c.delayPct > 30 ? 'var(--status-alert)' : 'var(--text-dim)'}">${c.delayPct.toFixed(1)}% delayed</div>
         <div class="carrier-cancel">${c.cancellationRate.toFixed(1)}% cxl</div>
       </div>`).join('');
         setTrustedHtml(this.content, trustedHtml(`<div class="carriers-list">${rows}</div>`, "legacy direct innerHTML migration"));
@@ -443,7 +448,7 @@ export class AirlineIntelPanel extends Panel {
     // ---- Tracking tab ----
     private renderTracking(): void {
         const clearBtn = this.trackingQuery
-            ? `<button id="trackClearBtn" class="icon-btn" style="padding:4px 8px;color:#9ca3af" title="Back to live feed">×</button>`
+            ? `<button id="trackClearBtn" class="icon-btn" style="padding:4px 8px;color:var(--text-dim)" title="Back to live feed">×</button>`
             : '';
         const searchBar = `
       <div class="track-search" style="display:flex;gap:6px;padding:8px 0 6px">
@@ -465,18 +470,18 @@ export class AirlineIntelPanel extends Panel {
                 const arrStr = f.estimatedArrival
                     ? ` · Arr ${fmtTime(f.estimatedArrival)}`
                     : '';
-                const color = STATUS_BADGE[f.status] ?? '#6b7280';
+                const color = STATUS_BADGE[f.status] ?? 'var(--text-dim)';
                 return `
           <div class="track-flight-card" style="padding:8px 0;border-bottom:1px solid var(--border)">
             <div style="display:flex;gap:8px;align-items:baseline">
               <strong>${escapeHtml(f.flightNumber)}</strong>
-              <span style="color:#9ca3af;font-size:11px">${escapeHtml(f.carrier.name || f.carrier.iata)}</span>
+              <span style="color:var(--text-dim);font-size:11px">${escapeHtml(f.carrier.name || f.carrier.iata)}</span>
               <span style="color:${color};font-size:11px;margin-left:auto">${f.status}</span>
             </div>
             <div style="font-size:12px;color:var(--text-dim)">${escapeHtml(f.origin.iata)} → ${escapeHtml(f.destination.iata)}${depStr ? ` · ${depStr}` : ''}${arrStr}</div>
-            ${f.aircraftType ? `<div style="font-size:11px;color:#6b7280">${escapeHtml(f.aircraftType)}</div>` : ''}
-            ${(f.gate || f.terminal) ? `<div style="font-size:11px;color:#6b7280">${f.gate ? `Gate ${escapeHtml(f.gate)}` : ''}${f.terminal ? `${f.gate ? ' · ' : ''}T${escapeHtml(f.terminal)}` : ''}</div>` : ''}
-            ${f.delayMinutes > 0 ? `<div style="color:#f97316;font-size:12px">+${f.delayMinutes}m delay</div>` : ''}
+            ${f.aircraftType ? `<div style="font-size:11px;color:var(--text-dim)">${escapeHtml(f.aircraftType)}</div>` : ''}
+            ${(f.gate || f.terminal) ? `<div style="font-size:11px;color:var(--text-dim)">${f.gate ? `Gate ${escapeHtml(f.gate)}` : ''}${f.terminal ? `${f.gate ? ' · ' : ''}T${escapeHtml(f.terminal)}` : ''}</div>` : ''}
+            ${f.delayMinutes > 0 ? `<div style="color:var(--status-warn);font-size:12px">+${f.delayMinutes}m delay</div>` : ''}
           </div>`;
             }).join('');
             setTrustedHtml(this.content, trustedHtml(`${searchBar}<div>${rows}</div>`, "legacy direct innerHTML migration"));
@@ -509,9 +514,9 @@ export class AirlineIntelPanel extends Panel {
             return;
         }
         const items = this.newsData.map(n => `
-      <div class="news-item" style="padding:8px 0;border-bottom:1px solid var(--border,#2a2a2a)">
+      <div class="news-item" style="padding:8px 0;border-bottom:1px solid var(--border)">
         <a href="${sanitizeUrl(n.url)}" target="_blank" rel="noopener" class="news-link">${escapeHtml(n.title)}</a>
-        <div class="news-meta" style="font-size:11px;color:var(--text-dim,#888);margin-top:2px">${escapeHtml(n.sourceName)} · ${n.publishedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+        <div class="news-meta" style="font-size:11px;color:var(--text-dim);margin-top:2px">${escapeHtml(n.sourceName)} · ${n.publishedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
       </div>`).join('');
         setTrustedHtml(this.content, trustedHtml(`<div class="news-list" style="padding:0 4px">${items}</div>`, "legacy direct innerHTML migration"));
     }
@@ -534,7 +539,7 @@ export class AirlineIntelPanel extends Panel {
             const form = `
         <div class="price-controls">
           <input id="priceFromInput" class="price-input" placeholder="From" maxlength="3" value="${escapeHtml(this.pricesOrigin)}" style="width:54px">
-          <span style="color:#6b7280">\u2192</span>
+          <span style="color:var(--text-dim)">\u2192</span>
           <input id="priceToInput" class="price-input" placeholder="To" maxlength="3" value="${escapeHtml(this.pricesDest)}" style="width:54px">
           <input id="priceDepInput" class="price-input" type="date" value="${escapeHtml(dep)}" style="width:128px">
           <select id="priceCabinSelect" class="price-input" style="width:110px">
@@ -545,7 +550,7 @@ export class AirlineIntelPanel extends Panel {
           </select>
           <button id="priceSearchBtn" class="icon-btn" style="padding:4px 10px">${t('header.search')}</button>
         </div>
-        <div id="priceInlineErr" style="color:#ef4444;font-size:11px;min-height:14px"></div>`;
+        <div id="priceInlineErr" style="color:var(--status-alert);font-size:11px;min-height:14px"></div>`;
 
             let body: string;
             if (this.googleFlightsData.length) {
@@ -573,7 +578,7 @@ export class AirlineIntelPanel extends Panel {
                 }).join('');
                 body = `<div class="gf-list">${cards}</div>`;
             } else if (this.pricesError) {
-                body = `<div class="no-data" style="color:#ef4444">${escapeHtml(this.pricesError)}</div>`;
+                body = `<div class="no-data" style="color:var(--status-alert)">${escapeHtml(this.pricesError)}</div>`;
             } else {
                 body = `<div class="no-data">${escapeHtml(t('components.airlineIntel.enterRouteAndDate'))}</div>`;
             }
@@ -582,7 +587,7 @@ export class AirlineIntelPanel extends Panel {
             const form = `
         <div class="price-controls">
           <input id="datesFromInput" class="price-input" placeholder="From" maxlength="3" value="${escapeHtml(this.pricesOrigin)}" style="width:54px">
-          <span style="color:#6b7280">\u2192</span>
+          <span style="color:var(--text-dim)">\u2192</span>
           <input id="datesToInput" class="price-input" placeholder="To" maxlength="3" value="${escapeHtml(this.pricesDest)}" style="width:54px">
           <input id="datesStartInput" class="price-input" type="date" value="${escapeHtml(this.datesStart || localDateStr())}" style="width:128px">
           <input id="datesEndInput" class="price-input" type="date" value="${escapeHtml(this.datesEnd)}" style="width:128px">
@@ -601,7 +606,7 @@ export class AirlineIntelPanel extends Panel {
           </select>
           <button id="datesSearchBtn" class="icon-btn" style="padding:4px 10px">${t('header.search')}</button>
         </div>
-        <div id="datesInlineErr" style="color:#ef4444;font-size:11px;min-height:14px"></div>`;
+        <div id="datesInlineErr" style="color:var(--status-alert);font-size:11px;min-height:14px"></div>`;
 
             let body: string;
             if (this.datesData.length) {
@@ -620,7 +625,7 @@ export class AirlineIntelPanel extends Panel {
                 }).join('');
                 body = `<div class="dp-list">${rows}</div>`;
             } else if (this.pricesError) {
-                body = `<div class="no-data" style="color:#ef4444">${escapeHtml(this.pricesError)}</div>`;
+                body = `<div class="no-data" style="color:var(--status-alert)">${escapeHtml(this.pricesError)}</div>`;
             } else {
                 body = `<div class="no-data">${escapeHtml(t('components.airlineIntel.enterDateRange'))}</div>`;
             }

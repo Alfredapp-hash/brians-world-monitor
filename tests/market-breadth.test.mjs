@@ -122,9 +122,9 @@ describe('Market breadth panel', () => {
   });
 
   it('shows 3 series with correct colors', () => {
-    assert.match(panelSrc, /#3b82f6/); // blue for 20d
-    assert.match(panelSrc, /#f59e0b/); // orange for 50d
-    assert.match(panelSrc, /#22c55e/); // green for 200d
+    assert.match(panelSrc, /CATEGORY\.blue/); // blue for 20d
+    assert.match(panelSrc, /CATEGORY\.orange/); // orange for 50d
+    assert.match(panelSrc, /CATEGORY\.aqua/); // aqua for 200d
   });
 
   it('fetches from bootstrap and RPC', () => {

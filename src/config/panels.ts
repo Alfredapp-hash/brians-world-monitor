@@ -1,4 +1,5 @@
 import type { PanelConfig, MapLayers, DataSourceId } from '@/types';
+import { CATEGORY_ORDER, NEUTRAL, STATUS } from '@/styles/tokens';
 import { SITE_VARIANT } from './variant';
 // boundary-ignore: isDesktopRuntime is a pure env probe with no service dependencies
 import { isDesktopRuntime } from '@/services/runtime';
@@ -35,6 +36,9 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   intel: { name: 'Intel Feed', enabled: true, priority: 1 },
   'gdelt-intel': { name: 'Live Intelligence', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
   cascade: { name: 'Infrastructure Cascade', enabled: true, priority: 1 },
+  'internet-disruptions': { name: 'Internet Disruptions', enabled: true, priority: 2 },
+  'service-status': { name: 'Service Status', enabled: true, priority: 2 },
+  'chokepoint-strip': { name: 'Chokepoint Status', enabled: true, priority: 1 },
   'military-correlation': { name: 'Force Posture', enabled: true, priority: 2 },
   'escalation-correlation': { name: 'Escalation Monitor', enabled: true, priority: 2 },
   'economic-correlation': { name: 'Economic Warfare', enabled: true, priority: 2 },
@@ -76,14 +80,14 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'satellite-fires': { name: 'Fires', enabled: true, priority: 2 },
   'macro-signals': { name: 'Market Regime', enabled: true, priority: 2 },
   'fear-greed': { name: 'Fear & Greed', enabled: true, priority: 2 },
-  'aaii-sentiment': { name: 'AAII Sentiment', enabled: false, priority: 2 },
+  'aaii-sentiment': { name: 'AAII Sentiment', enabled: true, priority: 2 },
   'market-breadth': { name: 'Market Breadth', enabled: true, priority: 2 },
-  'macro-tiles': { name: 'Macro Indicators', enabled: false, priority: 2 },
-  'fsi': { name: 'Financial Stress', enabled: false, priority: 2 },
-  'yield-curve': { name: 'Yield Curve', enabled: false, priority: 2 },
-  'earnings-calendar': { name: 'Earnings Calendar', enabled: false, priority: 2 },
-  'economic-calendar': { name: 'Economic Calendar', enabled: false, priority: 2 },
-  'cot-positioning': { name: 'COT Positioning', enabled: false, priority: 2 },
+  'macro-tiles': { name: 'Macro Indicators', enabled: true, priority: 2 },
+  'fsi': { name: 'Financial Stress', enabled: true, priority: 2 },
+  'yield-curve': { name: 'Yield Curve', enabled: true, priority: 2 },
+  'earnings-calendar': { name: 'Earnings Calendar', enabled: true, priority: 2 },
+  'economic-calendar': { name: 'Economic Calendar', enabled: true, priority: 2 },
+  'cot-positioning': { name: 'COT Positioning', enabled: true, priority: 2 },
   'liquidity-shifts': { name: 'Liquidity Shifts', enabled: true, priority: 2 },
   'positioning-247': { name: '24/7 Positioning', enabled: true, priority: 2 },
   'gold-intelligence': { name: 'Gold Intelligence', enabled: true, priority: 60 },
@@ -93,23 +97,23 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'storage-facility-map': { name: 'Strategic Storage Atlas', enabled: true, priority: 2 },
   'fuel-shortages': { name: 'Global Fuel Shortage Registry', enabled: true, priority: 2 },
   'energy-disruptions': { name: 'Energy Disruptions Log', enabled: true, priority: 2 },
-  'energy-risk-overview': { name: 'Global Energy Risk Overview', enabled: false, priority: 2 },
-  'gulf-economies': { name: 'Gulf Economies', enabled: false, priority: 2 },
-  'consumer-prices': { name: 'Consumer Prices', enabled: false, priority: 2 },
-  'grocery-basket': { name: 'Grocery Index', enabled: false, priority: 2 },
-  'bigmac': { name: 'Big Mac Index', enabled: false, priority: 2 },
-  'fuel-prices': { name: 'Fuel Prices', enabled: false, priority: 2 },
-  'fao-food-price-index': { name: 'FAO Food Price Index', enabled: false, priority: 2 },
+  'energy-risk-overview': { name: 'Global Energy Risk Overview', enabled: true, priority: 2 },
+  'gulf-economies': { name: 'Gulf Economies', enabled: true, priority: 2 },
+  'consumer-prices': { name: 'Consumer Prices', enabled: true, priority: 2 },
+  'grocery-basket': { name: 'Grocery Index', enabled: true, priority: 2 },
+  'bigmac': { name: 'Big Mac Index', enabled: true, priority: 2 },
+  'fuel-prices': { name: 'Fuel Prices', enabled: true, priority: 2 },
+  'fao-food-price-index': { name: 'FAO Food Price Index', enabled: true, priority: 2 },
   'etf-flows': { name: 'BTC ETF Tracker', enabled: true, priority: 2 },
   stablecoins: { name: 'Stablecoins', enabled: true, priority: 2 },
   'ucdp-events': { name: 'UCDP Conflict Events', enabled: true, priority: 2 },
   'disease-outbreaks': { name: 'Disease Outbreaks', enabled: true, priority: 2 },
   'social-velocity': { name: 'Social Velocity', enabled: true, priority: 2 },
   'wsb-ticker-scanner': { name: 'WSB Ticker Scanner', enabled: true, priority: 75, premium: 'locked' as const },
-  giving: { name: 'Global Giving', enabled: false, priority: 2 },
+  giving: { name: 'Global Giving', enabled: true, priority: 2 },
   displacement: { name: 'UNHCR Displacement', enabled: true, priority: 2 },
   climate: { name: 'Climate Anomalies', enabled: true, priority: 2 },
-  'climate-news': { name: 'Climate News', enabled: false, priority: 2 },
+  'climate-news': { name: 'Climate News', enabled: true, priority: 2 },
   'population-exposure': { name: 'Population Exposure', enabled: true, priority: 2 },
   'security-advisories': { name: 'Security Advisories', enabled: true, priority: 2 },
   'sanctions-pressure': { name: 'Sanctions Pressure', enabled: true, priority: 2 },
@@ -126,28 +130,28 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'market-implications': { name: 'AI Market Implications', enabled: true, priority: 1, premium: 'locked' as const },
   'regional-intelligence': { name: 'Regional Intelligence', enabled: false, priority: 1, premium: 'locked' as const },
   'deduction': { name: 'Deduct Situation', enabled: false, priority: 1, premium: 'locked' as const },
-  'geo-hubs': { name: 'Geopolitical Hubs', enabled: false, priority: 2 },
+  'geo-hubs': { name: 'Geopolitical Hubs', enabled: true, priority: 2 },
   'tech-hubs': { name: 'Hot Tech Hubs', enabled: false, priority: 2 },
 };
 
 const FULL_MAP_LAYERS: MapLayers = {
   iranAttacks: IRAN_ATTACKS_ENABLED && !_desktop,
-  gpsJamming: false,
+  gpsJamming: true,
   satellites: false,
 
 
   conflicts: true,
   bases: !_desktop,
-  cables: false,
-  pipelines: false,
-  storageFacilities: false,
-  fuelShortages: false,
+  cables: true,
+  pipelines: true,
+  storageFacilities: true,
+  fuelShortages: true,
   hotspots: true,
-  ais: false,
+  ais: true,
   nuclear: true,
   irradiators: false,
   alprCameras: false,
-  radiationWatch: false,
+  radiationWatch: true,
   sanctions: true,
   weather: true,
   economic: true,
@@ -155,17 +159,17 @@ const FULL_MAP_LAYERS: MapLayers = {
   outages: true,
   cyberThreats: false,
   datacenters: false,
-  protests: false,
-  flights: false,
+  protests: true,
+  flights: true,
   military: true,
   natural: true,
   spaceports: false,
-  minerals: false,
-  fires: false,
-  // Data source layers
-  ucdpEvents: false,
-  displacement: false,
-  climate: false,
+  minerals: true,
+  fires: true,
+  // Data source layers — feeds already hydrate; painting was gated off
+  ucdpEvents: true,
+  displacement: true,
+  climate: true,
   // Tech layers (disabled in full variant)
   startupHubs: false,
   cloudRegions: false,
@@ -184,16 +188,16 @@ const FULL_MAP_LAYERS: MapLayers = {
   happiness: false,
   speciesRecovery: false,
   renewableInstallations: false,
-  tradeRoutes: false,
-  ciiChoropleth: false,
+  tradeRoutes: true,
+  ciiChoropleth: true,
   resilienceScore: false,
   dayNight: false,
   // Commodity layers (disabled in full variant)
   miningSites: false,
   processingPlants: false,
   commodityPorts: false,
-  webcams: false,
-  diseaseOutbreaks: false,
+  webcams: true,
+  diseaseOutbreaks: true,
 };
 
 const FULL_MOBILE_MAP_LAYERS: MapLayers = {
@@ -221,13 +225,13 @@ const FULL_MOBILE_MAP_LAYERS: MapLayers = {
   outages: true,
   cyberThreats: false,
   datacenters: false,
-  protests: false,
-  flights: false,
+  protests: true,
+  flights: true,
   military: false,
   natural: true,
   spaceports: false,
   minerals: false,
-  fires: false,
+  fires: true,
   // Data source layers
   ucdpEvents: false,
   displacement: false,
@@ -1209,6 +1213,16 @@ export function isPanelInVariantDefaults(key: string): boolean {
 
 export const FREE_MAX_PANELS = 40;
 export const FREE_MAX_SOURCES = 80;
+/**
+ * JSA's Monitor is a personal operator dashboard, not the upstream SaaS
+ * free tier. Keep the clamp algorithm for tests (`unlimited: false`) but do
+ * not hide live panels behind the 40-slot ceiling in production.
+ */
+export const OPERATOR_UNLIMITED_PANELS = true;
+
+export function isFreePanelCapBlocking(isPro: boolean): boolean {
+  return !isPro && !OPERATOR_UNLIMITED_PANELS;
+}
 
 export function isFreePanelCapCounted(key: string): boolean {
   return key !== 'map' && !key.startsWith('cw-');
@@ -1272,20 +1286,25 @@ export function isPanelEntitled(key: string, config: PanelConfig, isPro = false)
 export function enforceFreePanelLimit(
   panelSettings: Record<string, PanelConfig>,
   isPro: boolean,
+  options?: { unlimited?: boolean },
 ): Record<string, PanelConfig> {
   const next: Record<string, PanelConfig> = {};
   for (const [key, config] of Object.entries(panelSettings)) {
     next[key] = { ...config };
   }
 
-  if (isPro) return next;
+  const unlimited = options?.unlimited ?? OPERATOR_UNLIMITED_PANELS;
 
-  // cw-* custom widgets are pro-only — never enabled on the free tier.
-  for (const key of Object.keys(next)) {
-    if (key.startsWith('cw-') && next[key]?.enabled) {
-      next[key] = { ...next[key]!, enabled: false };
+  // cw-* custom widgets stay pro-only even when the operator cap is lifted.
+  if (!isPro) {
+    for (const key of Object.keys(next)) {
+      if (key.startsWith('cw-') && next[key]?.enabled) {
+        next[key] = { ...next[key]!, enabled: false };
+      }
     }
   }
+
+  if (isPro || unlimited) return next;
 
   const enabledKeys = Object.entries(next)
     .filter(([k, v]) => v.enabled && isFreePanelCapCounted(k))
@@ -1389,7 +1408,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   dataTracking: {
     labelKey: 'header.panelCatDataTracking',
-    panelKeys: ['monitors', 'satellite-fires', 'ucdp-events', 'displacement', 'climate', 'climate-news', 'population-exposure', 'security-advisories', 'radiation-watch', 'oref-sirens', 'world-clock', 'tech-readiness', 'disease-outbreaks', 'fao-food-price-index', 'grocery-basket', 'defense-patents'],
+    panelKeys: ['monitors', 'satellite-fires', 'ucdp-events', 'displacement', 'climate', 'climate-news', 'population-exposure', 'security-advisories', 'radiation-watch', 'oref-sirens', 'world-clock', 'tech-readiness', 'disease-outbreaks', 'fao-food-price-index', 'grocery-basket', 'defense-patents', 'internet-disruptions', 'service-status'],
     variants: ['full', 'energy'],
   },
 
@@ -1514,18 +1533,13 @@ export function getProPanelKeys(
   );
 }
 
-// Monitor palette — fixed category colors persisted to localStorage (not theme-dependent)
+// Monitor palette — fixed category colors persisted to localStorage (not
+// theme-dependent). JSA CATEGORY hues in declared order, extended to 10
+// entries with the neutral slate and status-info blue.
 export const MONITOR_COLORS = [
-  '#44ff88',
-  '#ff8844',
-  '#4488ff',
-  '#ff44ff',
-  '#ffff44',
-  '#ff4444',
-  '#44ffff',
-  '#88ff44',
-  '#ff88ff',
-  '#88ffff',
+  ...CATEGORY_ORDER,
+  NEUTRAL.slate,
+  STATUS.info,
 ];
 
 export const STORAGE_KEYS = {

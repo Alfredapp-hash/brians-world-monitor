@@ -42,6 +42,6 @@ plugins:
       - bundle_title=WorldMonitor API
       - bundle_version=1.0.0
       - bundle_description=Unified OpenAPI bundle spanning all WorldMonitor services.
-      - bundle_server=https://api.worldmonitor.app
+      - bundle_server=https://brians-world-monitor.vercel.app
       - bundle_contact_name=WorldMonitor
       - bundle_contact_email=support@worldmonitor.app

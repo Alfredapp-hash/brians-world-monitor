@@ -159,7 +159,7 @@ async function _createCheckoutSession(
   user: UserInfo,
 ) {
   // Validate returnUrl to prevent open-redirect attacks.
-  const siteUrl = process.env.SITE_URL ?? "https://worldmonitor.app";
+  const siteUrl = process.env.SITE_URL ?? "https://brians-world-monitor.vercel.app";
   let returnUrl = siteUrl;
   if (args.returnUrl) {
     let parsedReturnUrl: URL;
@@ -169,20 +169,16 @@ async function _createCheckoutSession(
       throw new ConvexError("Invalid returnUrl: must be a valid absolute URL");
     }
 
+    // This fork has a single production domain (no variant subdomains) —
+    // never trust bare worldmonitor.app or its subdomains here, that's a
+    // different owner's production domain.
     const allowedOrigins = new Set([
-      "https://worldmonitor.app",
-      "https://www.worldmonitor.app",
-      "https://app.worldmonitor.app",
-      "https://tech.worldmonitor.app",
-      "https://finance.worldmonitor.app",
-      "https://commodity.worldmonitor.app",
-      "https://happy.worldmonitor.app",
-      "https://energy.worldmonitor.app",
+      "https://brians-world-monitor.vercel.app",
       new URL(siteUrl).origin,
     ]);
     if (!allowedOrigins.has(parsedReturnUrl.origin)) {
       throw new ConvexError(
-        "Invalid returnUrl: must use a trusted worldmonitor.app origin",
+        "Invalid returnUrl: must use a trusted brians-world-monitor.vercel.app origin",
       );
     }
     returnUrl = parsedReturnUrl.toString();

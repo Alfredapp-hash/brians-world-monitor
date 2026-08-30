@@ -71,6 +71,8 @@
   /* Semantic status scale — tuned to sit alongside amber #f0a832
    * on #0a0c10. All foreground values clear WCAG AA on --bg:
    * info 7.3:1, watch 10.0:1, warn 7.3:1, alert 5.1:1. */
+  --status-good: #56b273;
+  --status-good-bg: rgba(86, 178, 115, 0.12);
   --status-info: #6da5c9;
   --status-info-bg: rgba(109, 165, 201, 0.12);
   --status-watch: #d9b64a;
@@ -80,11 +82,143 @@
   --status-alert: #e05252;
   --status-alert-bg: rgba(224, 82, 82, 0.12);
 
+  /* Critical tier above --status-alert (map severity s5: extreme events,
+   * total outages). Mirrored by SEVERITY.s5 in src/styles/tokens.ts. */
+  --sev-critical: #ff6b7a;
+
+  /* Categorical data palette (mirrors CATEGORY in src/styles/tokens.ts —
+   * sync-tested). CVD-validated as a set on --bg; one meaning per hue
+   * within a layer or chart. */
+  --cat-blue: #3987e5;
+  --cat-orange: #d95926;
+  --cat-aqua: #199e70;
+  --cat-gold: #c98500;
+  --cat-magenta: #d55181;
+  --cat-green: #008300;
+  --cat-violet: #9085e9;
+  --cat-red: #e66767;
+
   /* Readable dim text: 7.9:1 on #0a0c10 (upstream #888/#6b6b6b failed AA).
    * --text-dim-safe is the canonical value; --text-dim is repointed here
    * (NOT in main.css — legacy variants there still derive from it). */
   --text-dim-safe: #a9a49b;
   --text-dim: var(--text-dim-safe);
+}
+
+/* ============================================================
+   Legacy semantic-var repoint — main.css still DEFINES the old
+   upstream neon scale (--semantic-*, --threat-*, --defcon-*,
+   --status-live/cached/unavailable, --red/--green/--yellow).
+   Redefining them here (unlayered, wins over layer(base)) moves
+   every remaining CSS consumer onto the token scale at once.
+   NOTE: because unlayered beats layered, the light-theme block
+   below must restore light-safe values that main.css's layered
+   [data-theme="light"] overrides can no longer supply.
+   ============================================================ */
+:root {
+  --semantic-critical: var(--sev-critical);
+  --semantic-high: var(--status-warn);
+  --semantic-elevated: var(--status-watch);
+  --semantic-normal: var(--status-good);
+  --semantic-low: var(--status-info);
+  --semantic-info: var(--status-info);
+  --semantic-positive: var(--status-good);
+
+  --threat-critical: var(--status-alert);
+  --threat-high: var(--status-warn);
+  --threat-medium: var(--status-watch);
+  --threat-low: var(--status-good);
+  --threat-info: var(--status-info);
+
+  --defcon-1: var(--sev-critical);
+  --defcon-2: var(--status-alert);
+  --defcon-3: var(--status-watch);
+  --defcon-4: var(--status-info);
+  --defcon-5: var(--status-good);
+
+  --status-live: var(--status-good);
+  --status-cached: var(--accent);
+  --status-unavailable: var(--status-alert);
+
+  --red: var(--status-alert);
+  --green: var(--status-good);
+  --yellow: var(--status-watch);
+}
+
+/* Light theme: darkened variants (mirrors main.css's light scale, which
+   this unlayered block would otherwise override). */
+[data-theme="light"] {
+  --semantic-critical: #dc2626;
+  --semantic-high: #ea580c;
+  --semantic-elevated: #d97706;
+  --semantic-normal: #15803d;
+  --semantic-low: #2563eb;
+  --semantic-info: #2563eb;
+  --semantic-positive: #16a34a;
+
+  --threat-critical: #dc2626;
+  --threat-high: #c2410c;
+  --threat-medium: #ca8a04;
+  --threat-low: #15803d;
+  --threat-info: #2563eb;
+
+  --defcon-1: #dc2626;
+  --defcon-2: #ea580c;
+  --defcon-3: #d97706;
+  --defcon-4: #0284c7;
+  --defcon-5: #15803d;
+
+  --status-live: #16a34a;
+  --status-cached: #d97706;
+  --status-unavailable: #dc2626;
+
+  --red: #dc2626;
+  --green: #16a34a;
+  --yellow: #d97706;
+}
+
+/* SVG-fallback map: retire upstream's radar-green land/grid for the
+   charcoal-blue identity. (Light values restored below — same unlayered-
+   beats-layered caveat as the semantic repoint.) */
+:root {
+  --map-country: #10151d;
+  --map-stroke: #2e3949;
+  --map-grid: #131a24;
+}
+
+[data-theme="light"] {
+  --map-grid: #b0c8d8;
+  --map-country: #f0e8d8;
+  --map-stroke: #c8b8a8;
+}
+
+/* SVG map legend + hotspot tiers align with the deck/globe severity
+   families: monitoring = watch gold (s2), elevated = warn orange (s3),
+   high = alert red. */
+.legend-dot.low {
+  background: var(--status-watch);
+}
+
+.legend-dot.elevated {
+  background: var(--status-warn);
+  box-shadow: 0 0 4px var(--status-warn);
+}
+
+.legend-dot.high {
+  background: var(--status-alert);
+  box-shadow: 0 0 6px var(--status-alert);
+}
+
+.hotspot-marker.elevated {
+  background: var(--status-warn);
+  box-shadow: 0 0 10px var(--status-warn);
+}
+
+/* Active layer chips carry the brand accent, not upstream green —
+   "on" should read as JSA amber across every map engine's picker. */
+.layer-toggles .layer-toggle.active {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* Header & footer carry the identity strongest */
@@ -105,6 +239,14 @@
 
 .panel {
   border-radius: 8px;
+}
+
+/* Map legend bar picks up the identity: soft corners, translucent
+   charcoal over the basemap instead of upstream's hard black strip. */
+.map-legend {
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(6px);
 }
 
 /* Amber focus ring for all interactive primitives (keyboard only) */

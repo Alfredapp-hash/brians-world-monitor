@@ -20,7 +20,7 @@ function makePost(expectedSyncVersion: number): RequestInit {
   return {
     method: "POST",
     headers: {
-      Origin: "https://worldmonitor.app",
+      Origin: "https://brians-world-monitor.vercel.app",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -50,7 +50,7 @@ describe("/api/user-prefs Convex HTTP action", () => {
 
     const res = await t.fetch("/api/user-prefs", {
       method: "OPTIONS",
-      headers: { Origin: "https://worldmonitor.app" },
+      headers: { Origin: "https://brians-world-monitor.vercel.app" },
     });
 
     expect(res.status).toBe(204);
@@ -64,7 +64,7 @@ describe("/api/user-prefs Convex HTTP action", () => {
       const res = await t.withIdentity(USER).fetch("/api/user-prefs", {
         method: "POST",
         headers: {
-          Origin: "https://worldmonitor.app",
+          Origin: "https://brians-world-monitor.vercel.app",
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),

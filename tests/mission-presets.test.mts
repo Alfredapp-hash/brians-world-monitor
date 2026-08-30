@@ -818,7 +818,10 @@ describe('resetMissionPresetState', () => {
     assert.deepEqual(reset.panelOrder, VARIANT_DEFAULTS.full.filter((key) => key !== 'map'));
     assert.equal(reset.panelSettings.map?.enabled, true);
     assert.equal(reset.panelSettings['live-news']?.enabled, getEffectivePanelConfig('live-news', 'full').enabled);
-    assert.equal(reset.panelSettings['energy-risk-overview']?.enabled, false);
+    assert.equal(
+      reset.panelSettings['energy-risk-overview']?.enabled,
+      getEffectivePanelConfig('energy-risk-overview', 'full').enabled,
+    );
     assert.equal(reset.panelSettings['cw-market-note']?.enabled, true);
     assert.deepEqual(reset.mapLayers, DEFAULT_MAP_LAYERS);
   });
@@ -1140,18 +1143,18 @@ describe('mission preset shell integration', () => {
     assert.equal(ctx.panelSettings['supply-chain']?.enabled, true);
     assert.equal(ctx.panelSettings.markets?.enabled, true);
     assert.equal(ctx.panelSettings['live-news']?.enabled, false);
-    assert.deepEqual(callbacks.appliedOrders[0]?.slice(0, 3), ['supply-chain', 'hormuz-tracker', 'cascade']);
+    assert.deepEqual(callbacks.appliedOrders[0]?.slice(0, 3), ['supply-chain', 'chokepoint-strip', 'hormuz-tracker']);
     assert.equal(localStorage.getItem(MISSION_PRESET_STORAGE_KEY), 'supply-chain-risk');
     assert.deepEqual(readJsonStorage<string[]>('panel-order'), callbacks.appliedOrders[0]);
     assert.equal(readJsonStorage<MapLayers>('worldmonitor-layers').tradeRoutes, true);
     assert.equal(readJsonStorage<MapLayers>('worldmonitor-layers').resilienceScore, true);
     assert.deepEqual(ctx.map.calls.setView.at(-1), { view: 'global', zoom: 2.3 });
     assert.equal(ctx.map.calls.setTimeRange.at(-1), '7d');
-    assert.equal(callbacks.waitForAisCalls, 1, 'AIS layer enable should initialize the AIS stream path');
-    assert.ok(callbacks.loadDataForLayer.includes('tradeRoutes'), 'newly enabled non-AIS layers should load data');
+    assert.equal(ctx.mapLayers.ais, true, 'full defaults already include AIS; the preset keeps it on');
+    assert.ok(callbacks.loadDataForLayer.includes('resilienceScore'), 'newly enabled non-AIS layers should load data');
     assert.ok(
       ((globalThis as { __missionAnalytics?: Array<{ name: string; args: unknown[] }> }).__missionAnalytics ?? [])
-        .some((entry) => entry.name === 'trackMapLayerToggle' && entry.args[0] === 'tradeRoutes' && entry.args[1] === true),
+        .some((entry) => entry.name === 'trackMapLayerToggle' && entry.args[0] === 'resilienceScore' && entry.args[1] === true),
       'programmatic layer analytics should be emitted for apply transitions',
     );
     assert.equal(latestUrl().searchParams.get('layers')?.includes('tradeRoutes'), true);
@@ -1167,8 +1170,8 @@ describe('mission preset shell integration', () => {
     assert.deepEqual(callbacks.appliedOrders.at(-1), VARIANT_DEFAULTS.full.filter((key) => key !== 'map'));
     assert.deepEqual(ctx.map.calls.setView.at(-1), { view: 'global', zoom: undefined });
     assert.equal(ctx.map.calls.setTimeRange.at(-1), '7d');
-    assert.ok(callbacks.stopLayerActivity.includes('tradeRoutes'), 'reset should stop layers the preset enabled');
-    assert.deepEqual((globalThis as { __missionAis?: string[] }).__missionAis, ['init', 'disconnect']);
+    assert.ok(callbacks.stopLayerActivity.includes('resilienceScore'), 'reset should stop layers the preset enabled');
+    assert.equal((globalThis as { __missionAis?: string[] }).__missionAis, undefined);
     assert.equal(latestUrl().searchParams.get('view'), 'global');
     assert.equal(latestUrl().searchParams.get('timeRange'), '7d');
     assert.deepEqual((latestUrl().searchParams.get('layers') ?? '').split(',').sort(), baselineLayers);
@@ -1186,7 +1189,6 @@ describe('mission preset shell integration', () => {
     assert.equal(ctx.mapLayers.resilienceScore, false);
     assert.equal(readJsonStorage<MapLayers>('worldmonitor-layers').resilienceScore, false);
     assert.equal(ctx.mapLayers.tradeRoutes, true);
-    assert.ok(callbacks.loadDataForLayer.includes('tradeRoutes'));
     assert.equal(callbacks.loadDataForLayer.includes('resilienceScore'), false);
     assert.equal(callbacks.stopLayerActivity.includes('resilienceScore'), false);
   });
@@ -1201,7 +1203,7 @@ describe('mission preset shell integration', () => {
     assert.equal(ctx.mapLayers.ais, false);
     assert.equal(readJsonStorage<MapLayers>('worldmonitor-layers').ais, false);
     assert.equal(callbacks.waitForAisCalls, 0);
-    assert.deepEqual((globalThis as { __missionAis?: string[] }).__missionAis, undefined);
+    assert.deepEqual((globalThis as { __missionAis?: string[] }).__missionAis, ['disconnect']);
     assert.equal((latestUrl().searchParams.get('layers') ?? '').split(',').includes('ais'), false);
     assert.equal(ctx.mapLayers.tradeRoutes, true);
   });

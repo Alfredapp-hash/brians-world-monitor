@@ -45,10 +45,10 @@ const FORWARDED_HEADERS = ['authorization', 'x-worldmonitor-key', 'x-api-key', '
 const RPC_PATH_RE = /^\/api\/[a-z][a-z0-9-]*\/v\d+\/[a-z][a-z0-9-]*$/;
 const V2_PATH_RE = /^\/api\/v2\/[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/;
 
-// The Cloudflare WAF in front of api.worldmonitor.app rejects generic
-// user agents, so sub-requests always carry a descriptive one.
+// The upstream WAF in front of the API edge rejects generic user agents,
+// so sub-requests always carry a descriptive one.
 const DEFAULT_SUB_REQUEST_USER_AGENT =
-  'WorldMonitor-Batch/1.0 (+https://www.worldmonitor.app/openapi.json)';
+  'WorldMonitor-Batch/1.0 (+https://brians-world-monitor.vercel.app/openapi.json)';
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 

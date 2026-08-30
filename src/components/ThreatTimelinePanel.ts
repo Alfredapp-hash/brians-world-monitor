@@ -281,8 +281,8 @@ export class ThreatTimelinePanel extends Panel {
         .threat-timeline-stat-value { display: block; font-size: 20px; line-height: 1; font-weight: 700; color: var(--text-primary); }
         .threat-timeline-stat-label, .threat-timeline-trend-copy, .threat-timeline-footer, .threat-timeline-note { display: block; font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
         .threat-timeline-trend { border-left: 3px solid var(--accent-color); }
-        .threat-timeline-trend.worsening { border-left-color: #ef4444; }
-        .threat-timeline-trend.easing { border-left-color: #38bdf8; }
+        .threat-timeline-trend.worsening { border-left-color: var(--status-alert); }
+        .threat-timeline-trend.easing { border-left-color: var(--status-info); }
         .threat-timeline-trend-label { display: block; color: var(--text-primary); font-size: 13px; font-weight: 700; }
         .threat-timeline-chart-wrap { border: 1px solid var(--border-color); border-radius: 8px; background: rgba(15, 23, 42, 0.18); padding: 6px; }
         .threat-timeline-chart { width: 100%; height: 150px; display: block; overflow: visible; }
@@ -303,11 +303,7 @@ export class ThreatTimelinePanel extends Panel {
         a.threat-timeline-item-title:hover { color: var(--accent-color); }
         .threat-timeline-item-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--text-secondary); font-size: 10px; }
         .threat-timeline-source, .threat-timeline-source-count { border: 1px solid var(--border-color); border-radius: 999px; padding: 1px 6px; color: var(--text-secondary); }
-        .threat-critical .threat-timeline-group-header { border-left: 3px solid #ef4444; }
-        .threat-high .threat-timeline-group-header { border-left: 3px solid #f97316; }
-        .threat-medium .threat-timeline-group-header { border-left: 3px solid #eab308; }
-        .threat-low .threat-timeline-group-header { border-left: 3px solid #38bdf8; }
-        .threat-info .threat-timeline-group-header { border-left: 3px solid #94a3b8; }
+        ${THREAT_LEVELS.map(level => `.threat-${level} .threat-timeline-group-header { border-left: 3px solid ${THREAT_LEVEL_COLORS[level]}; }`).join('\n        ')}
         .threat-timeline-empty, .threat-timeline-empty-inline { border: 1px dashed var(--border-color); border-radius: 8px; padding: 14px; color: var(--text-secondary); background: var(--bg-secondary); }
         .threat-timeline-empty-title { color: var(--text-primary); font-size: 13px; font-weight: 700; }
         .threat-timeline-empty-copy { margin-top: 5px; font-size: 12px; line-height: 1.4; color: var(--text-secondary); }

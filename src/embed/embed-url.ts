@@ -228,7 +228,7 @@ export function buildEmbedMapUrl(
     variant?: EmbedVariant;
   } = {},
 ): string {
-  const url = new URL(baseUrl, 'https://www.worldmonitor.app');
+  const url = new URL(baseUrl, 'https://brians-world-monitor.vercel.app');
   const layerIds = state.layerIds ?? embedLayerIdsFromMapLayers(state.layers ?? mapLayersFromEmbedIds(DEFAULT_EMBED_LAYER_IDS));
   const center = normalizeCenter(state.center ?? DEFAULT_EMBED_CENTER);
   const zoom = Number.isFinite(state.zoom) ? clamp(state.zoom as number, 1, 10) : DEFAULT_EMBED_ZOOM;
@@ -257,7 +257,7 @@ export function buildEmbedIframeSnippet(url: string, options: { width?: string; 
 }
 
 export function buildWorldMonitorAttributionUrl(baseUrl: string, referrerHost: string | null): string {
-  const url = new URL(baseUrl, 'https://www.worldmonitor.app');
+  const url = new URL(baseUrl, 'https://brians-world-monitor.vercel.app');
   url.searchParams.set('utm_source', 'embed');
   url.searchParams.set('utm_medium', 'iframe');
   url.searchParams.set('utm_campaign', referrerHost ? referrerHost.slice(0, 80) : 'direct');

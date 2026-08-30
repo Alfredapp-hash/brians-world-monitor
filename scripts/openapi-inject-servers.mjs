@@ -47,7 +47,7 @@ const CHECK = process.argv.includes('--check');
 
 // The production base URL — identical to `bundle_server` in proto/buf.gen.yaml,
 // which stamps the same value onto the bundle. Keep the two in sync.
-const SERVER_URL = 'https://api.worldmonitor.app';
+const SERVER_URL = 'https://brians-world-monitor.vercel.app';
 const SERVERS = [{ url: SERVER_URL }];
 
 // ── Per-service JSON injection ──────────────────────────────────────────────

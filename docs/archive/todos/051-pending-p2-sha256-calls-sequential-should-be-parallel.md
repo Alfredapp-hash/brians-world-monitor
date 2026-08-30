@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "051"
 tags: [code-review, performance, analytical-frameworks]
@@ -47,3 +47,4 @@ The `frameworkRaw` is clamped to 2000 chars and is not an attacker-controlled co
 
 ## Work Log
 - 2026-03-27: Identified during PR #2380 review by performance-oracle
+- undefined: Already resolved / not reproducible — `get-country-intel-brief.ts` already computes `contextHashFull`/`frameworkHashFull` via `Promise.all([...])` (Option A). No code change needed.
