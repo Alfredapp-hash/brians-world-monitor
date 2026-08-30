@@ -78,6 +78,23 @@ Variables):**
 `scripts/panel-audit.mjs` re-runs the audit against any URL
 (`SMOKE_URL=https://your-app.vercel.app node scripts/panel-audit.mjs`).
 
+## Operator live display (2026-08-27)
+
+This fork is a personal dashboard, not the upstream SaaS free tier.
+
+- `OPERATOR_UNLIMITED_PANELS` lifts the 40-panel ceiling so default-on
+  live panels (fires, UCDP, climate, radiation, energy logs, etc.) are
+  not auto-disabled. Custom widgets (`cw-*`) stay pro-only.
+- Full-variant map defaults now paint already-hydrated feeds: protests,
+  GPS jamming, UCDP, climate, displacement, fires, CII choropleth,
+  disease outbreaks, radiation. Mobile stays lighter (protests + fires).
+- Full variant also shows Internet Disruptions, Service Status,
+  Chokepoint Status, Climate News, Energy Risk Overview, Gulf Economies,
+  and Consumer Prices.
+- Returning browsers pick this up once via `jsam-live-display-v1`.
+  After deploy, hard-refresh. If an old layout is still stuck, clear
+  site data for the app origin.
+
 ## Seeded panels — Upstash Redis + scheduled seeders (full activation)
 
 Many panels render from a Redis cache that a background job fills. Two pieces:

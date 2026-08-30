@@ -8,6 +8,7 @@ import {
   isPanelEntitled,
   FREE_MAX_PANELS,
   countFreePanelCapUsage,
+  isFreePanelCapBlocking,
   isFreePanelCapCounted,
 } from '@/config/panels';
 import { isProUser } from '@/services/widget-store';
@@ -844,7 +845,7 @@ export class UnifiedSettings {
     // collapse to getEffectivePanelConfig's disabled synthetic fallback.
     const resolvedPanel = ALL_PANELS[key] ? getEffectivePanelConfig(key, SITE_VARIANT) : panel;
     if (!panel.enabled && !isPanelEntitled(key, resolvedPanel, isProUser())) return;
-    if (!panel.enabled && !isProUser() && isFreePanelCapCounted(key)) {
+    if (!panel.enabled && isFreePanelCapBlocking(isProUser()) && isFreePanelCapCounted(key)) {
       const enabledCount = countFreePanelCapUsage(this.draftPanelSettings);
       if (enabledCount >= FREE_MAX_PANELS) {
         showToast(t('modals.settingsWindow.freePanelLimit', { max: String(FREE_MAX_PANELS) }));

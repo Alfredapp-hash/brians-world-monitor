@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   FREE_MAX_PANELS,
+  OPERATOR_UNLIMITED_PANELS,
   VARIANT_DEFAULTS,
   countFreePanelCapUsage,
   enforceFreePanelLimit,
@@ -76,17 +77,32 @@ describe('variant panel config resolution', () => {
       VARIANT_DEFAULTS.full.map((key) => [key, { ...getEffectivePanelConfig(key, 'full') }]),
     );
 
-    const clamped = enforceFreePanelLimit(fullDefaults, false);
+    const clamped = enforceFreePanelLimit(fullDefaults, false, { unlimited: false });
 
     assert.equal(clamped.map?.enabled, true);
     assert.equal(countFreePanelCapUsage(clamped), FREE_MAX_PANELS);
+  });
+
+  it('operator unlimited mode keeps full-variant live panels enabled', () => {
+    assert.equal(OPERATOR_UNLIMITED_PANELS, true);
+    const fullDefaults = Object.fromEntries(
+      VARIANT_DEFAULTS.full.map((key) => [key, { ...getEffectivePanelConfig(key, 'full') }]),
+    );
+    const passed = enforceFreePanelLimit(fullDefaults, false);
+    const counted = countFreePanelCapUsage(passed);
+
+    assert.equal(passed['satellite-fires']?.enabled, true);
+    assert.equal(passed['ucdp-events']?.enabled, true);
+    assert.equal(passed['internet-disruptions']?.enabled, true);
+    assert.equal(passed['chokepoint-strip']?.enabled, true);
+    assert.ok(counted > FREE_MAX_PANELS, `expected more than ${FREE_MAX_PANELS} live panels, got ${counted}`);
   });
 
   it('restores stale over-cap free layouts where the cap disabled the map', () => {
     const fullDefaults = Object.fromEntries(
       VARIANT_DEFAULTS.full.map((key) => [key, { ...getEffectivePanelConfig(key, 'full') }]),
     );
-    const stale = enforceFreePanelLimit(fullDefaults, false);
+    const stale = enforceFreePanelLimit(fullDefaults, false, { unlimited: false });
     stale.map = { ...stale.map!, enabled: false };
     const disabledCapPanel = Object.entries(fullDefaults).find(([key, panel]) =>
       isFreePanelCapCounted(key) && panel.enabled && !stale[key]?.enabled
@@ -105,7 +121,7 @@ describe('variant panel config resolution', () => {
     const fullDefaults = Object.fromEntries(
       VARIANT_DEFAULTS.full.map((key) => [key, { ...getEffectivePanelConfig(key, 'full') }]),
     );
-    const atCap = enforceFreePanelLimit(fullDefaults, false);
+    const atCap = enforceFreePanelLimit(fullDefaults, false, { unlimited: false });
     atCap.map = { ...atCap.map!, enabled: false };
 
     const restored = restoreFreeMapPanelAccess(atCap);

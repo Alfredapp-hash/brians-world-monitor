@@ -36,6 +36,9 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   intel: { name: 'Intel Feed', enabled: true, priority: 1 },
   'gdelt-intel': { name: 'Live Intelligence', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
   cascade: { name: 'Infrastructure Cascade', enabled: true, priority: 1 },
+  'internet-disruptions': { name: 'Internet Disruptions', enabled: true, priority: 2 },
+  'service-status': { name: 'Service Status', enabled: true, priority: 2 },
+  'chokepoint-strip': { name: 'Chokepoint Status', enabled: true, priority: 1 },
   'military-correlation': { name: 'Force Posture', enabled: true, priority: 2 },
   'escalation-correlation': { name: 'Escalation Monitor', enabled: true, priority: 2 },
   'economic-correlation': { name: 'Economic Warfare', enabled: true, priority: 2 },
@@ -94,9 +97,9 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'storage-facility-map': { name: 'Strategic Storage Atlas', enabled: true, priority: 2 },
   'fuel-shortages': { name: 'Global Fuel Shortage Registry', enabled: true, priority: 2 },
   'energy-disruptions': { name: 'Energy Disruptions Log', enabled: true, priority: 2 },
-  'energy-risk-overview': { name: 'Global Energy Risk Overview', enabled: false, priority: 2 },
-  'gulf-economies': { name: 'Gulf Economies', enabled: false, priority: 2 },
-  'consumer-prices': { name: 'Consumer Prices', enabled: false, priority: 2 },
+  'energy-risk-overview': { name: 'Global Energy Risk Overview', enabled: true, priority: 2 },
+  'gulf-economies': { name: 'Gulf Economies', enabled: true, priority: 2 },
+  'consumer-prices': { name: 'Consumer Prices', enabled: true, priority: 2 },
   'grocery-basket': { name: 'Grocery Index', enabled: false, priority: 2 },
   'bigmac': { name: 'Big Mac Index', enabled: false, priority: 2 },
   'fuel-prices': { name: 'Fuel Prices', enabled: false, priority: 2 },
@@ -110,7 +113,7 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   giving: { name: 'Global Giving', enabled: false, priority: 2 },
   displacement: { name: 'UNHCR Displacement', enabled: true, priority: 2 },
   climate: { name: 'Climate Anomalies', enabled: true, priority: 2 },
-  'climate-news': { name: 'Climate News', enabled: false, priority: 2 },
+  'climate-news': { name: 'Climate News', enabled: true, priority: 2 },
   'population-exposure': { name: 'Population Exposure', enabled: true, priority: 2 },
   'security-advisories': { name: 'Security Advisories', enabled: true, priority: 2 },
   'sanctions-pressure': { name: 'Sanctions Pressure', enabled: true, priority: 2 },
@@ -133,7 +136,7 @@ const FULL_PANELS: Record<string, PanelConfig> = {
 
 const FULL_MAP_LAYERS: MapLayers = {
   iranAttacks: IRAN_ATTACKS_ENABLED && !_desktop,
-  gpsJamming: false,
+  gpsJamming: true,
   satellites: false,
 
 
@@ -148,7 +151,7 @@ const FULL_MAP_LAYERS: MapLayers = {
   nuclear: true,
   irradiators: false,
   alprCameras: false,
-  radiationWatch: false,
+  radiationWatch: true,
   sanctions: true,
   weather: true,
   economic: true,
@@ -156,17 +159,17 @@ const FULL_MAP_LAYERS: MapLayers = {
   outages: true,
   cyberThreats: false,
   datacenters: false,
-  protests: false,
+  protests: true,
   flights: false,
   military: true,
   natural: true,
   spaceports: false,
   minerals: false,
-  fires: false,
-  // Data source layers
-  ucdpEvents: false,
-  displacement: false,
-  climate: false,
+  fires: true,
+  // Data source layers — feeds already hydrate; painting was gated off
+  ucdpEvents: true,
+  displacement: true,
+  climate: true,
   // Tech layers (disabled in full variant)
   startupHubs: false,
   cloudRegions: false,
@@ -186,7 +189,7 @@ const FULL_MAP_LAYERS: MapLayers = {
   speciesRecovery: false,
   renewableInstallations: false,
   tradeRoutes: false,
-  ciiChoropleth: false,
+  ciiChoropleth: true,
   resilienceScore: false,
   dayNight: false,
   // Commodity layers (disabled in full variant)
@@ -194,7 +197,7 @@ const FULL_MAP_LAYERS: MapLayers = {
   processingPlants: false,
   commodityPorts: false,
   webcams: false,
-  diseaseOutbreaks: false,
+  diseaseOutbreaks: true,
 };
 
 const FULL_MOBILE_MAP_LAYERS: MapLayers = {
@@ -222,13 +225,13 @@ const FULL_MOBILE_MAP_LAYERS: MapLayers = {
   outages: true,
   cyberThreats: false,
   datacenters: false,
-  protests: false,
+  protests: true,
   flights: false,
   military: false,
   natural: true,
   spaceports: false,
   minerals: false,
-  fires: false,
+  fires: true,
   // Data source layers
   ucdpEvents: false,
   displacement: false,
@@ -1210,6 +1213,16 @@ export function isPanelInVariantDefaults(key: string): boolean {
 
 export const FREE_MAX_PANELS = 40;
 export const FREE_MAX_SOURCES = 80;
+/**
+ * JSA's Monitor is a personal operator dashboard, not the upstream SaaS
+ * free tier. Keep the clamp algorithm for tests (`unlimited: false`) but do
+ * not hide live panels behind the 40-slot ceiling in production.
+ */
+export const OPERATOR_UNLIMITED_PANELS = true;
+
+export function isFreePanelCapBlocking(isPro: boolean): boolean {
+  return !isPro && !OPERATOR_UNLIMITED_PANELS;
+}
 
 export function isFreePanelCapCounted(key: string): boolean {
   return key !== 'map' && !key.startsWith('cw-');
@@ -1273,20 +1286,25 @@ export function isPanelEntitled(key: string, config: PanelConfig, isPro = false)
 export function enforceFreePanelLimit(
   panelSettings: Record<string, PanelConfig>,
   isPro: boolean,
+  options?: { unlimited?: boolean },
 ): Record<string, PanelConfig> {
   const next: Record<string, PanelConfig> = {};
   for (const [key, config] of Object.entries(panelSettings)) {
     next[key] = { ...config };
   }
 
-  if (isPro) return next;
+  const unlimited = options?.unlimited ?? OPERATOR_UNLIMITED_PANELS;
 
-  // cw-* custom widgets are pro-only — never enabled on the free tier.
-  for (const key of Object.keys(next)) {
-    if (key.startsWith('cw-') && next[key]?.enabled) {
-      next[key] = { ...next[key]!, enabled: false };
+  // cw-* custom widgets stay pro-only even when the operator cap is lifted.
+  if (!isPro) {
+    for (const key of Object.keys(next)) {
+      if (key.startsWith('cw-') && next[key]?.enabled) {
+        next[key] = { ...next[key]!, enabled: false };
+      }
     }
   }
+
+  if (isPro || unlimited) return next;
 
   const enabledKeys = Object.entries(next)
     .filter(([k, v]) => v.enabled && isFreePanelCapCounted(k))
@@ -1390,7 +1408,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   dataTracking: {
     labelKey: 'header.panelCatDataTracking',
-    panelKeys: ['monitors', 'satellite-fires', 'ucdp-events', 'displacement', 'climate', 'climate-news', 'population-exposure', 'security-advisories', 'radiation-watch', 'oref-sirens', 'world-clock', 'tech-readiness', 'disease-outbreaks', 'fao-food-price-index', 'grocery-basket', 'defense-patents'],
+    panelKeys: ['monitors', 'satellite-fires', 'ucdp-events', 'displacement', 'climate', 'climate-news', 'population-exposure', 'security-advisories', 'radiation-watch', 'oref-sirens', 'world-clock', 'tech-readiness', 'disease-outbreaks', 'fao-food-price-index', 'grocery-basket', 'defense-patents', 'internet-disruptions', 'service-status'],
     variants: ['full', 'energy'],
   },
 
