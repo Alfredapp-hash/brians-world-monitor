@@ -120,8 +120,13 @@ This fork is a personal dashboard, not the upstream SaaS free tier.
 - **Telegram Intel ticks every 60s** while the tab is visible (Railway
   relay, not Redis). OSINT, Middle East, cyber, conflict, breaking, and
   geopolitics are client-side tabs on that same feed (up to 200 posts).
-  The default `full` poll set includes the 8 tech/cyber channels. Do not
-  add AIS or other Redis surfaces to `OPERATOR_LIVE_TICK_PANELS`.
+  Fresh breaking/conflict/Middle East posts (last 15 min) also raise the
+  breaking-news banner. The default `full` poll set includes the 8
+  tech/cyber channels.
+- **Israel Sirens** polls Railway every 60s on its own loop (not Redis).
+- Polymarket stays F5-only: `listPredictionMarkets` reads Redis bootstrap.
+  Do not add AIS, predictions, or other Redis surfaces to
+  `OPERATOR_LIVE_TICK_PANELS`.
 
 ## Seeded panels — Upstash Redis + scheduled seeders (full activation)
 

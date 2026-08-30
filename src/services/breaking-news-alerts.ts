@@ -6,6 +6,7 @@
 //   Enforced by tests/notification-relay-payload-audit.test.mjs.
 import type { NewsItem } from '@/types';
 import type { OrefAlert } from '@/services/oref-alerts';
+import type { TelegramItem } from '@/services/telegram-intel';
 import { getSourceTier } from '@/config/feeds';
 import { isDesktopRuntime, getRemoteApiBaseUrl } from '@/services/runtime';
 import { getClerkToken } from '@/services/clerk';
@@ -19,7 +20,7 @@ export interface BreakingAlert {
   link?: string;
   threatLevel: 'critical' | 'high';
   timestamp: Date;
-  origin: 'rss_alert' | 'keyword_spike' | 'hotspot_escalation' | 'military_surge' | 'oref_siren';
+  origin: 'rss_alert' | 'keyword_spike' | 'hotspot_escalation' | 'military_surge' | 'oref_siren' | 'telegram_osint';
   importanceScore?: number;
   /**
    * ISO-3166 alpha-2 country attribution, when the producer knows it (OREF
@@ -49,6 +50,8 @@ export interface AlertSettings {
 // See Appendix E of docs/internal/news-alerts-enhancements-from-trendradar.md.
 const RELAY_GATES_READY = import.meta.env.VITE_RELAY_GATES_READY === '1';
 const IMPORTANCE_SCORE_MIN = 30; // Items below this threshold are too low-signal for the banner
+const TELEGRAM_BANNER_TOPICS = new Set(['breaking', 'conflict', 'middleeast']);
+const TELEGRAM_BANNER_RECENCY_MS = 15 * 60 * 1000;
 
 const SETTINGS_KEY = 'wm-breaking-alerts-v1';
 const DEDUPE_KEY = 'wm-breaking-alerts-dedupe';
@@ -328,6 +331,46 @@ export function dispatchOrefBreakingAlert(alerts: OrefAlert[]): void {
     timestamp: new Date(),
     origin: 'oref_siren',
     countryCode: 'IL',
+  });
+}
+
+export function dispatchTelegramBreakingAlert(items: TelegramItem[]): void {
+  const settings = getAlertSettings();
+  if (!settings.enabled || !items.length) return;
+
+  let best: TelegramItem | null = null;
+  let bestTs = -Infinity;
+  const now = Date.now();
+  for (const item of items) {
+    if (item.earlySignal === false) continue;
+    if (!TELEGRAM_BANNER_TOPICS.has(item.topic)) continue;
+    const text = (item.text || '').replace(/\s+/g, ' ').trim();
+    if (!text || text.startsWith('[')) continue;
+    const ts = Date.parse(item.ts);
+    if (!Number.isFinite(ts)) continue;
+    if (now - ts > TELEGRAM_BANNER_RECENCY_MS || now - ts < -60_000) continue;
+    if (ts > bestTs) {
+      best = item;
+      bestTs = ts;
+    }
+  }
+  if (!best) return;
+
+  const headline = (best.text || '').replace(/\s+/g, ' ').trim().slice(0, 180);
+  const source = best.channelTitle || best.channel || 'Telegram';
+  const key = 'tg:' + makeAlertKey(headline, source, best.url);
+  if (isDuplicate(key)) return;
+  if (isGlobalCooldown(best.topic === 'breaking' ? 'critical' : 'high')) return;
+
+  dispatchAlert({
+    id: key,
+    headline,
+    source,
+    link: best.url,
+    threatLevel: best.topic === 'breaking' ? 'critical' : 'high',
+    timestamp: new Date(bestTs),
+    origin: 'telegram_osint',
+    description: headline.slice(0, 400),
   });
 }
 

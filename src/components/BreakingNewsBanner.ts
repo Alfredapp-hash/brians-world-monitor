@@ -189,6 +189,7 @@ export class BreakingNewsBanner {
 
   private resolveTargetPanel(alert: BreakingAlert): string {
     if (alert.origin === 'oref_siren') return 'oref-sirens';
+    if (alert.origin === 'telegram_osint') return 'telegram-intel';
     if (alert.origin === 'rss_alert') return getSourcePanelId(alert.source);
     return 'politics';
   }
