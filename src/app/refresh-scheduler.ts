@@ -1,4 +1,5 @@
 import type { AppContext, AppModule } from '@/app/app-context';
+import { OPERATOR_REFRESH_ON_LOAD_ONLY } from '@/config/panels';
 import { startSmartPollLoop, VisibilityHub, type SmartPollLoopHandle } from '@/services/runtime';
 
 export interface RefreshRegistration {
@@ -51,9 +52,8 @@ export class RefreshScheduler implements AppModule {
   ): void {
     this.refreshRunners.get(name)?.loop.stop();
 
+    const oneShot = OPERATOR_REFRESH_ON_LOAD_ONLY;
     const loop = startSmartPollLoop(async () => {
-      if (this.ctx.isDestroyed) return;
-      if (condition && !condition()) return;
       if (this.ctx.inFlight.has(name)) return;
 
       this.ctx.inFlight.add(name);
@@ -66,7 +66,13 @@ export class RefreshScheduler implements AppModule {
       intervalMs,
       pauseWhenHidden: true,
       refreshOnVisible: false,
-      runImmediately: options.runImmediately ?? false,
+      runImmediately: oneShot || (options.runImmediately ?? false),
+      oneShot,
+      shouldRun: () => {
+        if (this.ctx.isDestroyed) return false;
+        if (condition && !condition()) return false;
+        return true;
+      },
       maxBackoffMultiplier: 4,
       visibilityHub: this.visibilityHub,
       onError: (e) => {
@@ -78,6 +84,7 @@ export class RefreshScheduler implements AppModule {
   }
 
   flushStaleRefreshes(): void {
+    if (OPERATOR_REFRESH_ON_LOAD_ONLY) return;
     if (!this.hiddenSince) return;
     const hiddenMs = Date.now() - this.hiddenSince;
     this.hiddenSince = 0;

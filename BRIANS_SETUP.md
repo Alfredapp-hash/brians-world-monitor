@@ -112,10 +112,11 @@ This fork is a personal dashboard, not the upstream SaaS free tier.
   After deploy, hard-refresh. If an old layout is still stuck, clear
   site data for the app origin.
 - `/api/wm-session` fail-opens if Upstash rate-limit Redis is exhausted so
-  a free-tier 500k-command cap cannot 503 the whole dashboard. Seeders run
-  every 2 hours instead of every 30 minutes for the same reason. If Redis
-  reads themselves start failing, wait for the daily Upstash reset or
-  upgrade the database.
+  a free-tier 500k-command cap cannot 503 the whole dashboard.
+- Dashboard **loads Redis data once per page load**. Refresh the browser
+  (F5) to update. No background poll. Redis-backed API rate limits are
+  skipped on this fork (one operator). Seeders run twice a day (06:00 and
+  18:00 UTC). Together that is what keeps command count near Free.
 
 ## Seeded panels — Upstash Redis + scheduled seeders (full activation)
 

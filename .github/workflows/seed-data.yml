@@ -26,12 +26,11 @@ name: Seed Data
 # seeders comfortably fit inside timeout-minutes below. It requires bash
 # (invoked explicitly below, not `sh`) for `wait -n`.
 #
-# Triggers: every 2 hours (Upstash free tier is 500k commands/day; 30-min
-# fan-out plus dashboard rate-limit reads exhausted that cap), on manual
-# dispatch, and once on push of this file.
+# Triggers: twice a day (06:00 and 18:00 UTC). Seeder fan-out is the other
+# Redis-command hog besides dashboard polls; 12 runs/day blew past Free.
 on:
   schedule:
-    - cron: '0 */2 * * *'
+    - cron: '0 6,18 * * *'
   workflow_dispatch:
   push:
     branches: [main]

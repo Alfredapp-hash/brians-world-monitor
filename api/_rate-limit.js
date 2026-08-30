@@ -6,6 +6,7 @@ import {
   durationToSeconds,
   limitWithFallback,
   resetRateLimitFallbackForTest,
+  operatorSkipRedisRateLimit,
 } from './_rate-limit-fallback.js';
 import {
   RATE_LIMIT_DEGRADED_HEADERS,
@@ -115,6 +116,7 @@ function rateLimitDegradedResponse(corsHeaders) {
  *   degraded/429 response semantics. (#3531)
  */
 export async function checkRateLimit(request, corsHeaders, opts = {}) {
+  if (operatorSkipRedisRateLimit()) return null;
   const policy = getRateLimitPolicy(opts);
   const rl = getRatelimit(policy);
   if (!rl) {

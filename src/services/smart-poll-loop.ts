@@ -13,6 +13,8 @@ export interface SmartPollOptions {
   pauseWhenHidden?: boolean;
   refreshOnVisible?: boolean;
   runImmediately?: boolean;
+  /** Run at most once. Used by the operator dashboard to avoid Redis poll burn. */
+  oneShot?: boolean;
   shouldRun?: () => boolean;
   maxBackoffMultiplier?: number;
   jitterFraction?: number;
@@ -89,6 +91,7 @@ export function startSmartPollLoop(
   const pauseWhenHidden = opts.pauseWhenHidden ?? false;
   const refreshOnVisible = opts.refreshOnVisible ?? true;
   const runImmediately = opts.runImmediately ?? false;
+  const oneShot = opts.oneShot ?? false;
   const shouldRun = opts.shouldRun;
   const onError = opts.onError;
   const maxBackoffMultiplier = Math.max(1, opts.maxBackoffMultiplier ?? 4);
@@ -101,6 +104,7 @@ export function startSmartPollLoop(
   const visibilityDebounceMs = Math.max(0, opts.visibilityDebounceMs ?? 300);
 
   let active = true;
+  let completed = false;
   let timerId: ReturnType<typeof setTimeout> | null = null;
   let visibilityDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   let inFlight = false;
@@ -114,6 +118,7 @@ export function startSmartPollLoop(
   };
 
   const baseDelayMs = (hidden: boolean): number | null => {
+    if (oneShot && !completed) return 2_000;
     if (hidden) {
       if (pauseWhenHidden) return null;
       return hiddenIntervalMs ?? (intervalMs * hiddenMultiplier);
@@ -179,7 +184,8 @@ export function startSmartPollLoop(
     } finally {
       if (activeController === controller) activeController = null;
       inFlight = false;
-      scheduleNext();
+      if (oneShot) completed = true;
+      else scheduleNext();
     }
   };
 
@@ -192,6 +198,10 @@ export function startSmartPollLoop(
 
   const handleVisibilityChange = () => {
     if (!active) return;
+    if (oneShot) {
+      if (!completed && !isDocumentHidden()) void runOnce('resume');
+      return;
+    }
     const hidden = isDocumentHidden();
 
     if (hidden) {
