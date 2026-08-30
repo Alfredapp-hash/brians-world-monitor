@@ -64,6 +64,7 @@ function runtime).
 
 **Live with free API keys (add in Vercel → Project → Settings → Environment
 Variables):**
+
 - `FINNHUB_API_KEY` (finnhub.io) → richer Markets/Heatmap/Breadth
 - `FRED_API_KEY` (fred.stlouisfed.org) → Macro Stress, Yield Curve
 - `EIA_API_KEY` (eia.gov/opendata) → Oil Inventories, Energy Complex
@@ -103,6 +104,7 @@ This fork is a personal dashboard, not the upstream SaaS free tier.
 Many panels render from a Redis cache that a background job fills. Two pieces:
 
 **1. Upstash Redis (free) — the cache.**
+
 - Sign up at https://upstash.com → Create Database → Redis → pick a region →
   copy the **REST URL** and **REST TOKEN** (the "REST API" section, not the
   redis:// URL).
