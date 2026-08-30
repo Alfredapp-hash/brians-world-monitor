@@ -5,7 +5,6 @@ import type {
 } from '../../../../src/generated/server/worldmonitor/supply_chain/v1/service_server';
 
 import { getCachedJson, setCachedJson } from '../../../_shared/redis';
-import { isCallerPremium } from '../../../_shared/premium-check';
 import { CHOKEPOINT_EXPOSURE_KEY } from '../../../_shared/cache-keys';
 import { lazyFetchBilateralHs4 } from './_bilateral-hs4-lazy';
 import {
@@ -59,12 +58,9 @@ function emptyResponse(iso2: string, hs2: string): GetCountryChokepointIndexResp
 }
 
 export async function getCountryChokepointIndex(
-  ctx: ServerContext,
+  _ctx: ServerContext,
   req: GetCountryChokepointIndexRequest,
 ): Promise<GetCountryChokepointIndexResponse> {
-  const isPro = await isCallerPremium(ctx.request);
-  if (!isPro) return emptyResponse(req.iso2, req.hs2 || '27');
-
   const iso2 = req.iso2.trim().toUpperCase();
   const hs2 = (req.hs2?.trim() || '27').replace(/\D/g, '') || '27';
 

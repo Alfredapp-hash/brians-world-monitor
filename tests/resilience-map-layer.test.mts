@@ -15,14 +15,14 @@ import {
 } from '../src/components/resilience-choropleth-utils';
 
 describe('resilience map layer contracts', () => {
-  it('registers resilience RPCs as premium paths', () => {
-    assert.ok(PREMIUM_RPC_PATHS.has('/api/resilience/v1/get-resilience-score'));
-    assert.ok(PREMIUM_RPC_PATHS.has('/api/resilience/v1/get-resilience-ranking'));
+  it('registers resilience RPCs as public Redis-read paths on this fork', () => {
+    assert.equal(PREMIUM_RPC_PATHS.has('/api/resilience/v1/get-resilience-score'), false);
+    assert.equal(PREMIUM_RPC_PATHS.has('/api/resilience/v1/get-resilience-ranking'), false);
   });
 
-  it('registers resilienceScore as a locked flat layer in every variant', () => {
+  it('registers resilienceScore as an unlocked DeckGL-only flat layer in every variant', () => {
     assert.equal(LAYER_REGISTRY.resilienceScore.renderers.join(','), 'flat');
-    assert.equal(LAYER_REGISTRY.resilienceScore.premium, 'locked');
+    assert.equal(LAYER_REGISTRY.resilienceScore.premium, undefined);
     assert.equal(LAYER_REGISTRY.resilienceScore.deckGLOnly, true);
 
     for (const variant of ['full', 'tech', 'finance', 'happy', 'commodity', 'energy'] as const) {

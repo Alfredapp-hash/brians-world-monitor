@@ -5,7 +5,6 @@ import type {
   DependencyFlag,
 } from '../../../../src/generated/server/worldmonitor/supply_chain/v1/service_server';
 
-import { isCallerPremium } from '../../../_shared/premium-check';
 import { cachedFetchJson, getCachedJson } from '../../../_shared/redis';
 import { SECTOR_DEPENDENCY_KEY } from '../../../_shared/cache-keys';
 import { CHOKEPOINT_REGISTRY } from '../../../_shared/chokepoint-registry';
@@ -102,10 +101,9 @@ async function getTopExporterShare(iso2: string, hs2: string): Promise<{ exporte
 }
 
 export async function getSectorDependency(
-  ctx: ServerContext,
+  _ctx: ServerContext,
   req: GetSectorDependencyRequest,
 ): Promise<GetSectorDependencyResponse> {
-  const isPro = await isCallerPremium(ctx.request);
   const empty: GetSectorDependencyResponse = {
     iso2: req.iso2,
     hs2: req.hs2 || '27',
@@ -118,7 +116,6 @@ export async function getSectorDependency(
     hasViableBypass: false,
     fetchedAt: new Date().toISOString(),
   };
-  if (!isPro) return empty;
 
   const iso2 = req.iso2?.trim().toUpperCase();
   const hs2 = req.hs2?.trim().replace(/\D/g, '') || '27';

@@ -6,11 +6,9 @@ import type {
   BypassOption,
 } from '../../../../src/generated/server/worldmonitor/shipping/v2/service_server';
 import {
-  ApiError,
   ValidationError,
 } from '../../../../src/generated/server/worldmonitor/shipping/v2/service_server';
 
-import { isCallerPremium } from '../../../_shared/premium-check';
 import { getCachedJson } from '../../../_shared/redis';
 import { CHOKEPOINT_STATUS_KEY } from '../../../_shared/cache-keys';
 import { BYPASS_CORRIDORS_BY_CHOKEPOINT, type CargoType } from '../../../_shared/bypass-corridors';
@@ -37,14 +35,9 @@ interface ChokepointStatusResponse {
 const VALID_CARGO_TYPES = new Set(['container', 'tanker', 'bulk', 'roro']);
 
 export async function routeIntelligence(
-  ctx: ServerContext,
+  _ctx: ServerContext,
   req: RouteIntelligenceRequest,
 ): Promise<RouteIntelligenceResponse> {
-  const isPro = await isCallerPremium(ctx.request);
-  if (!isPro) {
-    throw new ApiError(403, 'PRO subscription required', '');
-  }
-
   const fromIso2 = (req.fromIso2 ?? '').trim().toUpperCase();
   const toIso2 = (req.toIso2 ?? '').trim().toUpperCase();
   if (!/^[A-Z]{2}$/.test(fromIso2) || !/^[A-Z]{2}$/.test(toIso2)) {

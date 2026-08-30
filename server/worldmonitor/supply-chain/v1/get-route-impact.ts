@@ -7,7 +7,7 @@
  * - Resilience score (server-side, from Redis cache)
  * - Dependency flags (reuses get-sector-dependency logic)
  *
- * PRO-gated. Non-bootstrapped (request-varying cache key).
+ * Redis-read. Non-bootstrapped (request-varying cache key).
  */
 
 import type {
@@ -18,7 +18,6 @@ import type {
   DependencyFlag,
 } from '../../../../src/generated/server/worldmonitor/supply_chain/v1/service_server';
 
-import { isCallerPremium } from '../../../_shared/premium-check';
 import { cachedFetchJson, getCachedJson } from '../../../_shared/redis';
 import { lazyFetchBilateralHs4 } from './_bilateral-hs4-lazy';
 import { ROUTE_IMPACT_KEY } from '../../../_shared/cache-keys';
@@ -231,12 +230,9 @@ async function computeImpact(req: GetRouteImpactRequest): Promise<GetRouteImpact
 }
 
 export async function getRouteImpact(
-  ctx: ServerContext,
+  _ctx: ServerContext,
   req: GetRouteImpactRequest,
 ): Promise<GetRouteImpactResponse> {
-  const isPro = await isCallerPremium(ctx.request);
-  if (!isPro) return emptyResponse(req, 'missing');
-
   const fromIso2 = req.fromIso2?.trim().toUpperCase() ?? '';
   const toIso2 = req.toIso2?.trim().toUpperCase() ?? '';
   const hs2 = req.hs2?.trim().replace(/\D/g, '') || '27';

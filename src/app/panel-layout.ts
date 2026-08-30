@@ -112,11 +112,7 @@ const WEB_PREMIUM_PANELS = new Set([
   'market-implications',
   'deduction',
   'chat-analyst',
-  'wsb-ticker-scanner',
   'latest-brief',
-  'regional-intelligence',
-  'trade-policy',
-  'global-procurement',
 ]);
 
 /**

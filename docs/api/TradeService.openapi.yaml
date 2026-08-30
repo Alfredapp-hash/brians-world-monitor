@@ -122,10 +122,6 @@ paths:
             summary: GetTariffTrends
             description: Get tariff rate timeseries for a country pair. PRO-gated. Requires entitlement tier >= 1.
             operationId: GetTariffTrends
-            security:
-                - WorldMonitorKey: []
-                - ApiKeyHeader: []
-                - BearerAuth: []
             parameters:
                 - name: reporting_country
                   in: query
@@ -201,7 +197,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedError'
                 "403":
-                    description: PRO entitlement access denied.
+                    description: API access requires an active subscription (the API key's subscription is inactive or expired).
                     content:
                         application/json:
                             schema:
@@ -554,10 +550,6 @@ paths:
             summary: ListComtradeFlows
             description: List UN Comtrade strategic commodity flows with anomaly detection. PRO-gated. Requires entitlement tier >= 1.
             operationId: ListComtradeFlows
-            security:
-                - WorldMonitorKey: []
-                - ApiKeyHeader: []
-                - BearerAuth: []
             parameters:
                 - name: reporter_code
                   in: query
@@ -620,7 +612,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedError'
                 "403":
-                    description: PRO entitlement access denied.
+                    description: API access requires an active subscription (the API key's subscription is inactive or expired).
                     content:
                         application/json:
                             schema:
@@ -670,10 +662,6 @@ components:
             in: header
             name: X-Api-Key
             description: Alias header for the WorldMonitor API key (X-WorldMonitor-Key).
-        BearerAuth:
-            type: http
-            scheme: bearer
-            description: 'Bearer token: a Clerk-issued JWT for browser session flows, passed as Authorization: Bearer <token>.'
     schemas:
         JmespathProjectionError:
             description: Returned when a REST jmespath projection is invalid or exceeds the expression/output byte limits.

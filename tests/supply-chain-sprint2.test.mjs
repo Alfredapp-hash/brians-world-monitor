@@ -3,10 +3,10 @@
  *
  * - bypass-corridors.ts: data integrity + BYPASS_CORRIDORS_BY_CHOKEPOINT index
  * - _insurance-tier.ts: threatLevelToInsurancePremiumBps pure function
- * - get-bypass-options handler: unauthenticated returns empty
- * - get-country-cost-shock handler: unauthenticated returns zeros
+ * - get-bypass-options handler: Redis-read, no Pro empty-return
+ * - get-country-cost-shock handler: Redis-read, no Pro empty-return
  * - gateway.ts: new slow-browser entries for both RPCs
- * - premium-paths.ts: both paths registered as PRO-gated
+ * - premium-paths.ts: both paths public Redis reads on this fork
  * - proto: new messages in generated types
  */
 
@@ -166,9 +166,9 @@ describe('BYPASS_CORRIDORS_BY_CHOKEPOINT index', () => {
 describe('get-bypass-options handler source code', () => {
   const src = readSrc('server/worldmonitor/supply-chain/v1/get-bypass-options.ts');
 
-  it('calls isCallerPremium and returns empty when not PRO', () => {
-    assert.match(src, /isCallerPremium/);
-    assert.match(src, /if \(!isPro\) return empty/);
+  it('is a public Redis-read handler on this fork (no isCallerPremium empty-return)', () => {
+    assert.doesNotMatch(src, /isCallerPremium/);
+    assert.doesNotMatch(src, /if \(!isPro\) return empty/);
   });
 
   it('filters by suitableCargoTypes.length === 0 (no-bypass placeholder guard)', () => {
@@ -199,9 +199,9 @@ describe('get-bypass-options handler source code', () => {
 describe('get-country-cost-shock handler source code', () => {
   const src = readSrc('server/worldmonitor/supply-chain/v1/get-country-cost-shock.ts');
 
-  it('calls isCallerPremium and returns empty when not PRO', () => {
-    assert.match(src, /isCallerPremium/);
-    assert.match(src, /if \(!isPro\) return empty/);
+  it('is a public Redis-read handler on this fork (no isCallerPremium empty-return)', () => {
+    assert.doesNotMatch(src, /isCallerPremium/);
+    assert.doesNotMatch(src, /if \(!isPro\) return empty/);
   });
 
   it('uses warRiskTierToInsurancePremiumBps for premium calculation', () => {
@@ -268,16 +268,10 @@ describe('Gateway slow-browser tier registration', () => {
 describe('Premium paths registration', () => {
   const src = readSrc('src/shared/premium-paths.ts');
 
-  it('get-bypass-options is in PREMIUM_RPC_PATHS', () => {
-    assert.match(src, /\/api\/supply-chain\/v1\/get-bypass-options/);
-  });
-
-  it('get-country-cost-shock is in PREMIUM_RPC_PATHS', () => {
-    assert.match(src, /\/api\/supply-chain\/v1\/get-country-cost-shock/);
-  });
-
-  it('get-sector-dependency is in PREMIUM_RPC_PATHS', () => {
-    assert.match(src, /\/api\/supply-chain\/v1\/get-sector-dependency/);
+  it('supply-chain Redis reads are public on this fork (not in PREMIUM_RPC_PATHS)', () => {
+    assert.doesNotMatch(src, /\/api\/supply-chain\/v1\/get-bypass-options/);
+    assert.doesNotMatch(src, /\/api\/supply-chain\/v1\/get-country-cost-shock/);
+    assert.doesNotMatch(src, /\/api\/supply-chain\/v1\/get-sector-dependency/);
   });
 });
 

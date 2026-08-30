@@ -242,8 +242,8 @@ describe('getMultiSectorCostShock sebuf handler', () => {
     assert.match(src, /export async function getMultiSectorCostShock/);
   });
 
-  it('uses isCallerPremium for PRO-gating', () => {
-    assert.match(src, /isCallerPremium\(ctx\.request\)/);
+  it('is a public Redis-read handler on this fork (no isCallerPremium gate)', () => {
+    assert.doesNotMatch(src, /isCallerPremium\(ctx\.request\)/);
   });
 
   it('validates iso2 with a 2-letter regex', () => {
@@ -317,8 +317,8 @@ describe('supply-chain client service: fetchMultiSectorCostShock', () => {
 describe('premium-paths: get-multi-sector-cost-shock registration', () => {
   const src = readSrc('src/shared/premium-paths.ts');
 
-  it('includes /api/supply-chain/v1/get-multi-sector-cost-shock', () => {
-    assert.match(src, /\/api\/supply-chain\/v1\/get-multi-sector-cost-shock/);
+  it('is a public Redis-read RPC on this fork (not in PREMIUM_RPC_PATHS)', () => {
+    assert.doesNotMatch(src, /\/api\/supply-chain\/v1\/get-multi-sector-cost-shock/);
   });
 });
 
