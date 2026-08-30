@@ -78,3 +78,15 @@ export async function limitWithFallback(rl, identifier, fallbackKey, limit, wind
 export function resetRateLimitFallbackForTest() {
   luaUnsupported = false;
 }
+
+/**
+ * This personal fork is one operator. Upstash sliding-window rate limits
+ * cost several Redis commands per API call and were the main reason the
+ * free 500K command cap burned. Skip Redis-backed limiting except in tests
+ * or when OPERATOR_SKIP_REDIS_RATE_LIMIT=false.
+ */
+export function operatorSkipRedisRateLimit() {
+  if (process.env.NODE_TEST_CONTEXT || process.env.VITEST) return false;
+  if (process.env.OPERATOR_SKIP_REDIS_RATE_LIMIT === 'false') return false;
+  return true;
+}

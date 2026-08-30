@@ -1220,6 +1220,9 @@ export const FREE_MAX_SOURCES = 80;
  */
 export const OPERATOR_UNLIMITED_PANELS = true;
 
+/** Load Redis-backed panels once per page load. Browser refresh is the update. */
+export const OPERATOR_REFRESH_ON_LOAD_ONLY = true;
+
 export function isFreePanelCapBlocking(isPro: boolean): boolean {
   return !isPro && !OPERATOR_UNLIMITED_PANELS;
 }

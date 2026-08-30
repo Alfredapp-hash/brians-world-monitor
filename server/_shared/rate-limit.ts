@@ -4,7 +4,7 @@ import { getClientIp } from './client-ip';
 // @ts-expect-error — JS module, no declaration file
 import { captureSilentError } from '../../api/_sentry-edge.js';
 // @ts-expect-error — JS module, no declaration file
-import { durationToSeconds, limitWithFallback, resetRateLimitFallbackForTest } from '../../api/_rate-limit-fallback.js';
+import { durationToSeconds, limitWithFallback, resetRateLimitFallbackForTest, operatorSkipRedisRateLimit } from '../../api/_rate-limit-fallback.js';
 
 // Client-IP derivation lives in the dependency-free client-ip.ts (#5231) so
 // seeder-reachable modules (usage.ts) can use it without pulling this file's
@@ -157,6 +157,7 @@ export interface EndpointRateLimitOptions extends RateLimitOptions {
 }
 
 export async function checkRateLimit(request: Request, corsHeaders: Record<string, string>, opts: RateLimitOptions = {}): Promise<Response | null> {
+  if (operatorSkipRedisRateLimit()) return null;
   const rl = getRatelimit();
   if (!rl) {
     if (opts.failClosed) {
@@ -377,6 +378,7 @@ export function hasEndpointRatePolicy(pathname: string): boolean {
 }
 
 export async function checkEndpointRateLimit(request: Request, pathname: string, corsHeaders: Record<string, string>, opts: EndpointRateLimitOptions = {}): Promise<Response | null> {
+  if (operatorSkipRedisRateLimit()) return null;
   if (!hasEndpointRatePolicy(pathname)) return null;
 
   const rl = getEndpointRatelimit(pathname);
@@ -469,6 +471,9 @@ export interface ScopedRateLimitResult {
  * windows are visible in logs / Sentry.
  */
 export async function checkScopedRateLimit(scope: string, limit: number, window: Duration, identifier: string): Promise<ScopedRateLimitResult> {
+  if (operatorSkipRedisRateLimit()) {
+    return { allowed: true, limit, reset: 0, degraded: false };
+  }
   const rl = getScopedRatelimit(scope, limit, window);
   if (!rl) {
     logScopedRateLimitMissingConfig(scope);
