@@ -1223,6 +1223,18 @@ export const OPERATOR_UNLIMITED_PANELS = true;
 /** Load Redis-backed panels once per page load. Browser refresh is the update. */
 export const OPERATOR_REFRESH_ON_LOAD_ONLY = true;
 
+/**
+ * Exception to OPERATOR_REFRESH_ON_LOAD_ONLY. These keep polling while the
+ * tab is visible. Telegram Intel is the Railway relay (`/api/telegram-feed`),
+ * not Upstash, so OSINT / Middle East posts land without an F5 and without
+ * Redis command burn. Do not add AIS or other Redis surfaces here.
+ */
+export const OPERATOR_LIVE_TICK_PANELS: readonly string[] = ['telegram-intel'];
+
+export function isOperatorLiveTickPanel(name: string): boolean {
+  return OPERATOR_LIVE_TICK_PANELS.includes(name);
+}
+
 export function isFreePanelCapBlocking(isPro: boolean): boolean {
   return !isPro && !OPERATOR_UNLIMITED_PANELS;
 }
