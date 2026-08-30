@@ -26,7 +26,7 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Global Map', enabled: true, priority: 1 },
   'live-news': { name: 'Live News', enabled: true, priority: 1 },
   'live-webcams': { name: 'Live Webcams', enabled: true, priority: 1 },
-  'windy-webcams': { name: 'Windy Live Webcam', enabled: false, priority: 2 },
+  'windy-webcams': { name: 'Windy Live Webcam', enabled: true, priority: 2 },
   insights: { name: 'AI Insights', enabled: true, priority: 1 },
   'threat-timeline': { name: 'Threat Timeline', enabled: true, priority: 1 },
   'strategic-posture': { name: 'AI Strategic Posture', enabled: true, priority: 1 },
@@ -131,13 +131,13 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'regional-intelligence': { name: 'Regional Intelligence', enabled: false, priority: 1, premium: 'locked' as const },
   'deduction': { name: 'Deduct Situation', enabled: false, priority: 1, premium: 'locked' as const },
   'geo-hubs': { name: 'Geopolitical Hubs', enabled: true, priority: 2 },
-  'tech-hubs': { name: 'Hot Tech Hubs', enabled: false, priority: 2 },
+  'tech-hubs': { name: 'Hot Tech Hubs', enabled: true, priority: 2 },
 };
 
 const FULL_MAP_LAYERS: MapLayers = {
   iranAttacks: IRAN_ATTACKS_ENABLED && !_desktop,
   gpsJamming: true,
-  satellites: false,
+  satellites: true,
 
 
   conflicts: true,
@@ -149,7 +149,7 @@ const FULL_MAP_LAYERS: MapLayers = {
   hotspots: true,
   ais: true,
   nuclear: true,
-  irradiators: false,
+  irradiators: true,
   alprCameras: false,
   radiationWatch: true,
   sanctions: true,
@@ -157,13 +157,13 @@ const FULL_MAP_LAYERS: MapLayers = {
   economic: true,
   waterways: true,
   outages: true,
-  cyberThreats: false,
-  datacenters: false,
+  cyberThreats: true,
+  datacenters: true,
   protests: true,
   flights: true,
   military: true,
   natural: true,
-  spaceports: false,
+  spaceports: true,
   minerals: true,
   fires: true,
   // Data source layers — feeds already hydrate; painting was gated off
@@ -191,7 +191,7 @@ const FULL_MAP_LAYERS: MapLayers = {
   tradeRoutes: true,
   ciiChoropleth: true,
   resilienceScore: false,
-  dayNight: false,
+  dayNight: true,
   // Commodity layers (disabled in full variant)
   miningSites: false,
   processingPlants: false,
@@ -257,7 +257,7 @@ const FULL_MOBILE_MAP_LAYERS: MapLayers = {
   tradeRoutes: false,
   ciiChoropleth: false,
   resilienceScore: false,
-  dayNight: false,
+  dayNight: true,
   // Commodity layers (disabled in full variant)
   miningSites: false,
   processingPlants: false,

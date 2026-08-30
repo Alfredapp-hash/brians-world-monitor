@@ -98,6 +98,8 @@ describe('variant panel config resolution', () => {
     assert.equal(passed['aaii-sentiment']?.enabled, true);
     assert.equal(passed['grocery-basket']?.enabled, true);
     assert.equal(passed['geo-hubs']?.enabled, true);
+    assert.equal(passed['windy-webcams']?.enabled, true);
+    assert.equal(passed['tech-hubs']?.enabled, true);
     assert.ok(counted > FREE_MAX_PANELS, `expected more than ${FREE_MAX_PANELS} live panels, got ${counted}`);
   });
 
