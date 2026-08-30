@@ -132,11 +132,11 @@ export default async function handler(req, ctx) {
     return respond({ error: 'Method not allowed' }, 405, cors, 'method_not_allowed');
   }
 
-  // Rate-limit per IP. Without this, an attacker can farm tokens cheaply.
-  // Token TTL is 12h, so this route uses a lower, fail-closed issuance budget
-  // instead of inheriting the availability-first global fallback.
+  // Rate-limit per IP. Token TTL is 12h. This personal fork fail-opens when
+  // Upstash is out of daily commands — HMAC mint does not need Redis, and a
+  // 503 here blocks every session-gated Redis panel.
   const rl = await checkRateLimit(req, cors, {
-    failClosed: true,
+    failClosed: false,
     ctx,
     scope: SESSION_RATE_LIMIT_SCOPE,
     limit: SESSION_RATE_LIMIT_PER_MINUTE,

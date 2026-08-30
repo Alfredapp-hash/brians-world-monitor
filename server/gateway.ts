@@ -1451,8 +1451,9 @@ export function createDomainGateway(
       const endpointRlResponse = endpointRateLimitPrincipalUserId
         ? await checkEndpointRateLimit(request, pathname, corsHeaders, {
             principalUserId: endpointRateLimitPrincipalUserId,
+            failClosed: false,
           })
-        : await checkEndpointRateLimit(request, pathname, corsHeaders);
+        : await checkEndpointRateLimit(request, pathname, corsHeaders, { failClosed: false });
       if (endpointRlResponse) {
         const reason =
           endpointRlResponse.status === 503 &&
