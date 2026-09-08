@@ -781,6 +781,15 @@ export class MapContainer {
     return this.svgMap?.getCenter() ?? null;
   }
 
+  /**
+   * Camera altitude in Earth radii. Globe-only: the flat renderers express
+   * their view as a zoom level, which is not the same quantity, so they report
+   * null rather than a converted approximation.
+   */
+  public getViewAltitude(): number | null {
+    return this.useGlobe ? this.globeMap?.getViewAltitude() ?? null : null;
+  }
+
   public setTimeRange(range: TimeRange): void {
     this.initialState = { ...this.initialState, timeRange: range };
     if (!this.hasActiveRenderer()) {

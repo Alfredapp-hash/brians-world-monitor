@@ -1,0 +1,896 @@
+/**
+ * Everyday-reader chrome — progressive disclosure on the full variant.
+ * Reuses charcoal + amber tokens from brians-theme.css.
+ * Fonts load async via link (not @import) to avoid blocking first paint.
+ */
+
+html[data-reader-mode='everyday'] {
+  --reader-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --reader-sans: 'Outfit', 'Avenir Next', 'Segoe UI', sans-serif;
+  --reader-space-1: 0.35rem;
+  --reader-space-2: 0.7rem;
+  --reader-space-3: 1.1rem;
+  --reader-peek-h: 9.25rem;
+}
+
+/* ---- Header toggle ---- */
+.reader-mode-mount {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: var(--space-2, 8px);
+}
+
+.reader-mode-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.reader-mode-toggle__btn {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  position: relative;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  font-family: var(--reader-sans, var(--font-body));
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+/* Expand hit area to ≥44px without growing the slim header chrome */
+.reader-mode-toggle__btn::before {
+  content: '';
+  position: absolute;
+  inset: -10px -6px;
+}
+
+.reader-mode-toggle__btn + .reader-mode-toggle__btn {
+  border-inline-start: 1px solid var(--border);
+}
+
+.reader-mode-toggle__btn:hover {
+  color: var(--text);
+  background: var(--overlay-light);
+}
+
+.reader-mode-toggle__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.reader-mode-toggle__btn.is-active {
+  color: var(--bg);
+  background: var(--accent);
+}
+
+/* ---- Hero (first viewport) ---- */
+.reader-hero {
+  position: relative;
+  grid-column: 1 / -1;
+  isolation: isolate;
+  overflow: hidden;
+  /* Keep brand + lead + why + CTAs in fold; leave room for map peek */
+  min-height: 0;
+  padding: clamp(1.35rem, 3.2vw, 2.35rem) clamp(1.25rem, 3.5vw, 2.75rem) clamp(1.5rem, 3vw, 2rem);
+  border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(120% 80% at 12% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%),
+    linear-gradient(
+      165deg,
+      var(--bg-secondary, var(--bg)) 0%,
+      var(--surface) 42%,
+      var(--bg) 100%
+    ),
+    repeating-linear-gradient(
+      -12deg,
+      transparent,
+      transparent 11px,
+      color-mix(in srgb, var(--border) 35%, transparent) 11px,
+      color-mix(in srgb, var(--border) 35%, transparent) 12px
+    );
+  animation: reader-hero-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.reader-hero::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 28%;
+  pointer-events: none;
+  background: linear-gradient(to top, color-mix(in srgb, var(--bg) 75%, transparent), transparent);
+}
+
+.reader-hero__copy {
+  position: relative;
+  z-index: 1;
+  max-width: 40rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--reader-space-2);
+}
+
+.reader-hero__brand {
+  margin: 0;
+  font-family: var(--reader-display);
+  font-size: clamp(1.65rem, 3.6vw, 2.55rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--text);
+  animation: reader-rise 640ms 80ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.reader-hero__lead {
+  margin: 0;
+  font-family: var(--reader-display);
+  font-size: clamp(1.28rem, 2.6vw, 1.85rem);
+  font-weight: 560;
+  line-height: 1.22;
+  color: var(--text);
+  /* Reserve lead block height to limit CLS when hydrate swaps copy */
+  min-height: 2.6em;
+  animation: reader-rise 640ms 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.reader-hero__lead.is-loading {
+  color: var(--text-secondary);
+}
+
+.reader-hero__why,
+.reader-hero__meta,
+.reader-hero__spin,
+.reader-hero__status {
+  margin: 0;
+  font-family: var(--reader-sans);
+  color: var(--text-secondary);
+  line-height: 1.45;
+  max-width: 36rem;
+  animation: reader-rise 640ms 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.reader-hero__why {
+  font-size: 1.02rem;
+}
+
+.reader-hero__spin {
+  font-size: 0.9rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.reader-hero__spin[hidden],
+.reader-hero__status[hidden],
+.reader-hero__meta:empty {
+  display: none !important;
+}
+
+.reader-hero__meta {
+  font-size: 0.82rem;
+  color: var(--text-dim-safe, var(--text-secondary));
+  margin-top: var(--reader-space-1);
+}
+
+.reader-hero__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.reader-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: var(--reader-space-1);
+  animation: reader-rise 640ms 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.reader-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-md, 8px);
+  font-family: var(--reader-sans);
+  font-size: 0.88rem;
+  font-weight: 560;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+/* display:inline-flex above beats the UA [hidden] rule — keep CTAs truly gone */
+.reader-hero__cta[hidden] {
+  display: none !important;
+}
+
+.reader-hero__cta:hover {
+  transform: translateY(-1px);
+}
+
+.reader-hero__cta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.reader-hero__cta--primary {
+  background: var(--accent);
+  color: var(--accent-ink, var(--bg));
+}
+
+.reader-hero__cta--ghost {
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.reader-hero__cta--ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+html[data-reader-mode='analyst'] .reader-hero,
+html[data-reader-mode='analyst'] .reader-disclose,
+html[data-reader-mode='analyst'] .reader-brief-done,
+html[data-reader-mode='analyst'] .reader-mode-everyday-only {
+  display: none !important;
+}
+
+/* Everyday: strip analyst chrome — brand + mode toggle + search (+ menu overflow) */
+html[data-reader-mode='everyday'] .variant-switcher,
+html[data-reader-mode='everyday'] .mission-preset-mount,
+html[data-reader-mode='everyday'] .region-selector,
+html[data-reader-mode='everyday'] .status-indicator,
+html[data-reader-mode='everyday'] .version,
+html[data-reader-mode='everyday'] .beta-badge,
+html[data-reader-mode='everyday'] #panelTabsMount,
+html[data-reader-mode='everyday'] .copy-link-btn,
+html[data-reader-mode='everyday'] .embed-link-btn,
+html[data-reader-mode='everyday'] .fullscreen-btn,
+html[data-reader-mode='everyday'] .tv-mode-btn,
+html[data-reader-mode='everyday'] .map-collapse-btn,
+html[data-reader-mode='everyday'] .mobile-settings-btn,
+html[data-reader-mode='everyday'] #unifiedSettingsMount,
+html[data-reader-mode='everyday'] .auth-widget-mount,
+html[data-reader-mode='everyday'] .pizzint-indicator,
+html[data-reader-mode='everyday'] .llm-status,
+html[data-reader-mode='everyday'] .llm-status-indicator,
+html[data-reader-mode='everyday'] .playback-control,
+html[data-reader-mode='everyday'] .download-app-link,
+html[data-reader-mode='everyday'] .app-download-btn,
+html[data-reader-mode='everyday'] .search-mobile-fab {
+  display: none !important;
+}
+
+/* Hamburger is the Everyday overflow for settings / auth / extras.
+   Keep it visible (compact) on all breakpoints so Settings stays reachable.
+   Label reads “More” — not a raw mission hamburger. */
+html[data-reader-mode='everyday'] .hamburger-btn,
+html[data-reader-mode='everyday'] .hamburger-btn--everyday {
+  display: inline-flex !important;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  min-width: 2.5rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  color: var(--text-secondary);
+  font-family: var(--reader-sans, var(--font-body));
+}
+
+html[data-reader-mode='everyday'] .hamburger-btn::before {
+  content: '';
+  position: absolute;
+  inset: -10px -8px;
+}
+
+html[data-reader-mode='everyday'] .hamburger-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+html[data-reader-mode='everyday'] .hamburger-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+html[data-reader-mode='everyday'] .hamburger-btn__label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+html[data-reader-mode='everyday'] .hamburger-btn svg {
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
+}
+
+/* Hero owns brand-first signal; header logo stays compact */
+html[data-reader-mode='everyday'] .header .logo,
+html[data-reader-mode='everyday'] .header .logo-mobile {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  opacity: 0.72;
+  text-transform: uppercase;
+}
+
+html[data-reader-mode='everyday'] .header {
+  height: 44px;
+  min-height: 44px;
+  padding-top: env(safe-area-inset-top, 0);
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+html[data-reader-mode='everyday'] .logo,
+html[data-reader-mode='everyday'] .logo-mobile {
+  font-family: var(--reader-display, Georgia, serif);
+  letter-spacing: -0.02em;
+}
+
+/* ---- Everyday layout: map peek, story-first grid ---- */
+html[data-reader-mode='everyday'] #main.main-content {
+  display: flex;
+  flex-direction: column;
+}
+
+html[data-reader-mode='everyday'] #readerHeroMount {
+  order: 0;
+  width: 100%;
+}
+
+html[data-reader-mode='everyday'] #mapSection {
+  order: 1;
+  width: 100%;
+  max-width: none;
+  transition: max-height 320ms ease, min-height 320ms ease, opacity 240ms ease;
+}
+
+/* Thin live map strip — canvas visible, not a title-only bar */
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) {
+  max-height: var(--reader-peek-h);
+  min-height: var(--reader-peek-h);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded):hover {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
+html[data-reader-mode='everyday'] #mapSection.reader-map-expanded {
+  max-height: min(55vh, 520px);
+  min-height: min(45vh, 420px);
+  cursor: default;
+}
+
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .map-container {
+  display: block !important;
+  height: calc(var(--reader-peek-h) - 2.35rem);
+  min-height: 6.5rem;
+  pointer-events: none;
+}
+
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .map-resize-handle,
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .map-bottom-grid,
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .map-controls,
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .map-dimension-toggle,
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .map-header-actions,
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .header-clock {
+  display: none !important;
+}
+
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .panel-title::after {
+  content: ' — tap to expand';
+  font-weight: 400;
+  color: var(--text-secondary);
+  font-size: 0.78em;
+}
+
+html[data-reader-mode='everyday'] #mapSection.reader-map-expanded .panel-title::after {
+  content: '';
+}
+
+html[data-reader-mode='everyday'] #mapWidthResizeHandle {
+  display: none;
+}
+
+html[data-reader-mode='everyday'] #panelsGrid {
+  order: 2;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: var(--space-4, 16px);
+  padding: var(--space-4, 16px) clamp(0.75rem, 2vw, 1.5rem) var(--space-2, 8px);
+}
+
+/* Finite closer — hidden until hero/panels have painted something real */
+.reader-brief-done {
+  order: 3;
+  width: calc(100% - 2 * clamp(0.75rem, 2vw, 1.5rem));
+  margin: var(--space-2, 8px) clamp(0.75rem, 2vw, 1.5rem) 0;
+  padding: 1rem 0 0.35rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--reader-sans);
+  text-align: center;
+}
+
+.reader-brief-done[hidden],
+.reader-brief-done:not(.is-ready) {
+  display: none !important;
+}
+
+.reader-brief-done__title {
+  margin: 0;
+  font-family: var(--reader-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.reader-brief-done__sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+/* Progressive disclosure bar */
+.reader-disclose {
+  order: 4;
+  position: relative;
+  z-index: 2;
+  width: calc(100% - 2 * clamp(0.75rem, 2vw, 1.5rem));
+  margin: 0 clamp(0.75rem, 2vw, 1.5rem) var(--space-4, 16px);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    var(--surface);
+  font-family: var(--reader-sans);
+}
+
+html[data-reader-mode='everyday'] #panelsGrid .panel {
+  font-family: var(--reader-sans);
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: none;
+}
+
+html[data-reader-mode='everyday'] #panelsGrid .panel[data-panel='insights'],
+html[data-reader-mode='everyday'] #panelsGrid .panel[data-panel='politics'],
+html[data-reader-mode='everyday'] #panelsGrid .panel[data-panel='latest-brief'] {
+  grid-column: 1 / -1;
+}
+
+html[data-reader-mode='everyday'] #panelsGrid .panel[data-panel='insights'] .panel-title {
+  font-family: var(--reader-display);
+}
+
+/* Progressive disclosure: quiet analyst chrome until disclosed */
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='coverage-compare'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='cii'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='finance'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='markets'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='strategic-posture'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='gdelt-intel'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='strategic-risk'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='forecast'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='chat-analyst'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='cascade'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='military-correlation'],
+html[data-reader-mode='everyday']:not(.reader-analyst-open)
+  #panelsGrid
+  .panel[data-panel='escalation-correlation'] {
+  display: none !important;
+}
+
+/* Soften / quiet badges on the story scan path */
+html[data-reader-mode='everyday'] .velocity-badge,
+html[data-reader-mode='everyday'] .tier-badge,
+html[data-reader-mode='everyday'] .risk-score-badge,
+html[data-reader-mode='everyday'] .sentiment-badge,
+html[data-reader-mode='everyday'] .insight-badge,
+html[data-reader-mode='everyday'] .insight-sentiment-dot {
+  opacity: 0.55;
+  transform: scale(0.92);
+}
+
+html[data-reader-mode='everyday'] .insight-sentiment-dot {
+  display: none !important;
+}
+
+html[data-reader-mode='everyday'] .propaganda-badge {
+  font-size: 0.7rem;
+}
+
+html[data-reader-mode='everyday'] .insight-badges {
+  gap: 0.25rem;
+}
+
+html[data-reader-mode='everyday'] .insight-badge.confirmed {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+html[data-reader-mode='everyday'] .insight-story-title {
+  font-family: var(--reader-sans);
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+html[data-reader-mode='everyday'] .panel[data-panel='politics'] .feed-item,
+html[data-reader-mode='everyday'] .panel[data-panel='politics'] .news-item {
+  padding-block: 0.65rem;
+}
+
+html[data-reader-mode='everyday'] .insights-empty {
+  padding: 1.25rem 0.5rem;
+  color: var(--text-secondary);
+  font-family: var(--reader-sans);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+/* ---- Everyday Coverage Compare: civilian first paint ---- */
+/* AI / Discord live only inside optional method expand — not on the toolbar. */
+html[data-reader-mode='everyday'] .cc-content--everyday > .cc-toolbar .cc-toolbar-right,
+html[data-reader-mode='everyday'] .cc-content--everyday > .cc-alerts-config {
+  display: none !important;
+}
+
+html[data-reader-mode='everyday'] .cc-everyday-advanced-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+html[data-reader-mode='everyday'] .cc-everyday-advanced-tools .cc-ai-status,
+html[data-reader-mode='everyday'] .cc-everyday-advanced-tools .cc-alerts-btn {
+  opacity: 0.75;
+  font-size: 0.78rem;
+}
+
+html[data-reader-mode='everyday'] .cc-method-details .cc-alerts-config {
+  margin: 0 0.75rem 0.75rem;
+}
+
+html[data-reader-mode='everyday'] .cc-everyday-ai-details {
+  margin: 0.65rem 0 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+html[data-reader-mode='everyday'] .cc-everyday-ai-summary {
+  cursor: pointer;
+  padding: 0.45rem 0.65rem;
+  font-family: var(--reader-sans);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  list-style: none;
+}
+
+html[data-reader-mode='everyday'] .cc-everyday-ai-summary::-webkit-details-marker {
+  display: none;
+}
+
+html[data-reader-mode='everyday'] .cc-everyday-ai-details[open] .cc-everyday-ai-summary {
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+html[data-reader-mode='everyday'] .cc-ai-row--everyday {
+  padding: 0.5rem 0.65rem 0.15rem;
+}
+
+html[data-reader-mode='everyday'] .cc-everyday-ai-details .cc-ai-result {
+  padding: 0 0.65rem 0.65rem;
+}
+
+html[data-reader-mode='everyday'] .cc-method-details {
+  margin: 0.35rem 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  font-family: var(--reader-sans);
+}
+
+html[data-reader-mode='everyday'] .cc-method-summary {
+  cursor: pointer;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  list-style: none;
+}
+
+html[data-reader-mode='everyday'] .cc-method-summary:focus-visible,
+html[data-reader-mode='everyday'] .cc-everyday-ai-summary:focus-visible,
+html[data-reader-mode='everyday'] .cc-summary--everyday:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+html[data-reader-mode='everyday'] .cc-method-summary::-webkit-details-marker {
+  display: none;
+}
+
+html[data-reader-mode='everyday'] .cc-method-details[open] .cc-method-summary {
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+html[data-reader-mode='everyday'] .cc-method-details .cc-persistent-note {
+  margin: 0;
+  padding: 0.65rem 0.75rem 0.8rem;
+  border: 0;
+  background: transparent;
+}
+
+html[data-reader-mode='everyday'] .cc-summary--everyday {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+html[data-reader-mode='everyday'] .cc-summary--everyday .cc-title {
+  font-family: var(--reader-display);
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+
+html[data-reader-mode='everyday'] .cc-civilian-covered,
+html[data-reader-mode='everyday'] .cc-civilian-ignored,
+html[data-reader-mode='everyday'] .cc-civilian-framing {
+  font-family: var(--reader-sans);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  max-width: 42rem;
+}
+
+html[data-reader-mode='everyday'] .cc-civilian-covered {
+  color: var(--text);
+}
+
+html[data-reader-mode='everyday'] .cc-civilian-ignored {
+  color: var(--text-secondary);
+}
+
+html[data-reader-mode='everyday'] .cc-civilian-framing {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+html[data-reader-mode='everyday'] .cc-everyday-score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.25rem;
+  padding: 0.35rem 0;
+  opacity: 0.85;
+}
+
+html[data-reader-mode='everyday'] .cc-everyday-score-hint {
+  font-family: var(--reader-sans);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+html[data-reader-mode='everyday'] .cc-details--everyday:not([open]) .cc-nci-badge {
+  display: none;
+}
+
+.reader-disclose__copy {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  max-width: 36rem;
+}
+
+.reader-disclose__copy strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.reader-disclose__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.reader-disclose__btn {
+  appearance: none;
+  position: relative;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text);
+  border-radius: var(--radius-md, 8px);
+  min-height: 2.75rem;
+  padding: 0.55rem 0.85rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.reader-disclose__btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.reader-disclose__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.reader-disclose__btn.is-active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+@keyframes reader-hero-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes reader-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .reader-hero {
+    min-height: auto;
+    padding: 1.15rem max(1rem, env(safe-area-inset-right)) calc(1.35rem + env(safe-area-inset-bottom, 0px))
+      max(1rem, env(safe-area-inset-left));
+  }
+
+  .reader-hero__lead {
+    min-height: 2.4em;
+  }
+
+  .reader-hero__actions {
+    width: 100%;
+  }
+
+  .reader-hero__cta {
+    flex: 1 1 auto;
+    min-width: calc(50% - 0.35rem);
+  }
+
+  .reader-mode-toggle__btn {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.68rem;
+  }
+
+  .reader-disclose {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: calc(var(--space-4, 16px) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .reader-disclose__actions {
+    width: 100%;
+    /* Put the primary deepen CTA first so it isn't buried under thumb reach */
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .reader-disclose__btn {
+    flex: 1 1 calc(50% - 0.3rem);
+  }
+
+  #readerDiscloseAll {
+    order: -1;
+    flex: 1 1 100%;
+  }
+
+  html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .panel-title::after {
+    content: ' — tap to expand';
+  }
+
+  /* Beat mobile .collapsed display:none so peek shows a live strip */
+  html[data-reader-mode='everyday'] .main-content #mapSection:not(.reader-map-expanded) {
+    height: var(--reader-peek-h) !important;
+    min-height: var(--reader-peek-h) !important;
+    max-height: var(--reader-peek-h) !important;
+  }
+
+  html[data-reader-mode='everyday'] .main-content #mapSection:not(.reader-map-expanded) .map-container {
+    display: block !important;
+  }
+
+  html[data-reader-mode='everyday'] .main-content #mapSection.reader-map-expanded {
+    height: min(55vh, 520px) !important;
+    min-height: min(45vh, 420px) !important;
+    max-height: min(55vh, 520px) !important;
+  }
+
+  html[data-reader-mode='everyday'] #panelsGrid {
+    padding-inline: max(0.75rem, env(safe-area-inset-left), env(safe-area-inset-right));
+    padding-bottom: var(--space-4, 16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-hero,
+  .reader-hero__brand,
+  .reader-hero__lead,
+  .reader-hero__why,
+  .reader-hero__meta,
+  .reader-hero__spin,
+  .reader-hero__status,
+  .reader-hero__actions,
+  .reader-hero__cta {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html[data-reader-mode='everyday'] #mapSection {
+    transition: none !important;
+  }
+}

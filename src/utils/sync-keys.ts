@@ -40,6 +40,8 @@ export const CLOUD_SYNC_KEYS = [
   // last here" — synced so a phone visit doesn't re-flag stories already
   // read on desktop.
   'wm-read-state-v1',
+  'jsam-view-mode',
+  'jsam-reader-analyst-open',
 ] as const;
 
 export type CloudSyncKey = (typeof CLOUD_SYNC_KEYS)[number];

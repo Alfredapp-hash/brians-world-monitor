@@ -71,6 +71,20 @@ import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { loadPanelCollapsed, loadPanelColSpans, loadPanelSpans } from '@/utils/panel-storage';
 import { measure, mutate } from '@/utils/layout-batch';
 import { BRAND } from '@/config/brand';
+import { ReaderHero } from '@/components/ReaderHero';
+import {
+  applyReaderAnalystOpenToDocument,
+  applyReaderModeToDocument,
+  getReaderMode,
+  isEverydayReaderMode,
+  isReaderAnalystOpen,
+} from '@/services/reader-mode';
+import { GodsEyeHud } from '@/components/GodsEyeHud';
+import {
+  countActiveLayers,
+  isGodsEyeStage,
+  releaseGodsEyeStage,
+} from '@/services/godseye-mode';
 
 function readSessionStorageValue(key: string): string | null {
   try {
@@ -352,6 +366,8 @@ export class PanelLayoutManager implements AppModule {
   private scheduledLoadAllRaf: number | null = null;
   private scheduledLoadAllIdle: number | null = null;
   private responsiveZoneListener: ResponsiveZoneListener | null = null;
+  private readerHero: ReaderHero | null = null;
+  private godsEyeHud: GodsEyeHud | null = null;
 
   constructor(ctx: AppContext, callbacks: PanelLayoutManagerCallbacks) {
     this.ctx = ctx;
@@ -529,6 +545,8 @@ export class PanelLayoutManager implements AppModule {
   }
 
   destroy(): void {
+    this.readerHero?.destroy();
+    this.readerHero = null;
     clearAllPendingCalls();
     this.applyTimeRangeFilterDebounced.cancel();
     this.unsubscribeAuth?.();
@@ -703,6 +721,159 @@ export class PanelLayoutManager implements AppModule {
     return loadFromStorage<boolean>('mobile-map-collapsed', false) === true;
   }
 
+  /** Resize WebGL after map peek/expand layout settles. */
+  private resizeEverydayMap(mapSection: HTMLElement): void {
+    const resizeMap = (): void => {
+      window.dispatchEvent(new Event('resize'));
+      this.ctx.map?.resize();
+      // Peek hide→show often leaves a blank WebGL buffer until a draw pass.
+      this.ctx.map?.render();
+    };
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resizeMap);
+    });
+    window.setTimeout(resizeMap, 80);
+    window.setTimeout(resizeMap, 360);
+    const onTransitionEnd = (event: TransitionEvent): void => {
+      if (event.target !== mapSection) return;
+      if (event.propertyName !== 'max-height' && event.propertyName !== 'min-height' && event.propertyName !== 'height') return;
+      mapSection.removeEventListener('transitionend', onTransitionEnd);
+      resizeMap();
+    };
+    mapSection.addEventListener('transitionend', onTransitionEnd);
+  }
+
+  /** Expand everyday map peek and resize WebGL after layout settles. */
+  private expandEverydayMap(scroll = true): void {
+    const mapSection = document.getElementById('mapSection');
+    if (!mapSection) return;
+    mapSection.classList.add('reader-map-expanded');
+    // Never keep .collapsed while expanded — it display:none's the canvas on mobile.
+    mapSection.classList.remove('collapsed');
+    mapSection.setAttribute('aria-expanded', 'true');
+    this.readerHero?.setMapExpanded(true);
+    this.resizeEverydayMap(mapSection);
+    if (scroll) {
+      requestAnimationFrame(() => {
+        mapSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
+  }
+
+  /** Collapse everyday map back to a thin live peek strip. */
+  private collapseEverydayMap(): void {
+    const mapSection = document.getElementById('mapSection');
+    if (!mapSection) return;
+    mapSection.classList.remove('reader-map-expanded');
+    // Do NOT add .collapsed — that hides .map-container on mobile and blanks the peek.
+    // Everyday peek height is owned by reader-mode.css (!important).
+    mapSection.classList.remove('collapsed');
+    mapSection.setAttribute('aria-expanded', 'false');
+    this.readerHero?.setMapExpanded(false);
+    this.resizeEverydayMap(mapSection);
+  }
+
+  private toggleEverydayMap(): void {
+    const mapSection = document.getElementById('mapSection');
+    if (!mapSection) return;
+    if (mapSection.classList.contains('reader-map-expanded')) {
+      this.collapseEverydayMap();
+    } else {
+      this.expandEverydayMap(true);
+    }
+  }
+
+  private bindEverydayMapPeekExpand(): void {
+    const mapSection = document.getElementById('mapSection');
+    if (!mapSection || !isEverydayReaderMode() || mapSection.dataset.readerPeekBound === '1') return;
+    mapSection.dataset.readerPeekBound = '1';
+    mapSection.setAttribute('aria-expanded', mapSection.classList.contains('reader-map-expanded') ? 'true' : 'false');
+    mapSection.addEventListener('click', (event) => {
+      if (mapSection.classList.contains('reader-map-expanded')) return;
+      const target = event.target as HTMLElement | null;
+      // Peek: header or canvas strip both expand.
+      if (!target?.closest('.panel-header') && !target?.closest('.map-container')) return;
+      this.expandEverydayMap(true);
+    });
+  }
+
+  /**
+   * Mount the God's Eye HUD over the map stage.
+   *
+   * The HUD lives in `.main-content` rather than in the map section so it is
+   * not clipped by the section's overflow and survives a renderer swap
+   * (2D ↔ 3D) without being torn down.
+   */
+  private mountGodsEyeHud(): void {
+    this.godsEyeHud?.destroy();
+    this.godsEyeHud = null;
+    if (!isGodsEyeStage()) return;
+
+    const host = document.querySelector<HTMLElement>('.main-content');
+    if (!host) return;
+
+    const hud = new GodsEyeHud({
+      title: BRAND.name,
+      readTelemetry: () => ({
+        center: this.ctx.map?.getCenter() ?? null,
+        altitude: this.ctx.map?.getViewAltitude() ?? null,
+        activeLayerCount: countActiveLayers(this.ctx.mapLayers),
+        // 'live' means the renderer is up with layers staged — not a
+        // per-feed freshness claim. Panels keep their own staleness chips.
+        signal: !navigator.onLine
+          ? 'offline'
+          : this.ctx.map?.getCenter()
+            ? 'live'
+            : 'acquiring',
+      }),
+      onExit: () => {
+        releaseGodsEyeStage();
+        // Full reload: leaving restores reader mode, map dimension and the
+        // mission preset, all of which are read at boot.
+        window.location.reload();
+      },
+      railVisible: true,
+      onToggleRail: (visible) => {
+        document.documentElement.classList.toggle('ge-rail-hidden', !visible);
+      },
+    });
+
+    host.appendChild(hud.element);
+    hud.start();
+    this.godsEyeHud = hud;
+  }
+
+  private mountReaderHero(): void {
+    const mount = document.getElementById('readerHeroMount');
+    if (!mount) return;
+
+    this.readerHero?.destroy();
+    this.readerHero = null;
+
+    if (!isEverydayReaderMode()) {
+      mount.replaceChildren();
+      return;
+    }
+
+    const hero = new ReaderHero();
+    hero.setHandlers({
+      onOpenCoverage: () => {
+        document.getElementById('readerDiscloseFraming')?.click();
+      },
+      onToggleMap: () => {
+        this.toggleEverydayMap();
+      },
+    });
+    const mapSection = document.getElementById('mapSection');
+    hero.setMapExpanded(!!mapSection?.classList.contains('reader-map-expanded'));
+    mount.replaceChildren(hero.element);
+    this.readerHero = hero;
+    void hero.hydrate();
+    this.bindEverydayMapPeekExpand();
+    // Initial peek paint: WebGL often boots before peek height settles.
+    if (mapSection) this.resizeEverydayMap(mapSection);
+  }
+
   async renderLayout(): Promise<void> {
     const isGlobeMode = getStoredMapModePreference() === 'globe';
     // #5159: the collapsed-map cohort's #mapSection must be CREATED with
@@ -713,19 +884,27 @@ export class PanelLayoutManager implements AppModule {
     // Seeding the class here makes the runtime collapsed rule apply from the
     // section's first frame instead of ~150ms later via setupMobileMapToggle
     // (which shoved #panelsGrid up 698px, field CLS ~0.62 for this cohort).
-    const mapStartsCollapsed = this.ctx.isMobile && PanelLayoutManager.isMobileMapCollapsedPreferred();
+    // Everyday owns peek height via reader-mode.css — do NOT seed .collapsed
+    // (that display:none's the canvas on mobile and blanks the live peek).
+    const mapStartsCollapsed =
+      !isEverydayReaderMode() &&
+      this.ctx.isMobile &&
+      PanelLayoutManager.isMobileMapCollapsedPreferred();
+    applyReaderModeToDocument(getReaderMode());
+    applyReaderAnalystOpenToDocument();
     const bootShellFootprint = import.meta.env.DEV ? captureBootShellFootprint(this.ctx.container) : null;
 
     markLcpDebug('wm:layout:render-start');
     document.documentElement.classList.add('wm-layout-hydrated');
     setTrustedHtml(this.ctx.container, trustedHtml(`
       ${this.ctx.isDesktopApp ? '<div class="tauri-titlebar" data-tauri-drag-region></div>' : ''}
-      <a href="#main" class="skip-link">Skip to main content</a>
+      <a href="${isEverydayReaderMode() ? '#readerHeroMount' : '#main'}" class="skip-link">Skip to main content</a>
       <div id="proBannerSlot" class="pro-banner-slot" aria-live="polite"></div>
       <div class="header">
         <div class="header-left">
-          <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <button class="hamburger-btn${isEverydayReaderMode() ? ' hamburger-btn--everyday' : ''}" id="hamburgerBtn" aria-label="${isEverydayReaderMode() ? 'More' : 'Menu'}" title="${isEverydayReaderMode() ? 'More — settings & extras' : 'Menu'}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            ${isEverydayReaderMode() ? '<span class="hamburger-btn__label">More</span>' : ''}
           </button>
           <div class="variant-switcher">${(() => {
         // Fork: all variants served from this one deployment — always switch
@@ -810,6 +989,8 @@ export class PanelLayoutManager implements AppModule {
             </select>
           </div>
           <span id="missionPresetMount" class="mission-preset-mount"></span>
+          <span id="readerModeMount" class="reader-mode-mount"></span>
+          <span id="godseyeMount" class="godseye-mount"></span>
           <button class="mobile-search-btn" id="mobileSearchBtn" aria-label="${t('header.search')}">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
@@ -904,6 +1085,7 @@ export class PanelLayoutManager implements AppModule {
       </div>
       <div class="dashboard-tabs-mount" id="panelTabsMount"></div>
       <main id="main" tabindex="-1" class="main-content${this.ctx.isDesktopApp ? ' desktop-grid' : ''}">
+        <div id="readerHeroMount" class="reader-mode-everyday-only" tabindex="-1"></div>
         <div class="map-section${mapStartsCollapsed ? ' collapsed' : ''}" id="mapSection">
           <div class="panel-header">
             <div class="panel-header-left">
@@ -932,6 +1114,19 @@ export class PanelLayoutManager implements AppModule {
         </div>
         <div class="map-width-resize-handle" id="mapWidthResizeHandle"></div>
         <div class="panels-grid" id="panelsGrid" role="tabpanel"></div>
+        <div id="readerBriefDone" class="reader-brief-done reader-mode-everyday-only" role="status" hidden aria-hidden="true">
+          <p class="reader-brief-done__title">That’s the brief so far</p>
+          <p class="reader-brief-done__sub">Optional deep dives stay below — framing, country stress, and markets.</p>
+        </div>
+        <aside id="readerDisclose" class="reader-disclose reader-mode-everyday-only" aria-label="More analysis">
+          <p class="reader-disclose__copy"><strong>Want more?</strong> Compare how outlets tell the story, check country stress, or open markets — without cluttering today’s brief.</p>
+          <div class="reader-disclose__actions">
+            <button type="button" class="reader-disclose__btn" id="readerDiscloseFraming" data-reader-disclose="coverage-compare">How outlets frame this</button>
+            <button type="button" class="reader-disclose__btn" id="readerDiscloseCii" data-reader-disclose="cii">Country stress</button>
+            <button type="button" class="reader-disclose__btn" id="readerDiscloseMarkets" data-reader-disclose="markets">Markets</button>
+            <button type="button" class="reader-disclose__btn${isReaderAnalystOpen() ? ' is-active' : ''}" id="readerDiscloseAll" data-reader-disclose="all">${isReaderAnalystOpen() ? 'Hide extra analysis' : 'Show more analysis'}</button>
+          </div>
+        </aside>
         <button class="search-mobile-fab" id="searchMobileFab" aria-label="Search"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
       </main>
       <footer class="site-footer">
@@ -957,20 +1152,24 @@ export class PanelLayoutManager implements AppModule {
     // ordering the LCP element against the shell swap (PR #4512 review).
     markLcpDebug('wm:layout:shell-replaced');
 
-    // Skip link: explicitly move focus to <main> on activation. Native
-    // fragment focus on a tabindex="-1" target is inconsistent across
-    // browsers, so drive it directly to guarantee keyboard users land in the
-    // main content (WCAG 2.4.1).
+    // Skip link: land on Everyday hero when present, otherwise <main>.
+    // Native fragment focus on tabindex="-1" is inconsistent across browsers.
     this.ctx.container.querySelector('.skip-link')?.addEventListener('click', (e) => {
       e.preventDefault();
-      const main = document.getElementById('main');
-      if (main) {
-        main.focus();
-        main.scrollIntoView({ block: 'start' });
+      const target =
+        (isEverydayReaderMode() && document.getElementById('readerHeroMount')) ||
+        document.getElementById('main');
+      if (target) {
+        if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+        target.focus();
+        target.scrollIntoView({ block: 'start' });
       }
     });
 
     await this.createPanels();
+
+    this.mountReaderHero();
+    this.mountGodsEyeHud();
 
     this.initPanelTabs();
     if (import.meta.env.DEV && bootShellFootprint) warnOnBootShellFootprintDrift(bootShellFootprint);
@@ -1191,6 +1390,9 @@ export class PanelLayoutManager implements AppModule {
     // This is a boot-shell-only marker. The hydrated map owns the persistent
     // collapsed state on #mapSection, so do not leak it into runtime styling.
     document.documentElement.classList.remove('wm-map-collapsed');
+    // Everyday uses Show/Hide map + reader-map-expanded peek — skip mobile dual toggle.
+    if (isEverydayReaderMode()) return;
+
     const mapSection = document.getElementById('mapSection');
     const headerLeft = mapSection?.querySelector('.panel-header-left');
     if (!mapSection || !headerLeft) return;
@@ -1291,6 +1493,7 @@ export class PanelLayoutManager implements AppModule {
   }
 
   applyPanelSettings(): void {
+    const grid = document.getElementById('panelsGrid');
     Object.entries(this.ctx.panelSettings).forEach(([key, config]) => {
       if (key === 'map') {
         const mapSection = document.getElementById('mapSection');
@@ -1309,6 +1512,19 @@ export class PanelLayoutManager implements AppModule {
       let mountedFromDeferred = false;
       if (config.enabled && deferred && !deferred.mounted && (!deferred.placeholder || placeholderWasHidden)) {
         mountedFromDeferred = this.mountDeferredPanel(key);
+      }
+      // Everyday disclose / CMD+K can enable a panel that was never deferred
+      // (disabled at registration time with no shell). Mount from the lazy
+      // registry so progressive disclosure actually surfaces the panel.
+      if (
+        config.enabled &&
+        !mountedFromDeferred &&
+        !this.ctx.panels[key] &&
+        !deferred &&
+        this.lazyPanelRegistrations.has(key) &&
+        grid
+      ) {
+        this.mountLazyPanel(key, grid);
       }
       // Reconcile placeholder visibility even when the mount attempt no-ops
       // (an in-flight load sets deferred.loading, so mountDeferredPanel
@@ -1383,7 +1599,18 @@ export class PanelLayoutManager implements AppModule {
   };
 
   private createNewsPanel(key: string, labelKey: string): void {
-    this.createNewsPanelWithLabel(key, t(labelKey), PanelLayoutManager.NEWS_PANEL_TOOLTIPS[key], key);
+    const everydayLabel =
+      isEverydayReaderMode() && key === 'politics'
+        ? 'Top stories'
+        : isEverydayReaderMode() && key === 'intel'
+          ? 'Intelligence picks'
+          : null;
+    this.createNewsPanelWithLabel(
+      key,
+      everydayLabel ?? t(labelKey),
+      PanelLayoutManager.NEWS_PANEL_TOOLTIPS[key],
+      key,
+    );
   }
 
   private createNewsPanelWithLabel(

@@ -61,6 +61,24 @@ import {
   type MissionPresetId,
 } from '@/services/mission-presets';
 import {
+  EVERYDAY_ANALYST_PANELS,
+  EVERYDAY_MISSION_PRESET_ID,
+  applyReaderAnalystOpenToDocument,
+  applyReaderModeToDocument,
+  getReaderMode,
+  isEverydayReaderMode,
+  isReaderAnalystOpen,
+  setReaderAnalystOpen,
+  setReaderMode,
+  type ReaderMode,
+} from '@/services/reader-mode';
+import {
+  applyStageModeToDocument,
+  engageGodsEyeStage,
+  isGodsEyeStage,
+  releaseGodsEyeStage,
+} from '@/services/godseye-mode';
+import {
   saveSnapshot,
   initAisStream,
   disconnectAisStream,
@@ -195,6 +213,8 @@ export interface EventHandlerCallbacks {
   syncDataFreshnessWithLayers: () => void;
   ensureCorrectZones: () => void;
   applySavedPanelOrder?: (panelOrder?: string[]) => void;
+  /** Prefer PanelLayoutManager.applyPanelSettings so lazy panels mount on enable. */
+  applyPanelSettings?: () => void;
   refreshCiiAfterFocalPointsReady?: () => void;
   stopLayerActivity?: (layer: keyof MapLayers) => void;
   mountLiveNewsIfReady?: () => void;
@@ -212,6 +232,7 @@ export class EventHandlerManager implements AppModule {
   private boundStorageHandler: ((e: StorageEvent) => void) | null = null;
   private boundTvKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundFocalPointsReadyHandler: (() => void) | null = null;
+  private godsEyeHotkeysBound = false;
   private boundThemeChangedHandler: (() => void) | null = null;
   private boundDropdownClickHandler: ((e: MouseEvent) => void) | null = null;
   private boundDropdownKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -280,7 +301,12 @@ export class EventHandlerManager implements AppModule {
   enablePanelById(panelId: string): boolean {
     const config = this.ctx.panelSettings[panelId];
     if (!config) return false;
-    if (config.enabled) return true;
+    if (config.enabled) {
+      // Settings may already say enabled while the panel was never mounted
+      // (everyday disclose / prior session). Re-run apply so lazy panels appear.
+      this.applyPanelSettings();
+      return true;
+    }
     if (!isProUser() && isFreePanelCapCounted(panelId)) {
       const enabledCount = countFreePanelCapUsage(this.ctx.panelSettings);
       if (enabledCount >= FREE_MAX_PANELS) {
@@ -711,6 +737,7 @@ export class EventHandlerManager implements AppModule {
 
     this.setupMobileMenu();
     this.setupMissionPresets();
+    this.setupReaderMode();
 
     if (this.ctx.isDesktopApp) {
       if (this.boundDesktopExternalLinkHandler) {
@@ -826,7 +853,8 @@ export class EventHandlerManager implements AppModule {
       !this.ctx.isMobile &&
       !window.location.search &&
       !loadStoredMissionPreset() &&
-      !isMissionPresetPromptDismissed();
+      !isMissionPresetPromptDismissed() &&
+      !isEverydayReaderMode();
     if (shouldPrompt) {
       // Defer the onboarding auto-open to browser idle after first paint so it
       // never competes with load or first-interaction work. This replaced a
@@ -835,10 +863,184 @@ export class EventHandlerManager implements AppModule {
       // the idle wait can outlast an early user choice.
       scheduleAfterFirstPaint(() => {
         if (this.ctx.isDestroyed) return;
-        if (loadStoredMissionPreset() || isMissionPresetPromptDismissed()) return;
+        if (loadStoredMissionPreset() || isMissionPresetPromptDismissed() || isEverydayReaderMode()) return;
         this.openMissionPresetPopover(document.getElementById('missionPresetBtn'), false);
       });
     }
+  }
+
+  private setupReaderMode(): void {
+    applyReaderModeToDocument(getReaderMode());
+    applyReaderAnalystOpenToDocument();
+    this.renderReaderModeControl();
+    this.bindReaderDiscloseControls();
+    this.setupGodsEyeStage();
+  }
+
+  /**
+   * God's Eye stage entry: a header control plus a `G` accelerator.
+   *
+   * The stage is entered and left by reload, because it rewrites the three
+   * durable preferences (reader mode, map dimension, mission preset) that the
+   * boot path reads — the same contract the Everyday/Analyst toggle uses.
+   */
+  private setupGodsEyeStage(): void {
+    applyStageModeToDocument();
+    this.renderGodsEyeControl();
+    this.bindGodsEyeHotkeys();
+  }
+
+  private renderGodsEyeControl(): void {
+    const mount = document.getElementById('godseyeMount');
+    if (!mount) return;
+    // Inside the stage the HUD owns entry/exit, so the header control would be
+    // a duplicate of the HUD's Exit button.
+    if (isGodsEyeStage()) {
+      mount.replaceChildren();
+      return;
+    }
+
+    setTrustedHtml(mount, trustedHtml(`
+      <button type="button" class="godseye-enter-btn" id="godseyeEnterBtn"
+        title="God's Eye — globe-first view (G)" aria-label="God's Eye">
+        <span class="godseye-enter-btn__mark" aria-hidden="true"></span>
+        <span class="godseye-enter-btn__label">God's Eye</span>
+      </button>
+    `, "God's Eye entry button uses fixed labels"));
+
+    document.getElementById('godseyeEnterBtn')?.addEventListener('click', () => {
+      this.enterGodsEyeStage();
+    });
+  }
+
+  private enterGodsEyeStage(): void {
+    engageGodsEyeStage();
+    window.location.reload();
+  }
+
+  private bindGodsEyeHotkeys(): void {
+    if (this.godsEyeHotkeysBound) return;
+    this.godsEyeHotkeysBound = true;
+
+    document.addEventListener('keydown', (event) => {
+      // Never steal a key from a field, a shortcut chord, or a surface that
+      // already handled it (a popover closing on Escape, for instance).
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.isContentEditable
+        || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '')
+      ) {
+        return;
+      }
+
+      if (event.key === 'Escape' && isGodsEyeStage()) {
+        event.preventDefault();
+        releaseGodsEyeStage();
+        window.location.reload();
+        return;
+      }
+
+      if ((event.key === 'g' || event.key === 'G') && !isGodsEyeStage()) {
+        event.preventDefault();
+        this.enterGodsEyeStage();
+      }
+    });
+  }
+
+  private renderReaderModeControl(): void {
+    const mount = document.getElementById('readerModeMount');
+    if (!mount) return;
+    const mode = getReaderMode();
+    setTrustedHtml(mount, trustedHtml(`
+      <div class="reader-mode-toggle" role="group" aria-label="View density">
+        <button type="button" class="reader-mode-toggle__btn${mode === 'everyday' ? ' is-active' : ''}" data-reader-mode="everyday" aria-pressed="${mode === 'everyday' ? 'true' : 'false'}">Everyday</button>
+        <button type="button" class="reader-mode-toggle__btn${mode === 'analyst' ? ' is-active' : ''}" data-reader-mode="analyst" aria-pressed="${mode === 'analyst' ? 'true' : 'false'}">Analyst</button>
+      </div>
+    `, 'Reader mode toggle uses fixed labels'));
+
+    mount.querySelectorAll<HTMLButtonElement>('[data-reader-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const next = btn.dataset.readerMode;
+        if (next === 'everyday' || next === 'analyst') {
+          this.applyReaderMode(next);
+        }
+      });
+    });
+  }
+
+  private bindReaderDiscloseControls(): void {
+    const root = document.getElementById('readerDisclose');
+    if (!root || root.dataset.bound === '1') return;
+    root.dataset.bound = '1';
+
+    root.addEventListener('click', (event) => {
+      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-reader-disclose]');
+      if (!target) return;
+      const which = target.dataset.readerDisclose;
+      if (!which) return;
+
+      if (which === 'all') {
+        const nextOpen = !isReaderAnalystOpen();
+        setReaderAnalystOpen(nextOpen);
+        if (nextOpen) {
+          for (const panelId of EVERYDAY_ANALYST_PANELS) {
+            this.enablePanelById(panelId);
+          }
+          showToast('More analysis is available below');
+        } else {
+          showToast('Extra analysis tucked away');
+        }
+        const allBtn = document.getElementById('readerDiscloseAll');
+        if (allBtn) {
+          allBtn.textContent = nextOpen ? 'Hide extra analysis' : 'Show more analysis';
+          allBtn.classList.toggle('is-active', nextOpen);
+        }
+        return;
+      }
+
+      setReaderAnalystOpen(true);
+      this.enablePanelById(which);
+      // Lazy panels mount async — retry scroll until the shell appears.
+      const scrollToPanel = (attemptsLeft: number): void => {
+        const panelEl = document.querySelector<HTMLElement>(`[data-panel="${which}"]`);
+        if (panelEl) {
+          panelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          return;
+        }
+        if (attemptsLeft > 0) {
+          window.setTimeout(() => scrollToPanel(attemptsLeft - 1), 120);
+        }
+      };
+      scrollToPanel(20);
+      const allBtn = document.getElementById('readerDiscloseAll');
+      if (allBtn) {
+        allBtn.textContent = 'Hide extra analysis';
+        allBtn.classList.add('is-active');
+      }
+      showToast(
+        which === 'coverage-compare'
+          ? 'Opened: how outlets frame this'
+          : which === 'cii'
+            ? 'Opened: country stress'
+            : 'Opened: markets',
+      );
+    });
+  }
+
+  private applyReaderMode(mode: ReaderMode): void {
+    if (mode === getReaderMode() && document.documentElement.dataset.readerMode === mode) {
+      return;
+    }
+    setReaderMode(mode);
+    setReaderAnalystOpen(false);
+    if (mode === 'everyday') {
+      this.applyMissionPreset(EVERYDAY_MISSION_PRESET_ID);
+    } else if (loadStoredMissionPreset()?.id === EVERYDAY_MISSION_PRESET_ID) {
+      this.resetMissionPreset();
+    }
+    // Full reload so hero, map peek, and panel order hydrate cleanly for the mode.
+    window.location.reload();
   }
 
   private renderMissionPresetControl(): void {
@@ -2246,6 +2448,10 @@ export class EventHandlerManager implements AppModule {
   }
 
   applyPanelSettings(): void {
+    if (this.callbacks.applyPanelSettings) {
+      this.callbacks.applyPanelSettings();
+      return;
+    }
     Object.entries(this.ctx.panelSettings).forEach(([key, config]) => {
       if (key === 'map') {
         const mapSection = document.getElementById('mapSection');

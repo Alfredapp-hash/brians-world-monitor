@@ -25,6 +25,7 @@ import { fetchServerInsights, getServerInsights, type ServerInsights, type Serve
 import { computeISQ, type SignalQuality, type SignalQualityInput } from '@/utils/signal-quality';
 import { extractEntitiesFromTitle } from '@/services/entity-extraction';
 import { getEntityIndex } from '@/services/entity-index';
+import { isEverydayReaderMode } from '@/services/reader-mode';
 
 import type { ClusteredEvent, FocalPoint, MilitaryFlight } from '@/types';
 
@@ -53,9 +54,11 @@ export class InsightsPanel extends Panel {
   constructor() {
     super({
       id: 'insights',
-      title: t('panels.insights'),
+      title: isEverydayReaderMode() ? "Today's brief" : t('panels.insights'),
       showCount: false,
-      infoTooltip: t('components.insights.infoTooltip'),
+      infoTooltip: isEverydayReaderMode()
+        ? 'A plain-language synthesis of the top stories. Full methodology and analyst tools stay available below.'
+        : t('components.insights.infoTooltip'),
     });
 
     // Web-only: subscribe to AI flow changes so toggling providers re-runs analysis
@@ -71,8 +74,16 @@ export class InsightsPanel extends Panel {
       void this.updateInsights(this.lastClusters);
     });
 
-    this.fwSelector = new FrameworkSelector({ panelId: 'insights', isPremium: hasPremiumAccess(), panel: this, note: t('components.insights.frameworkNote') });
-    this.header.appendChild(this.fwSelector.el);
+    // Everyday brief hides analyst chrome (framework selector / spin tools).
+    if (!isEverydayReaderMode()) {
+      this.fwSelector = new FrameworkSelector({
+        panelId: 'insights',
+        isPremium: hasPremiumAccess(),
+        panel: this,
+        note: t('components.insights.frameworkNote'),
+      });
+      this.header.appendChild(this.fwSelector.el);
+    }
 
     // #4890: the World Brief text is the field LCP element in ~1/3 of desktop
     // views but normally paints only after clusters + hydration + sentiment
@@ -246,14 +257,20 @@ export class InsightsPanel extends Panel {
 
     if (clusters.length === 0) {
       this.setDataBadge('unavailable');
-      this.setSafeContent(unsafeRawHtml(`<div class="insights-empty">${t('components.insights.waitingForData')}</div>`, 'legacy Panel.setContent() migration'));
+      const emptyMsg = isEverydayReaderMode()
+        ? 'Today’s brief is still gathering sources — check back in a moment.'
+        : t('components.insights.waitingForData');
+      this.setSafeContent(unsafeRawHtml(`<div class="insights-empty">${emptyMsg}</div>`, 'legacy Panel.setContent() migration'));
       return;
     }
 
     // Fallback: full client-side pipeline (skip on mobile — too heavy)
     if (isMobileDevice()) {
       this.setDataBadge('unavailable');
-      this.setSafeContent(unsafeRawHtml(`<div class="insights-empty">${t('components.insights.waitingForData')}</div>`, 'legacy Panel.setContent() migration'));
+      const emptyMsg = isEverydayReaderMode()
+        ? 'Today’s brief is still gathering sources — check back in a moment.'
+        : t('components.insights.waitingForData');
+      this.setSafeContent(unsafeRawHtml(`<div class="insights-empty">${emptyMsg}</div>`, 'legacy Panel.setContent() migration'));
       return;
     }
     await this.updateFromClient(clusters, thisGeneration);
@@ -419,7 +436,10 @@ export class InsightsPanel extends Panel {
       const importantClusters = importantItems.map(({ cluster }) => cluster);
 
       if (importantClusters.length === 0) {
-        this.setSafeContent(unsafeRawHtml(`<div class="insights-empty">${t('components.insights.noStories')}</div>`, 'legacy Panel.setContent() migration'));
+        const emptyMsg = isEverydayReaderMode()
+          ? 'No multi-source stories yet — check back shortly.'
+          : t('components.insights.noStories');
+        this.setSafeContent(unsafeRawHtml(`<div class="insights-empty">${emptyMsg}</div>`, 'legacy Panel.setContent() migration'));
         return;
       }
 
@@ -516,11 +536,23 @@ export class InsightsPanel extends Panel {
     worldBriefSources: BriefSource[] = [],
   ): void {
     const clusters = items.map(({ cluster }) => cluster);
+    const breakingHtml = this.renderBreakingStories(items, sentiments);
+
+    if (isEverydayReaderMode()) {
+      // Hero already owns the world brief — story list only, no duplicate lead.
+      this.setSafeContent(unsafeRawHtml(`
+        <div class="insights-section">
+          <div class="insights-section-title">Top stories</div>
+          ${breakingHtml || `<div class="insights-empty">No multi-source stories yet — check back shortly.</div>`}
+        </div>
+      `, 'everyday insights: headlines only'));
+      return;
+    }
+
     const briefHtml = worldBrief ? this.renderWorldBrief(worldBrief, worldBriefSources) : '';
     const focalPointsHtml = this.renderFocalPoints();
     const convergenceHtml = this.renderConvergenceZones();
     const sentimentOverview = this.renderSentimentOverview(sentiments);
-    const breakingHtml = this.renderBreakingStories(items, sentiments);
     const statsHtml = this.renderStats(clusters);
     const missedHtml = this.renderMissedStories();
 
@@ -549,9 +581,6 @@ export class InsightsPanel extends Panel {
       insights.worldBriefSources ?? [],
       Math.min(12, Math.max(6, insights.worldBriefSources?.length ?? 6)),
     );
-    const briefHtml = insights.worldBrief
-      ? this.renderWorldBrief(insights.worldBrief, worldBriefSources, this.renderBriefExtras(insights))
-      : '';
     if (insights.worldBrief) {
       // #4890: keep the persistent brief cache warm from the dominant server
       // path (previously only the client-LLM fallback wrote it, so repeat
@@ -561,10 +590,25 @@ export class InsightsPanel extends Panel {
       this.lastBriefUpdate = Date.now();
       void setPersistentCache(InsightsPanel.BRIEF_CACHE_KEY, { summary: insights.worldBrief, sources: this.cachedBriefSources });
     }
+    const storiesHtml = this.renderServerStories(insights.topStories, sentiments);
+
+    if (isEverydayReaderMode()) {
+      // Hero owns the brief synthesis; panel is the scan list underneath.
+      this.setSafeContent(unsafeRawHtml(`
+        <div class="insights-section">
+          <div class="insights-section-title">Top stories</div>
+          ${storiesHtml || `<div class="insights-empty">No multi-source stories yet — check back shortly.</div>`}
+        </div>
+      `, 'everyday insights: headlines only'));
+      return;
+    }
+
+    const briefHtml = insights.worldBrief
+      ? this.renderWorldBrief(insights.worldBrief, worldBriefSources, this.renderBriefExtras(insights))
+      : '';
     const focalPointsHtml = this.renderFocalPoints();
     const convergenceHtml = this.renderConvergenceZones();
     const sentimentOverview = this.renderSentimentOverview(sentiments);
-    const storiesHtml = this.renderServerStories(insights.topStories, sentiments);
     const statsHtml = this.renderServerStats(insights);
     const provenanceHtml = this.renderProvenance(insights);
     const missedHtml = this.renderMissedStories();
@@ -588,6 +632,7 @@ export class InsightsPanel extends Panel {
     stories: ServerInsightStory[],
     sentiments: Array<{ label: string; score: number }> | null,
   ): string {
+    const everyday = isEverydayReaderMode();
     return stories.map((story, i) => {
       const sentiment = sentiments?.[i];
       const sentimentClass = sentiment?.label === 'negative' ? 'negative' :
@@ -596,17 +641,27 @@ export class InsightsPanel extends Panel {
       const badges: string[] = [];
 
       if (story.sourceCount >= 3) {
-        badges.push(`<span class="insight-badge confirmed">✓ ${t('components.insights.sources', { count: story.sourceCount })}</span>`);
+        badges.push(
+          everyday
+            ? `<span class="insight-badge multi">${story.sourceCount} sources</span>`
+            : `<span class="insight-badge confirmed">✓ ${t('components.insights.sources', { count: story.sourceCount })}</span>`,
+        );
       } else if (story.sourceCount >= 2) {
-        badges.push(`<span class="insight-badge multi">${t('components.insights.sources', { count: story.sourceCount })}</span>`);
+        badges.push(
+          everyday
+            ? `<span class="insight-badge multi">${story.sourceCount} sources</span>`
+            : `<span class="insight-badge multi">${t('components.insights.sources', { count: story.sourceCount })}</span>`,
+        );
       }
 
-      if (story.isAlert) {
+      if (!everyday && story.isAlert) {
         badges.push(`<span class="insight-badge alert">⚠ ${t('components.insights.alert')}</span>`);
+      } else if (everyday && story.isAlert) {
+        badges.push(`<span class="insight-badge alert">Urgent</span>`);
       }
 
       const VALID_THREAT_LEVELS = ['critical', 'high', 'elevated', 'moderate', 'medium', 'low', 'info'];
-      if (story.threatLevel === 'critical' || story.threatLevel === 'high') {
+      if (!everyday && (story.threatLevel === 'critical' || story.threatLevel === 'high')) {
         const safeThreat = VALID_THREAT_LEVELS.includes(story.threatLevel) ? story.threatLevel : 'moderate';
         badges.push(`<span class="insight-badge velocity ${safeThreat}">${escapeHtml(story.category)}</span>`);
       }
@@ -614,7 +669,7 @@ export class InsightsPanel extends Panel {
       return `
         <div class="insight-story">
           <div class="insight-story-header">
-            <span class="insight-sentiment-dot ${sentimentClass}"></span>
+            ${everyday ? '' : `<span class="insight-sentiment-dot ${sentimentClass}"></span>`}
             <span class="insight-story-title">${escapeHtml(story.primaryTitle.slice(0, 100))}${story.primaryTitle.length > 100 ? '...' : ''}</span>
           </div>
           ${badges.length > 0 ? `<div class="insight-badges">${badges.join('')}</div>` : ''}
@@ -686,17 +741,19 @@ export class InsightsPanel extends Panel {
   }
 
   private renderWorldBrief(brief: string, sources: BriefSource[] = [], extrasHtml = ''): string {
-    const heading =
-      SITE_VARIANT === 'tech'      ? `🚀 ${t('components.insights.briefTech')}`
-    : SITE_VARIANT === 'commodity' ? `⛏️ ${t('components.insights.briefCommodity')}`
-    : SITE_VARIANT === 'energy'    ? `⚡ ${t('components.insights.briefEnergy')}`
-    :                                `🌍 ${t('components.insights.briefWorld')}`;
+    const everyday = isEverydayReaderMode();
+    const heading = everyday
+      ? "Today’s take"
+      : SITE_VARIANT === 'tech'      ? `🚀 ${t('components.insights.briefTech')}`
+      : SITE_VARIANT === 'commodity' ? `⛏️ ${t('components.insights.briefCommodity')}`
+      : SITE_VARIANT === 'energy'    ? `⚡ ${t('components.insights.briefEnergy')}`
+      :                                `🌍 ${t('components.insights.briefWorld')}`;
     return `
       <div class="insights-brief">
         <div class="insights-section-title">${heading}</div>
         <div class="insights-brief-text">${escapeHtml(brief)}</div>
-        ${extrasHtml}
-        ${renderBriefSourcesFooter(sources, { className: 'insights-brief-sources', maxSources: Math.max(6, sources.length) })}
+        ${everyday ? '' : extrasHtml}
+        ${everyday ? '' : renderBriefSourcesFooter(sources, { className: 'insights-brief-sources', maxSources: Math.max(6, sources.length) })}
       </div>
     `;
   }
@@ -705,6 +762,7 @@ export class InsightsPanel extends Panel {
     items: Array<{ cluster: ClusteredEvent; isq: SignalQuality }>,
     sentiments: Array<{ label: string; score: number }> | null
   ): string {
+    const everyday = isEverydayReaderMode();
     const ISQ_BADGE_CLASS: Record<string, string> = {
       strong: 'isq-strong', notable: 'isq-notable', weak: 'isq-weak', noise: 'isq-noise',
     };
@@ -716,30 +774,40 @@ export class InsightsPanel extends Panel {
 
       const badges: string[] = [];
 
-      if (isq.tier === 'strong' || isq.tier === 'notable') {
+      if (!everyday && (isq.tier === 'strong' || isq.tier === 'notable')) {
         const cls = ISQ_BADGE_CLASS[isq.tier];
         badges.push(`<span class="insight-badge ${cls}">${isq.tier.toUpperCase()}</span>`);
       }
 
       if (cluster.sourceCount >= 3) {
-        badges.push(`<span class="insight-badge confirmed">✓ ${t('components.insights.sources', { count: cluster.sourceCount })}</span>`);
+        badges.push(
+          everyday
+            ? `<span class="insight-badge multi">${cluster.sourceCount} sources</span>`
+            : `<span class="insight-badge confirmed">✓ ${t('components.insights.sources', { count: cluster.sourceCount })}</span>`,
+        );
       } else if (cluster.sourceCount >= 2) {
-        badges.push(`<span class="insight-badge multi">${t('components.insights.sources', { count: cluster.sourceCount })}</span>`);
+        badges.push(
+          everyday
+            ? `<span class="insight-badge multi">${cluster.sourceCount} sources</span>`
+            : `<span class="insight-badge multi">${t('components.insights.sources', { count: cluster.sourceCount })}</span>`,
+        );
       }
 
-      if (cluster.velocity && cluster.velocity.level !== 'normal') {
+      if (!everyday && cluster.velocity && cluster.velocity.level !== 'normal') {
         const velIcon = cluster.velocity.trend === 'rising' ? '↑' : '';
         badges.push(`<span class="insight-badge velocity ${cluster.velocity.level}">${velIcon}+${cluster.velocity.sourcesPerHour}/hr</span>`);
       }
 
-      if (cluster.isAlert) {
+      if (!everyday && cluster.isAlert) {
         badges.push(`<span class="insight-badge alert">⚠ ${t('components.insights.alert')}</span>`);
+      } else if (everyday && cluster.isAlert) {
+        badges.push(`<span class="insight-badge alert">Urgent</span>`);
       }
 
       return `
         <div class="insight-story">
           <div class="insight-story-header">
-            <span class="insight-sentiment-dot ${sentimentClass}"></span>
+            ${everyday ? '' : `<span class="insight-sentiment-dot ${sentimentClass}"></span>`}
             <span class="insight-story-title">${escapeHtml(cluster.primaryTitle.slice(0, 100))}${cluster.primaryTitle.length > 100 ? '...' : ''}</span>
           </div>
           ${badges.length > 0 ? `<div class="insight-badges">${badges.join('')}</div>` : ''}

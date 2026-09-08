@@ -24,6 +24,8 @@
 
   /* Signal amber accent */
   --accent: #f0a832;
+  /* Ink on amber CTAs — charcoal, not white-on-amber glare */
+  --accent-ink: #14120e;
 
   /* Overlays tinted warm */
   --overlay-subtle: rgba(240, 168, 50, 0.04);

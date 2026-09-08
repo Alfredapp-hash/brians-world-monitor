@@ -14,6 +14,8 @@ export const MISSION_PRESET_STORAGE_KEY = 'worldmonitor-mission-preset-v1';
 export const MISSION_PRESET_DISMISSED_KEY = 'worldmonitor-mission-preset-dismissed-v1';
 
 export type MissionPresetId =
+  | 'everyday-reader'
+  | 'gods-eye'
   | 'crisis-desk'
   | 'supply-chain-risk'
   | 'energy-security'
@@ -52,6 +54,59 @@ export interface ResetMissionPresetState {
 }
 
 export const MISSION_PRESETS: readonly MissionPreset[] = [
+  {
+    id: 'everyday-reader',
+    label: 'Everyday Brief',
+    shortLabel: 'Everyday',
+    description: 'Plain-language news brief first — map and analyst tools stay one click away.',
+    icon: 'B',
+    view: 'global',
+    zoom: 2.1,
+    timeRange: '24h',
+    panels: [
+      'map',
+      'insights',
+      'politics',
+    ],
+    layers: [
+      'hotspots',
+      'conflicts',
+      'protests',
+      'weather',
+      'natural',
+    ],
+  },
+  {
+    id: 'gods-eye',
+    label: "God's Eye",
+    shortLabel: 'Globe',
+    description: 'Globe-first stage — events, tracks, and alerts read as attached to Earth.',
+    icon: 'O',
+    view: 'global',
+    zoom: 1.9,
+    timeRange: '24h',
+    panels: [
+      'map',
+      'insights',
+      'live-news',
+      'politics',
+    ],
+    // Layers chosen to read at globe scale: broad geographic spread, moving
+    // tracks, and point events that stay legible from orbit.
+    layers: [
+      'hotspots',
+      'conflicts',
+      'protests',
+      'military',
+      'ais',
+      'cables',
+      'fires',
+      'outages',
+      'cyberThreats',
+      'weather',
+      'natural',
+    ],
+  },
   {
     id: 'crisis-desk',
     label: 'Crisis Desk',

@@ -5,6 +5,19 @@
  *
  * See: https://developer.mozilla.org/en-US/docs/Web/CSS/@layer
  */
+/*
+ * Layer order matters for `!important`, where the cascade REVERSES: an
+ * `!important` declaration in an EARLIER layer outranks a later one, and an
+ * unlayered `!important` loses to every layered one.
+ *
+ * `godseye-force` is therefore declared before `base` so the God's Eye stage
+ * can override main.css's `!important` map-section sizing (the mobile
+ * `height: calc(100dvh - 48px) !important` block). Only those few forced
+ * declarations live in that layer — the stage's ordinary styling stays
+ * unlayered in godseye-mode.css, where normal declarations win instead.
+ */
+@layer godseye-force, base;
+
 @import url('./main.css') layer(base);
 @import url('./header.css') layer(base);
 @import url('./country-deep-dive.css') layer(base);
@@ -17,3 +30,5 @@
 @import url('./brians-theme.css');
 @import url('./states.css');
 @import url('./chrome.css');
+@import url('./reader-mode.css');
+@import url('./godseye-mode.css');

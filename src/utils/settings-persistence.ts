@@ -30,6 +30,9 @@ const SETTINGS_KEY_PREFIXES: readonly string[] = [
   'map-pinned',
   'mobile-map-collapsed',
   'positive-threshold',
+  'jsam-view-mode',
+  'jsam-reader-analyst-open',
+  'jsam-everyday-seeded-v1',
 ];
 
 function isSettingsKey(key: string): boolean {

@@ -3011,6 +3011,12 @@ export class GlobeMap {
     return pov ? { lat: pov.lat, lon: pov.lng } : null;
   }
 
+  /** Camera altitude in Earth radii, as globe.gl reports it. */
+  public getViewAltitude(): number | null {
+    const pov = this.globe?.pointOfView();
+    return typeof pov?.altitude === 'number' ? pov.altitude : null;
+  }
+
   public getBbox(): string | null {
     if (!this.globe) return null;
     const pov = this.globe.pointOfView();

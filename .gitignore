@@ -91,3 +91,4 @@ docs/plans/
 docs/brainstorms/
 playground-pricing.html
 audit-shots/
+.env*

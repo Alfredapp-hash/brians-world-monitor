@@ -6,13 +6,16 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
     <!-- Primary Meta Tags -->
-    <title>JSA's Monitor - Geopolitics, Finance, Science & Archaeology</title>
-    <meta name="title" content="JSA's Monitor - Geopolitics, Finance, Science & Archaeology" />
-    <meta name="description" content="Personal real-time intelligence dashboard tracking world geopolitics, financial markets, scientific discoveries, and archaeology news from hundreds of sources — with local AI analysis." />
-    <meta name="keywords" content="global intelligence, geopolitical dashboard, world news, market data, financial markets, science discoveries, archaeology news, real-time monitoring, situation awareness, OSINT, local AI, Ollama" />
+    <title>JSA's Monitor — Today's world brief</title>
+    <meta name="title" content="JSA's Monitor — Today's world brief" />
+    <meta name="description" content="A clear daily brief on the stories that matter — who covered them, who stayed quiet, and how outlets frame the news. Deeper analysis when you want it." />
+    <meta name="keywords" content="world news brief, daily briefing, outlet framing, geopolitics, financial markets, science discoveries, archaeology news, real-time monitoring, OSINT, local AI, Ollama" />
     <meta name="author" content="Elie Habib" />
-    <meta name="theme-color" content="#0a0f0a" />
+    <meta name="theme-color" content="#0a0c10" />
     <meta name="robots" content="index, follow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,700&family=Outfit:wght@400;500;600&display=swap" />
     <link rel="canonical" href="https://brians-world-monitor.vercel.app/dashboard" />
     <link rel="alternate" hreflang="x-default" href="https://brians-world-monitor.vercel.app/dashboard" />
     <link rel="alternate" hreflang="en" href="https://brians-world-monitor.vercel.app/dashboard" />
@@ -43,8 +46,8 @@
 
     <!-- Additional Search Discovery -->
     <meta name="application-name" content="JSA's Monitor" />
-    <meta name="subject" content="Geopolitics, Finance, Science, and Archaeology Intelligence" />
-    <meta name="classification" content="AI Intelligence Dashboard, OSINT Tool, News Aggregator" />
+    <meta name="subject" content="Daily world brief, outlet framing, geopolitics, finance, science" />
+    <meta name="classification" content="News Briefing, OSINT Tool, News Aggregator" />
     <meta name="coverage" content="Worldwide" />
     <meta name="distribution" content="Global" />
     <meta name="rating" content="General" />
@@ -52,20 +55,20 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://brians-world-monitor.vercel.app/dashboard" />
-    <meta property="og:title" content="JSA's Monitor - Geopolitics, Finance, Science & Archaeology" />
-    <meta property="og:description" content="Personal real-time intelligence dashboard tracking world geopolitics, financial markets, scientific discoveries, and archaeology news from hundreds of sources — with local AI analysis." />
+    <meta property="og:title" content="JSA's Monitor — Today's world brief" />
+    <meta property="og:description" content="A clear daily brief on the stories that matter — who covered them, who stayed quiet, and how outlets frame the news." />
     <meta property="og:image" content="https://brians-world-monitor.vercel.app/favico/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="JSA's Monitor — real-time global intelligence dashboard with 3D globe, live markets, geopolitical data, and infrastructure monitoring" />
+    <meta property="og:image:alt" content="JSA's Monitor — today's world brief with live outlet framing and a 3D globe when you want the map" />
     <meta property="og:site_name" content="JSA's Monitor" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://brians-world-monitor.vercel.app/dashboard" />
-    <meta name="twitter:title" content="JSA's Monitor - Geopolitics, Finance, Science & Archaeology" />
-    <meta name="twitter:description" content="Personal real-time intelligence dashboard tracking world geopolitics, financial markets, scientific discoveries, and archaeology news from hundreds of sources — with local AI analysis." />
+    <meta name="twitter:title" content="JSA's Monitor — Today's world brief" />
+    <meta name="twitter:description" content="A clear daily brief on the stories that matter — who covered them, who stayed quiet, and how outlets frame the news." />
     <meta name="twitter:image" content="https://brians-world-monitor.vercel.app/favico/og-image.png" />
     <meta name="twitter:site" content="@JSAsmonitor" />
     <meta name="twitter:creator" content="@JSAsmonitor" />
@@ -192,7 +195,7 @@
          content — width:1px/height:1px or aria-hidden cause content-extraction
          libraries to discount the block, so we make it crawler-visible by
          default and CSS-hide for real users. -->
-    <script data-wm-prepaint>(function(){try{var h=location.hostname;var v;if(h.startsWith('happy.'))v='happy';else if(h.startsWith('tech.'))v='tech';else if(h.startsWith('finance.'))v='finance';else if(h.startsWith('commodity.'))v='commodity';else if(h.startsWith('energy.'))v='energy';if(!v&&(h==='localhost'||h==='127.0.0.1'||'__TAURI_INTERNALS__' in window))v=localStorage.getItem('worldmonitor-variant');if(v)document.documentElement.dataset.variant=v;else document.documentElement.removeAttribute('data-variant');var t=localStorage.getItem('worldmonitor-theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}else if(v==='happy'){document.documentElement.dataset.theme='light';}var mapCollapsed=localStorage.getItem('mobile-map-collapsed')==='true';if(mapCollapsed)document.documentElement.classList.add('wm-map-collapsed');var dismissKey='wm-pro-banner-launched-dismissed';var legacyDismissKey='wm-pro-banner-dismissed';localStorage.removeItem(legacyDismissKey);var ts=Number(localStorage.getItem(dismissKey)||0);var dismissed=ts>0&&Date.now()-ts<=604800000;if(ts>0&&!dismissed)localStorage.removeItem(dismissKey);if(window.self===window.top&&!dismissed)document.documentElement.classList.add('wm-pro-banner-reserved');}catch(e){}document.documentElement.classList.add('no-transition');document.documentElement.classList.add('js');})()</script>
+    <script data-wm-prepaint>(function(){try{var h=location.hostname;var v;if(h.startsWith('happy.'))v='happy';else if(h.startsWith('tech.'))v='tech';else if(h.startsWith('finance.'))v='finance';else if(h.startsWith('commodity.'))v='commodity';else if(h.startsWith('energy.'))v='energy';if(!v&&(h==='localhost'||h==='127.0.0.1'||'__TAURI_INTERNALS__' in window))v=localStorage.getItem('worldmonitor-variant');if(v)document.documentElement.dataset.variant=v;else document.documentElement.removeAttribute('data-variant');var t=localStorage.getItem('worldmonitor-theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}else if(v==='happy'){document.documentElement.dataset.theme='light';}var sp=new URLSearchParams(location.search).get('godseye');var sm=localStorage.getItem('jsam-stage-mode');var ge=sp==='1'||sp==='true'||(sp!=='0'&&sp!=='false'&&sm==='godseye');if(ge)document.documentElement.dataset.stageMode='godseye';var rm=localStorage.getItem('jsam-view-mode');if(rm==='everyday'||rm==='analyst'){document.documentElement.dataset.readerMode=rm;if(rm==='everyday')document.documentElement.classList.add('wm-map-collapsed');}else{var hasCustom=!!localStorage.getItem('panel-order')||!!localStorage.getItem('worldmonitor-mission-preset-v1');if(!hasCustom){document.documentElement.dataset.readerMode='everyday';document.documentElement.classList.add('wm-map-collapsed');}else{document.documentElement.dataset.readerMode='analyst';if(localStorage.getItem('mobile-map-collapsed')==='true'){document.documentElement.classList.add('wm-map-collapsed');}}}if(localStorage.getItem('jsam-reader-analyst-open')==='1')document.documentElement.classList.add('reader-analyst-open');var dismissKey='wm-pro-banner-launched-dismissed';var legacyDismissKey='wm-pro-banner-dismissed';localStorage.removeItem(legacyDismissKey);var ts=Number(localStorage.getItem(dismissKey)||0);var dismissed=ts>0&&Date.now()-ts<=604800000;if(ts>0&&!dismissed)localStorage.removeItem(dismissKey);if(window.self===window.top&&!dismissed)document.documentElement.classList.add('wm-pro-banner-reserved');}catch(e){}document.documentElement.classList.add('no-transition');document.documentElement.classList.add('js');})()</script>
     <style>html.js #seo-prerender{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden}</style>
 
     <!-- Critical CSS: inline skeleton visible before JS boots -->
@@ -345,6 +348,65 @@
       [data-variant="happy"][data-theme="dark"] .skeleton-panel-metric span{color:#B9C4B0}
       [data-variant="happy"][data-theme="dark"] .skeleton-line{background:linear-gradient(90deg,rgba(139,175,122,.05) 25%,rgba(139,175,122,.10) 50%,rgba(139,175,122,.05) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
 
+      /* ---------- Everyday reader boot skeleton (charcoal + amber) ---------- */
+      html[data-reader-mode="everyday"] .skeleton-shell{background:#0a0c10;font-family:'Outfit','Avenir Next','Segoe UI',sans-serif}
+      html[data-reader-mode="everyday"] .skeleton-header{background:rgba(10,12,16,.88);border-bottom-color:#1c2230;height:44px}
+      html[data-reader-mode="everyday"] .skeleton-brand{color:#f3efe6;font-family:Georgia,'Iowan Old Style',serif;font-weight:700;letter-spacing:-.02em}
+      html[data-reader-mode="everyday"] .skeleton-brand-mark{border-color:#f0a832;color:#f0a832}
+      html[data-reader-mode="everyday"] .skeleton-kicker{color:#9aa3b2}
+      html[data-reader-mode="everyday"] .skeleton-chip{color:#d7dde8;background:#12161e;border-color:#2a3140}
+      html[data-reader-mode="everyday"] .skeleton-chip.live{color:#f0a832;background:rgba(240,168,50,.1);border-color:rgba(240,168,50,.35)}
+      html[data-reader-mode="everyday"] .skeleton-dot{background:#f0a832}
+      html[data-reader-mode="everyday"] .skeleton-tabs{display:none}
+      html[data-reader-mode="everyday"] .skeleton-main{background:#0a0c10}
+      html[data-reader-mode="everyday"] .skeleton-map{height:auto;min-height:0;border:0;border-bottom:1px solid #1c2230;background:radial-gradient(120% 80% at 12% 0%,rgba(240,168,50,.16),transparent 55%),linear-gradient(165deg,#0c1018 0%,#121824 42%,#0a0c10 100%)}
+      html[data-reader-mode="everyday"] .skeleton-map-bar{display:none}
+      html[data-reader-mode="everyday"] .skeleton-map-body{min-height:clamp(11rem,28vh,16rem);padding:clamp(1.25rem,3vw,2.25rem) clamp(1.1rem,3vw,2.5rem)}
+      html[data-reader-mode="everyday"] .skeleton-map-body::after{display:none}
+      html[data-reader-mode="everyday"] .skeleton-map-content{max-width:40rem;margin:0;padding:0;border:0;background:transparent;box-shadow:none;gap:12px}
+      html[data-reader-mode="everyday"] .skeleton-map-eyebrow{color:#f0a832;font-family:Georgia,'Iowan Old Style',serif;font-size:clamp(1.45rem,3.2vw,2.2rem);font-weight:700;letter-spacing:-.02em}
+      html[data-reader-mode="everyday"] .skeleton-map-title{color:#f3efe6;font-family:Georgia,'Iowan Old Style',serif;font-size:clamp(1.15rem,2.4vw,1.65rem);font-weight:560;min-height:2.4em}
+      html[data-reader-mode="everyday"] .skeleton-map-copy{color:#9aa3b2;font-size:1rem;max-width:36ch}
+      html[data-reader-mode="everyday"] .skeleton-map-badges{gap:8px}
+      html[data-reader-mode="everyday"] .skeleton-map-badges .skeleton-chip{min-height:2.1rem;border-radius:8px}
+      html[data-reader-mode="everyday"] .skeleton-grid{grid-template-columns:1fr;padding:16px;gap:12px}
+      html[data-reader-mode="everyday"] .skeleton-panel{background:#12161e;border-color:#1c2230;border-radius:8px;min-height:140px}
+      html[data-reader-mode="everyday"] .skeleton-panel:first-child{grid-column:span 1;grid-row:span 1;min-height:180px}
+      html[data-reader-mode="everyday"] .skeleton-panel:nth-child(n+3){display:none}
+      html[data-reader-mode="everyday"] .skeleton-panel-header{border-bottom-color:#1a2029}
+      html[data-reader-mode="everyday"] .skeleton-panel-title{color:#f3efe6;font-family:Georgia,'Iowan Old Style',serif}
+      html[data-reader-mode="everyday"] .skeleton-panel-kicker{color:#f0a832}
+      html[data-reader-mode="everyday"] .skeleton-panel-copy{color:#9aa3b2}
+      html[data-reader-mode="everyday"] .skeleton-line{background:linear-gradient(90deg,rgba(240,168,50,.06) 25%,rgba(240,168,50,.14) 50%,rgba(240,168,50,.06) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
+      /* Collapsed-map FOUC: Everyday peek strip under hero, not a blank bar */
+      html[data-reader-mode="everyday"].wm-map-collapsed .skeleton-map{height:auto;min-height:0}
+      html[data-reader-mode="everyday"].wm-map-collapsed .skeleton-map-body{display:block;min-height:clamp(11rem,28vh,16rem)}
+
+      /* Happy + Everyday: cream palette — do not inherit charcoal hero skeleton */
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-shell,
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-main{background:#FAFAF5}
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-header{background:rgba(250,250,245,.92);border-bottom-color:#DDD9CF}
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-brand,
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-map-title,
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-panel-title{color:#2D3A2E}
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-brand-mark,
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-map-eyebrow,
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-panel-kicker,
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-dot{color:#3D4A3E;border-color:#3D4A3E;background:#3D4A3E}
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-kicker,
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-map-copy,
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-panel-copy{color:#4A5A4C}
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-map{border-bottom-color:#DDD9CF;background:radial-gradient(120% 80% at 12% 0%,rgba(61,74,62,.12),transparent 55%),linear-gradient(165deg,#F5F3EE 0%,#FFFFFF 42%,#FAFAF5 100%)}
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-panel{background:#FFFFFF;border-color:#DDD9CF}
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-chip{color:#2D3A2E;background:#F5F2EC;border-color:#C8C2B5}
+      html[data-variant="happy"][data-reader-mode="everyday"] .skeleton-chip.live{color:#3D4A3E;background:rgba(61,74,62,.08);border-color:rgba(61,74,62,.35)}
+
+      /* Analyst / unset: denser product skeleton — never flash Everyday “today’s brief” copy */
+      html:not([data-reader-mode="everyday"]) .shell-copy--everyday{display:none!important}
+      html[data-reader-mode="everyday"] .shell-copy--analyst{display:none!important}
+      html:not([data-reader-mode="everyday"]) .skeleton-chip.shell-mode-chip--everyday{display:none!important}
+      html[data-reader-mode="everyday"] .skeleton-chip.shell-mode-chip--analyst{display:none!important}
+
       @media (max-width:768px){
         .skeleton-header{height:40px;padding:6px 10px;gap:8px}
         .skeleton-header-left,.skeleton-header-right{gap:8px;min-width:0}
@@ -377,6 +439,38 @@
         .skeleton-panel:first-child{grid-column:span 1;grid-row:span 1;min-height:var(--dashboard-panel-row-min)}
         .skeleton-panel:nth-child(n+5){display:none}
       }
+
+      /* ---------- God's Eye stage skeleton ----------
+         The stage's first frame must already be the stage. The pre-paint script
+         above sets data-stage-mode before this stylesheet applies, so restaging
+         the skeleton here is what stops a dashboard (header, tabs, hero card,
+         panel grid) from flashing for a beat before the globe takes over.
+         What survives is a dark field plus the titlecard — the same corner, type
+         and palette the real HUD lands in, so hydration is a cross-fade rather
+         than a re-layout.
+         Placed AFTER the max-width:768px block on purpose: the collapsed-map
+         rules there (`html.wm-map-collapsed .skeleton-map`) carry the same
+         specificity as these, so source order is what settles it. */
+      html[data-stage-mode="godseye"] .skeleton-shell,
+      html[data-stage-mode="godseye"] .skeleton-main{background:#04070b}
+      html[data-stage-mode="godseye"] .skeleton-shell{font-family:'SF Mono','Monaco','Cascadia Code','Fira Code','DejaVu Sans Mono','Liberation Mono',monospace}
+      html[data-stage-mode="godseye"] .skeleton-header,
+      html[data-stage-mode="godseye"] .skeleton-tabs,
+      html[data-stage-mode="godseye"] .skeleton-map-bar,
+      html[data-stage-mode="godseye"] .skeleton-map-title,
+      html[data-stage-mode="godseye"] .skeleton-map-copy,
+      html[data-stage-mode="godseye"] .skeleton-map-badges,
+      html[data-stage-mode="godseye"] .skeleton-grid{display:none!important}
+      /* One full-bleed field: the faint centre lift stands in for the globe that
+         is about to occupy exactly that spot. */
+      html[data-stage-mode="godseye"] .skeleton-map{flex:1;height:auto;min-height:0;max-height:none;border:0;border-radius:0;background:radial-gradient(115% 95% at 50% 48%,#0b1724 0%,#04070b 68%)}
+      html[data-stage-mode="godseye"] .skeleton-map-body{display:block;min-height:0;padding:clamp(0.85rem,2vw,1.6rem)}
+      html[data-stage-mode="godseye"] .skeleton-map-body::after{display:none}
+      html[data-stage-mode="godseye"] .skeleton-map-content{max-width:none;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;gap:4px}
+      /* Mirrors .godseye-hud__classification so the strip does not move on swap. */
+      html[data-stage-mode="godseye"] .skeleton-map-content::before{content:'Open sources · global';color:rgba(127,212,232,.55);font-size:.58rem;font-weight:600;letter-spacing:.28em;text-transform:uppercase}
+      /* Mirrors .godseye-hud__title. */
+      html[data-stage-mode="godseye"] .skeleton-map-eyebrow{color:#eaf6fa;font-size:clamp(.95rem,1.7vw,1.3rem);font-weight:700;letter-spacing:.22em;text-transform:uppercase;text-shadow:0 0 14px rgba(127,212,232,.35)}
     </style>
 
     <!-- API calls are same-origin on this fork's deployment (runtime.ts's
@@ -391,7 +485,7 @@
     <!-- Variant/locale fonts are narrowed and loaded after the dashboard paints. -->
   </head>
   <body>
-    <h1 class="app-heading">JSA's Monitor — Real-Time Global Intelligence Dashboard</h1>
+    <h1 class="app-heading">JSA's Monitor — Today's world brief</h1>
     <!--
       Canonical English crawler content. The SPA is multilingual (25 locales) but
       this prerender block is the indexable surface — language-specific content
@@ -432,17 +526,18 @@
     <script>(function(){try{var s=document.getElementById('seo-prerender');if(s){s.setAttribute('aria-hidden','true');s.setAttribute('inert','')}}catch(e){}})()</script>
     <div id="app">
       <!-- Pre-render skeleton: visible instantly, replaced when JS calls renderLayout() -->
-      <div class="skeleton-shell" aria-busy="true" aria-label="JSA's Monitor dashboard loading">
+      <div class="skeleton-shell" aria-busy="true" aria-label="JSA's Monitor loading">
         <div class="skeleton-header">
           <div class="skeleton-header-left">
-            <div class="skeleton-brand"><span class="skeleton-brand-mark" aria-hidden="true">W</span><span>JSA's Monitor</span></div>
-            <span class="skeleton-kicker">Dashboard shell loading</span>
+            <div class="skeleton-brand"><span class="skeleton-brand-mark" aria-hidden="true">J</span><span>JSA's Monitor</span></div>
+            <span class="skeleton-kicker shell-copy--everyday">Today’s brief loading</span>
+            <span class="skeleton-kicker shell-copy--analyst">Dashboard loading</span>
             <span class="skeleton-dot" aria-hidden="true"></span>
           </div>
           <div class="skeleton-header-right">
-            <span class="skeleton-chip">Global</span>
+            <span class="skeleton-chip shell-mode-chip--everyday">Everyday</span>
+            <span class="skeleton-chip shell-mode-chip--analyst">Analyst</span>
             <span class="skeleton-chip live">Live</span>
-            <span class="skeleton-chip">Loading</span>
           </div>
         </div>
         <div class="skeleton-tabs" aria-hidden="true"></div>
@@ -454,20 +549,29 @@
             </div>
             <div class="skeleton-map-body">
               <div class="skeleton-map-content">
-                <p class="skeleton-map-eyebrow">Preparing dashboard</p>
-                <h2 class="skeleton-map-title skeleton-lcp-copy" data-shell-lcp>Dashboard is loading</h2>
-                <p class="skeleton-map-copy">Map layers, panels, alerts, and analysis will appear here as soon as the app finishes loading.</p>
-                <div class="skeleton-map-badges">
+                <p class="skeleton-map-eyebrow skeleton-lcp-copy" data-shell-lcp>JSA's Monitor</p>
+                <h2 class="skeleton-map-title shell-copy--everyday">Loading the top story…</h2>
+                <h2 class="skeleton-map-title shell-copy--analyst">Loading live dashboard…</h2>
+                <p class="skeleton-map-copy shell-copy--everyday">A plain-language look at what matters right now — deeper analysis stays one click away.</p>
+                <p class="skeleton-map-copy shell-copy--analyst">Map, panels, and signal feeds hydrate here — full analyst chrome when ready.</p>
+                <div class="skeleton-map-badges shell-copy--everyday">
+                  <span class="skeleton-chip">Read story</span>
+                  <span class="skeleton-chip">How outlets frame this</span>
+                  <span class="skeleton-chip">Show map</span>
+                </div>
+                <div class="skeleton-map-badges shell-copy--analyst">
                   <span class="skeleton-chip">Map</span>
                   <span class="skeleton-chip">Panels</span>
-                  <span class="skeleton-chip">Alerts</span>
-                  <span class="skeleton-chip">Analysis</span>
+                  <span class="skeleton-chip">Layers</span>
                 </div>
               </div>
             </div>
           </div>
           <div class="skeleton-grid">
-            <section class="skeleton-panel" aria-label="Primary view loading"><div class="skeleton-panel-header"><h3 class="skeleton-panel-title">Primary View</h3></div><div class="skeleton-panel-body"><p class="skeleton-panel-kicker">Preparing workspace</p><p class="skeleton-panel-copy">The live workspace is reserving space for the map, panels, and current signals.</p><div aria-hidden="true" class="skeleton-line w75"></div><div aria-hidden="true" class="skeleton-line w50"></div></div></section>
+            <section class="skeleton-panel shell-copy--everyday" aria-label="Today's brief loading"><div class="skeleton-panel-header"><h3 class="skeleton-panel-title">Today's brief</h3></div><div class="skeleton-panel-body"><p class="skeleton-panel-kicker">Warming up</p><p class="skeleton-panel-copy">Headlines and the world brief will appear here as feeds arrive.</p><div aria-hidden="true" class="skeleton-line w75"></div><div aria-hidden="true" class="skeleton-line w50"></div></div></section>
+            <section class="skeleton-panel shell-copy--everyday" aria-label="Top stories loading"><div class="skeleton-panel-header"><h3 class="skeleton-panel-title">Top stories</h3></div><div class="skeleton-panel-body"><p class="skeleton-panel-kicker">Preparing headlines</p><p class="skeleton-panel-copy">The day’s most-covered stories reserve this space.</p><div aria-hidden="true" class="skeleton-line w75"></div><div aria-hidden="true" class="skeleton-line w60"></div><div aria-hidden="true" class="skeleton-line w40"></div></div></section>
+            <section class="skeleton-panel shell-copy--analyst" aria-label="Insights loading"><div class="skeleton-panel-header"><h3 class="skeleton-panel-title">Insights</h3></div><div class="skeleton-panel-body"><p class="skeleton-panel-kicker">Warming up</p><p class="skeleton-panel-copy">Multi-source clusters and briefs reserve this slot.</p><div aria-hidden="true" class="skeleton-line w75"></div><div aria-hidden="true" class="skeleton-line w50"></div></div></section>
+            <section class="skeleton-panel shell-copy--analyst" aria-label="News feeds loading"><div class="skeleton-panel-header"><h3 class="skeleton-panel-title">News Feeds</h3></div><div class="skeleton-panel-body"><p class="skeleton-panel-kicker">Preparing headlines</p><p class="skeleton-panel-copy">Live feeds and signal panels keep their dashboard slots stable.</p><div aria-hidden="true" class="skeleton-line w75"></div><div aria-hidden="true" class="skeleton-line w60"></div><div aria-hidden="true" class="skeleton-line w40"></div></div></section>
             <section class="skeleton-panel" aria-label="Map layers loading"><div class="skeleton-panel-header"><h3 class="skeleton-panel-title">Map Layers</h3></div><div class="skeleton-panel-body"><p class="skeleton-panel-kicker">Preparing overlays</p><p class="skeleton-panel-copy">Geographic overlays and layer controls will hydrate into this reserved area.</p><div aria-hidden="true" class="skeleton-line w75"></div><div aria-hidden="true" class="skeleton-line w60"></div><div aria-hidden="true" class="skeleton-line w40"></div></div></section>
             <section class="skeleton-panel" aria-label="Signal panels loading"><div class="skeleton-panel-header"><h3 class="skeleton-panel-title">Signal Panels</h3></div><div class="skeleton-panel-body"><p class="skeleton-panel-kicker">Preparing data</p><p class="skeleton-panel-copy">Panel data and summaries will populate after the dashboard bundle starts.</p><div aria-hidden="true" class="skeleton-line"></div><div aria-hidden="true" class="skeleton-line w60"></div><div aria-hidden="true" class="skeleton-line w85"></div></div></section>
             <section class="skeleton-panel" aria-label="Context loading"><div class="skeleton-panel-header"><h3 class="skeleton-panel-title">Context</h3></div><div class="skeleton-panel-body"><p class="skeleton-panel-kicker">Preparing context</p><p class="skeleton-panel-copy">Supporting context cards keep their final dashboard slots stable.</p><div aria-hidden="true" class="skeleton-line w60"></div><div aria-hidden="true" class="skeleton-line w85"></div><div aria-hidden="true" class="skeleton-line w75"></div></div></section>

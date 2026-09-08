@@ -1,0 +1,861 @@
+/**
+ * God's Eye — globe-first stage chrome.
+ *
+ * Everyday and analyst both compose a dashboard: header, map section, panel
+ * grid, footer. This stage keeps that DOM entirely intact and restages it —
+ * the map section is promoted to a full-bleed backdrop, the panel grid becomes
+ * a translucent rail floating over it, and the surrounding chrome recedes to a
+ * film-title HUD.
+ *
+ * Nothing here is `display: none` on a data surface. Panels, layers, feeds and
+ * the reader-mode machinery all keep running; only their composition changes,
+ * so leaving the stage needs no rehydration of anything but layout.
+ *
+ * Scoped entirely under `html[data-stage-mode='godseye']`, so a reader who
+ * never engages the stage cannot be affected by a rule in this file.
+ */
+
+html[data-stage-mode='godseye'] {
+  /* Cyan is the instrument hue — deliberately NOT the brand amber, which stays
+     reserved for the reader surfaces so the two never read as the same mode. */
+  --ge-hud: #7fd4e8;
+  --ge-hud-dim: rgb(127 212 232 / 55%);
+  --ge-hud-faint: rgb(127 212 232 / 18%);
+  --ge-hud-glow: rgb(127 212 232 / 35%);
+  --ge-stage-ink: #eaf6fa;
+  --ge-rail-bg: rgb(6 10 16 / 72%);
+  --ge-rail-border: rgb(127 212 232 / 14%);
+  --ge-mono: 'SF Mono', 'Monaco', 'Cascadia Code', 'Fira Code', 'DejaVu Sans Mono', monospace;
+  --ge-rail-w: clamp(19rem, 26vw, 25rem);
+  --ge-hud-inset: clamp(0.85rem, 2vw, 1.6rem);
+  /* Width the renderer's bottom-right quick controls occupy, so HUD corners can
+     be told to stay out of them. */
+  --ge-qc-gutter: 7rem;
+  background: #04070b;
+}
+
+/* The stage is a single viewport composition, so the shell must not scroll as
+   a document — the panel rail owns its own overflow instead. */
+html[data-stage-mode='godseye'] .main-content {
+  position: relative;
+  overflow: hidden !important;
+  background: #04070b;
+}
+
+/* ---- The globe becomes the stage ---------------------------------------- */
+
+/*
+ * The map's box sizing is the one thing main.css pins with `!important` (the
+ * mobile `.map-section` height block), and a layered `!important` beats an
+ * unlayered one. These declarations therefore live in `godseye-force`, a layer
+ * base-layer.css declares BEFORE `base` so it wins the reversed
+ * `!important` cascade. Nothing else belongs here — normal declarations in
+ * this layer are WEAKER than main.css's, which is the opposite of what the
+ * rest of this file needs.
+ */
+@layer godseye-force {
+  html[data-stage-mode='godseye'] .map-section {
+    position: absolute !important;
+    inset: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  /* Everyday leaves the map collapsed to a peek strip; the stage needs it
+     whole, and that collapse is also declared `!important`. */
+  html[data-stage-mode='godseye'] .main-content .map-section.collapsed {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+}
+
+html[data-stage-mode='godseye'] .map-section {
+  z-index: 0;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+/* Neutralise the desktop-app grid so the stage is one absolute canvas rather
+   than a two-column layout with an absolutely-positioned child in column 1. */
+html[data-stage-mode='godseye'] .main-content.desktop-grid {
+  display: block;
+}
+
+/* The map's own panel header is dashboard furniture. The HUD replaces it, and
+   the 2D/3D + fullscreen controls it carried are re-exposed on the HUD rail. */
+html[data-stage-mode='godseye'] .map-section > .panel-header,
+html[data-stage-mode='godseye'] .map-resize-handle,
+html[data-stage-mode='godseye'] .map-width-resize-handle,
+html[data-stage-mode='godseye'] .map-bottom-grid {
+  display: none !important;
+}
+
+html[data-stage-mode='godseye'] .map-section .map-container {
+  position: absolute;
+  inset: 0;
+}
+
+/* Cinematic falloff. A vignette plus a faint top scrim keeps HUD text legible
+   over bright ocean texture without dimming the globe's centre. */
+html[data-stage-mode='godseye'] .main-content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(130% 110% at 50% 48%, transparent 38%, rgb(2 5 9 / 62%) 100%),
+    linear-gradient(to bottom, rgb(2 5 9 / 55%) 0%, transparent 22%);
+}
+
+@media (prefers-contrast: more) {
+  html[data-stage-mode='godseye'] .main-content::after {
+    background:
+      radial-gradient(130% 110% at 50% 48%, transparent 24%, rgb(2 5 9 / 82%) 100%),
+      linear-gradient(to bottom, rgb(2 5 9 / 78%) 0%, transparent 26%);
+  }
+}
+
+/* ---- Panels: a rail over the world, not a grid beside it ---------------- */
+
+html[data-stage-mode='godseye'] .panels-grid {
+  position: absolute;
+  inset-block: calc(var(--ge-hud-inset) + 3.4rem) calc(var(--ge-hud-inset) + 2.6rem);
+  inset-inline-end: var(--ge-hud-inset);
+  z-index: 4;
+  width: var(--ge-rail-w);
+  display: flex !important;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0;
+  /* main.css shifts the grid down by `--breaking-alert-offset` to make room for
+     the fixed breaking-news bar. This rail is absolutely positioned and the bar
+     is restaged out of its way below, so that offset would only push the rail
+     off the bottom edge of the stage. */
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  /* A default scrollbar is a bright vertical rule down the middle of the
+     composition; the rail's own edge fade already signals more content. */
+  scrollbar-color: var(--ge-hud-faint) transparent;
+  /* Fade the rail into the stage at both ends so panels appear to surface out
+     of the atmosphere rather than butting against a hard edge. */
+  mask-image: linear-gradient(to bottom, transparent 0, #000 1.5rem, #000 calc(100% - 1.5rem), transparent 100%);
+}
+
+/* Rail hidden: the globe alone, for a clean look or a screen capture. The
+   HUD's bottom-right corner reclaims the space the rail was holding.
+   It leaves toward its own edge rather than dissolving in place, so the
+   collapse reads as the rail stepping off the stage. */
+html[data-stage-mode='godseye'] .panels-grid {
+  transition: opacity 180ms ease, translate 180ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+html[data-stage-mode='godseye'].ge-rail-hidden .panels-grid {
+  opacity: 0;
+  translate: 0.9rem 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* With the rail gone the status board reclaims the space — but only as far as
+   the renderer's own quick controls (quality/texture/auto-rotate), which keep
+   the true bottom-right corner. Sliding all the way to the edge parked the
+   readout directly on top of them. */
+html[data-stage-mode='godseye'].ge-rail-hidden .godseye-hud__corner--br {
+  inset-inline-end: calc(var(--ge-hud-inset) + var(--ge-qc-gutter));
+}
+
+html[data-stage-mode='godseye'] .panels-grid > * {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: 24rem;
+}
+
+html[data-stage-mode='godseye'] .panels-grid .panel,
+html[data-stage-mode='godseye'] .panels-grid > section {
+  border: 1px solid var(--ge-rail-border);
+  border-radius: 10px;
+  background: var(--ge-rail-bg);
+  backdrop-filter: blur(14px) saturate(120%);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+}
+
+/* Rail panels are secondary to the globe until touched. */
+html[data-stage-mode='godseye'] .panels-grid .panel {
+  opacity: 0.72;
+  transition: opacity 160ms ease, border-color 160ms ease;
+}
+
+html[data-stage-mode='godseye'] .panels-grid .panel:hover,
+html[data-stage-mode='godseye'] .panels-grid .panel:focus-within {
+  opacity: 1;
+  border-color: var(--ge-hud-dim);
+}
+
+html[data-stage-mode='godseye'] .panels-grid .panel-header {
+  background: transparent;
+  border-bottom-color: var(--ge-rail-border);
+}
+
+html[data-stage-mode='godseye'] .panels-grid .panel-title {
+  font-family: var(--ge-mono);
+  font-size: 0.63rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-hud);
+}
+
+/* The buttons that DO something a rail reader still wants — mute a webcam,
+   open a methodology note — stay, but drop to the rail's ink so a row of them
+   does not read as a dashboard toolbar under every title. */
+html[data-stage-mode='godseye'] .panels-grid .panel-header button,
+html[data-stage-mode='godseye'] .panels-grid .panel-header .icon-btn {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ge-hud-dim);
+}
+
+html[data-stage-mode='godseye'] .panels-grid .panel-header button:hover,
+html[data-stage-mode='godseye'] .panels-grid .panel-header .icon-btn:hover {
+  color: var(--ge-hud);
+}
+
+/* The rail is a curated read, not a workspace: layout affordances that only
+   make sense in a grid would strand the reader with no drop target.
+ *
+ * Panel.ts gives every panel a row handle, a column handle, and collapse/close
+ * buttons. In a single-column rail a row resize fights `max-height`, a column
+ * resize has no column to take, and closing a panel leaves a gap the reader
+ * cannot refill without leaving the stage — so the affordances go and the
+ * title stays. Restored intact on exit, since none of this touches state. */
+html[data-stage-mode='godseye'] .add-panel-block,
+html[data-stage-mode='godseye'] .panels-grid .panel-drag-handle,
+html[data-stage-mode='godseye'] .panels-grid .panel-resize-handle,
+html[data-stage-mode='godseye'] .panels-grid .panel-col-resize-handle,
+html[data-stage-mode='godseye'] .panels-grid .panel-collapse-btn,
+html[data-stage-mode='godseye'] .panels-grid .panel-close-btn,
+html[data-stage-mode='godseye'] .pro-upsell-block,
+html[data-stage-mode='godseye'] .mcp-block {
+  display: none !important;
+}
+
+/* ---- Renderer controls: off the HUD's corner --------------------------- */
+
+/*
+ * The map's own control stack (BETA badge + zoom) is anchored top-right at
+ * `z-index: 500`, which is the one corner the stage cannot spare: it drew
+ * straight over the Exit control and clipped the top of the panel rail. The
+ * left edge is the only quiet gutter in the composition — the HUD keeps a
+ * titlecard above it and a camera readout below it, nothing between — so the
+ * stack moves there and reads as an instrument on the frame.
+ */
+html[data-stage-mode='godseye'] .map-section .map-controls {
+  inset-block-start: 50%;
+  inset-inline-start: var(--ge-hud-inset);
+  inset-inline-end: auto;
+  translate: 0 -50%;
+  z-index: 2;
+}
+
+html[data-stage-mode='godseye'] .map-section .globe-beta-badge {
+  border-color: var(--ge-hud-faint);
+  background: rgb(6 10 16 / 70%);
+  color: var(--ge-hud-dim);
+  font-family: var(--ge-mono);
+  letter-spacing: 0.16em;
+}
+
+html[data-stage-mode='godseye'] .map-section .zoom-controls button {
+  border-color: var(--ge-hud-faint);
+  background: rgb(6 10 16 / 70%);
+  color: var(--ge-hud-dim);
+}
+
+html[data-stage-mode='godseye'] .map-section .zoom-controls button:hover {
+  border-color: var(--ge-hud-dim);
+  color: var(--ge-hud);
+}
+
+/* The quick controls (render quality, texture, auto-rotate) stay bottom-right
+   in the gutter under the rail — they are genuinely stage controls. They only
+   need the stage's palette: the active auto-rotate state ships in brand amber,
+   which this file reserves for the reader surfaces, so it was the one warm
+   thing in an otherwise cyan instrument. */
+html[data-stage-mode='godseye'] .globe-quick-controls .globe-quality-badge,
+html[data-stage-mode='godseye'] .globe-quick-controls .globe-qc-btn {
+  border-color: var(--ge-hud-faint);
+  background: rgb(6 10 16 / 70%);
+  color: var(--ge-hud-dim);
+}
+
+html[data-stage-mode='godseye'] .globe-quick-controls .globe-qc-btn:hover {
+  border-color: var(--ge-hud-dim);
+  color: var(--ge-hud);
+}
+
+html[data-stage-mode='godseye'] .globe-quick-controls .globe-qc-btn.active {
+  border-color: var(--ge-hud-dim);
+  background: rgb(12 22 30 / 88%);
+  color: var(--ge-hud);
+}
+
+/* Required source attribution stays; it just stops competing for attention. */
+html[data-stage-mode='godseye'] .map-attribution {
+  opacity: 0.45;
+}
+
+/* ---- Breaking news: an instrument alert, not a marquee ----------------- */
+
+/*
+ * The alert stays — it is the one interruption a global monitor has earned the
+ * right to make. It just cannot arrive as a full-bleed coloured bar pinned at
+ * `top: 50px`, which was measured against a header the stage no longer has: it
+ * landed directly across the HUD titlecard.
+ *
+ * Restaged to hang under the titlecard, spanning the globe column only, so it
+ * never crosses the rail or either bottom corner.
+ */
+html[data-stage-mode='godseye'] .breaking-news-container {
+  inset-block-start: calc(var(--ge-hud-inset) + 4.75rem);
+  inset-inline: var(--ge-hud-inset) calc(var(--ge-hud-inset) + var(--ge-rail-w) + 0.75rem);
+  z-index: 4;
+  gap: 0.4rem;
+}
+
+html[data-stage-mode='godseye'].ge-rail-hidden .breaking-news-container {
+  inset-inline-end: var(--ge-hud-inset);
+}
+
+/* Severity keeps carrying the meaning, but as a bar down the leading edge
+   rather than a saturated wash across the whole strip — the gradient fills
+   ship in main.css are what made an alert read as advertising over the globe. */
+html[data-stage-mode='godseye'] .breaking-alert {
+  border: 1px solid var(--ge-rail-border);
+  border-radius: 8px;
+  background: rgb(6 10 16 / 80%) !important;
+  backdrop-filter: blur(12px) saturate(120%);
+  box-shadow: 0 14px 40px rgb(0 0 0 / 45%);
+  font-family: var(--ge-mono);
+  font-size: 0.7rem;
+}
+
+html[data-stage-mode='godseye'] .breaking-alert.severity-high {
+  border-inline-start: 3px solid var(--semantic-high, #c2410c);
+}
+
+html[data-stage-mode='godseye'] .breaking-alert.severity-critical {
+  border-inline-start: 3px solid var(--semantic-critical, #dc143c);
+}
+
+/* ---- Chrome reduction --------------------------------------------------- */
+
+/*
+ * The dashboard header goes away entirely.
+ *
+ * Every item it carries is either restated by the HUD (brand, live status) or
+ * meaningless inside a single-view stage (variant switcher, region select,
+ * mission preset, the Everyday/Analyst toggle — reader mode is snapshotted and
+ * forced to analyst for the duration, so offering the toggle here would show a
+ * control that cannot mean what it says). Exit is one keystroke away, so the
+ * account-level controls are not stranded, and `.main-content` is `flex: 1`, so
+ * removing a 40px header from the flow is what finally lets the globe fill the
+ * frame top to bottom.
+ *
+ * NB: this element's class is `.header`. An earlier pass targeted
+ * `.app-header`, which does not exist in this DOM, so the stage shipped with a
+ * full dashboard toolbar across its top edge.
+ */
+html[data-stage-mode='godseye'] .header,
+html[data-stage-mode='godseye'] .community-widget,
+html[data-stage-mode='godseye'] .dashboard-tabs-mount,
+/* The narrow-viewport counterparts of the chrome above. `.mobile-panel-nav` is
+   the panel-category tab strip; it is sticky at `z-index: 60`, so it painted
+   over the whole top HUD band — titlecard, Panels and Exit included. On a phone
+   there is no Esc key, so that strip was the difference between a temporary
+   stage and a trap. The search FAB is a 56px filled circle over the rail. */
+html[data-stage-mode='godseye'] .mobile-panel-nav,
+html[data-stage-mode='godseye'] .search-mobile-fab,
+html[data-stage-mode='godseye'] .site-footer,
+html[data-stage-mode='godseye'] .reader-hero,
+html[data-stage-mode='godseye'] .reader-disclose,
+html[data-stage-mode='godseye'] .reader-brief-done,
+html[data-stage-mode='godseye'] .reader-mode-everyday-only {
+  display: none !important;
+}
+
+/* ---- HUD overlay -------------------------------------------------------- */
+
+.godseye-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  font-family: var(--ge-mono);
+  color: var(--ge-hud);
+  opacity: 0;
+  /* Short enough to feel like an instrument powering on rather than a page
+     fading in — a HUD that takes half a second to arrive makes the whole stage
+     feel slow, and the globe is already on screen behind it. */
+  transition: opacity 240ms ease;
+}
+
+html[data-stage-mode='godseye'] .godseye-hud.is-live {
+  opacity: 1;
+}
+
+.godseye-hud__corner {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  text-shadow: 0 0 6px var(--ge-hud-glow);
+  transition: translate 320ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Each corner settles in from its OWN edge, so the four arrive outward-in and
+   the composition reads as brackets closing on the Earth. Declared on the
+   not-live state so the settled position needs no counter-rule. */
+.godseye-hud:not(.is-live) .godseye-hud__corner--tl { translate: -0.5rem -0.5rem; }
+.godseye-hud:not(.is-live) .godseye-hud__corner--bl { translate: -0.5rem 0.5rem; }
+.godseye-hud:not(.is-live) .godseye-hud__corner--br { translate: 0.5rem 0.5rem; }
+
+.godseye-hud__corner--tl {
+  inset-block-start: var(--ge-hud-inset);
+  inset-inline-start: var(--ge-hud-inset);
+}
+
+.godseye-hud__corner--bl {
+  inset-block-end: var(--ge-hud-inset);
+  inset-inline-start: var(--ge-hud-inset);
+}
+
+.godseye-hud__corner--br {
+  inset-block-end: var(--ge-hud-inset);
+  inset-inline-end: calc(var(--ge-hud-inset) + var(--ge-rail-w) + 0.75rem);
+  text-align: end;
+  flex-direction: row-reverse;
+}
+
+/* Film-title corner brackets: drawn with borders so they scale with the box
+   and never need a glyph font. */
+.godseye-hud__bracket {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  margin-block-start: 0.15rem;
+  opacity: 0.7;
+}
+
+.godseye-hud__corner--tl .godseye-hud__bracket {
+  border-block-start: 1px solid currentcolor;
+  border-inline-start: 1px solid currentcolor;
+}
+
+.godseye-hud__corner--bl .godseye-hud__bracket {
+  border-block-end: 1px solid currentcolor;
+  border-inline-start: 1px solid currentcolor;
+  align-self: flex-end;
+}
+
+.godseye-hud__corner--br .godseye-hud__bracket {
+  border-block-end: 1px solid currentcolor;
+  border-inline-end: 1px solid currentcolor;
+  align-self: flex-end;
+}
+
+.godseye-hud__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.godseye-hud__classification {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ge-hud-dim);
+}
+
+.godseye-hud__title {
+  margin: 0;
+  font-size: clamp(0.95rem, 1.7vw, 1.3rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ge-stage-ink);
+  text-shadow: 0 0 14px var(--ge-hud-glow);
+}
+
+.godseye-hud__readout {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ge-hud);
+}
+
+.godseye-hud__label {
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ge-hud-dim);
+}
+
+/* Live indicator: a slow instrument pulse, not a notification blink. */
+.godseye-hud__pulse {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-inline-end: 0.35rem;
+  border-radius: 50%;
+  background: var(--ge-hud);
+  box-shadow: 0 0 8px var(--ge-hud);
+  animation: ge-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes ge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.32; }
+}
+
+/* ---- HUD control rail (top-right, above the panel rail) ----------------- */
+
+.godseye-hud__controls {
+  position: absolute;
+  inset-block-start: var(--ge-hud-inset);
+  inset-inline-end: var(--ge-hud-inset);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  pointer-events: auto;
+}
+
+.godseye-hud__btn {
+  appearance: none;
+  min-height: 2rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--ge-hud-faint);
+  border-radius: 6px;
+  background: rgb(6 10 16 / 78%);
+  backdrop-filter: blur(8px);
+  color: var(--ge-hud);
+  font-family: var(--ge-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.godseye-hud__btn:hover {
+  color: var(--ge-stage-ink);
+  border-color: var(--ge-hud-dim);
+  background: rgb(12 22 30 / 88%);
+}
+
+.godseye-hud__btn:focus-visible {
+  outline: 2px solid var(--ge-hud);
+  outline-offset: 2px;
+}
+
+.godseye-hud__btn--exit {
+  color: var(--ge-stage-ink);
+  border-color: var(--ge-hud-dim);
+}
+
+.godseye-hud__btn kbd {
+  margin-inline-start: 0.4rem;
+  padding: 0.05rem 0.25rem;
+  border: 1px solid var(--ge-hud-faint);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 0.9em;
+  opacity: 0.75;
+}
+
+/* ---- Stage entry control (lives in the header, all modes) --------------- */
+
+/*
+ * Deliberately a clone of `.mission-preset-button`, its immediate neighbour in
+ * the header: same 24px height, same 9px uppercase type, same 4px radius and
+ * token palette. Entering the stage is a sibling action to picking a mission,
+ * so the control should be indistinguishable in weight from the ones beside
+ * it. Its own earlier styling (32px tall, 8px radius, mixed-case 11px) made it
+ * the largest thing in a 40px header and read as bolted on.
+ */
+.godseye-enter-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--overlay-subtle);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.godseye-enter-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.godseye-enter-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A meridian ring — a globe read at 10px, where a wireframe would turn to mud. */
+.godseye-enter-btn__mark {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border: 1px solid currentcolor;
+  border-radius: 50%;
+  position: relative;
+}
+
+.godseye-enter-btn__mark::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline: -1px;
+  border-block-start: 1px solid currentcolor;
+}
+
+/* At phone widths the header's content is already 51px wider than the viewport
+   and nothing in its ancestry scrolls horizontally, so the last chip in the row
+   is simply clipped — which is where this button sits. Dropping the label to the
+   meridian mark alone buys back ~55px and puts the whole row back on screen.
+   The button keeps its accessible name from `aria-label`, so the control the
+   stage depends on stays both reachable and announced. */
+@media (max-width: 767px) {
+  .godseye-enter-btn {
+    gap: 0;
+    padding: 0 6px;
+  }
+
+  .godseye-enter-btn__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* ---- Split-flap readout mechanics -------------------------------------- */
+
+.wm-flap-host {
+  position: relative;
+  display: inline-block;
+  white-space: pre;
+}
+
+.wm-flap-host.wm-flap-active .wm-flap-text {
+  visibility: hidden;
+}
+
+.wm-flap-cells {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  display: none;
+  white-space: pre;
+}
+
+.wm-flap-host.wm-flap-active .wm-flap-cells {
+  display: inline;
+}
+
+.wm-flap-cell {
+  position: relative;
+  display: inline-block;
+  white-space: pre;
+}
+
+/* The incoming face is in flow, so every column holds its own width for the
+   whole cascade and a later glyph can never slide into an earlier column. */
+.wm-flap-cell::after {
+  content: attr(data-flap-next);
+  display: inline-block;
+}
+
+.wm-flap-cell.is-flapping::after {
+  animation: wm-flap-in var(--wm-flap-dur, 190ms) cubic-bezier(0.2, 0.75, 0.25, 1) var(--wm-flap-delay, 0ms) both;
+}
+
+/* The outgoing face is absolutely positioned over its own column. */
+.wm-flap-cell.is-flapping::before {
+  content: attr(data-flap-prev);
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  animation: wm-flap-out var(--wm-flap-dur, 190ms) cubic-bezier(0.2, 0.75, 0.25, 1) var(--wm-flap-delay, 0ms) both;
+}
+
+/* Crossover sits at 50% to match FLAP_TURN_RATIO in src/utils/split-flap.ts. */
+@keyframes wm-flap-out {
+  0% { opacity: 1; transform: rotateX(0deg); }
+  49.9% { opacity: 1; transform: rotateX(-90deg); }
+  50% { opacity: 0; transform: rotateX(-90deg); }
+  100% { opacity: 0; transform: rotateX(-90deg); }
+}
+
+@keyframes wm-flap-in {
+  0% { opacity: 0; transform: rotateX(90deg); }
+  49.9% { opacity: 0; transform: rotateX(90deg); }
+  50% { opacity: 1; transform: rotateX(90deg); }
+  100% { opacity: 1; transform: rotateX(0deg); }
+}
+
+/* ---- Motion and viewport accommodations -------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .godseye-hud,
+  .godseye-hud__corner,
+  html[data-stage-mode='godseye'] .panels-grid {
+    transition: none;
+  }
+
+  /* No settle travel either — the corners simply are where they belong. */
+  .godseye-hud:not(.is-live) .godseye-hud__corner--tl,
+  .godseye-hud:not(.is-live) .godseye-hud__corner--bl,
+  .godseye-hud:not(.is-live) .godseye-hud__corner--br {
+    translate: none;
+  }
+
+  .godseye-hud__pulse {
+    animation: none;
+  }
+
+  /* setSplitFlapText already skips the cascade under reduced motion; this
+     covers a cascade already in flight when the preference changes. */
+  .wm-flap-cell.is-flapping::before,
+  .wm-flap-cell.is-flapping::after {
+    animation-duration: 1ms;
+  }
+}
+
+/* On a phone the rail cannot float beside the globe without burying it, so it
+   becomes a bottom sheet and the HUD corners step out of its way. */
+@media (max-width: 767px) {
+  html[data-stage-mode='godseye'] {
+    --ge-rail-w: auto;
+    /* One source of truth for the sheet's height: the corners that have to
+       clear it and the sheet itself were drifting apart as separate literals. */
+    --ge-sheet-h: 46dvh;
+  }
+
+  html[data-stage-mode='godseye'] .panels-grid {
+    inset: auto 0 0 0;
+    width: auto;
+    max-height: var(--ge-sheet-h);
+    padding-inline: 0.5rem;
+    padding-block-end: 0.5rem;
+    /* A sheet needs an edge. Without one the panels read as cards that happen
+       to be near the bottom; with one they read as a surface the globe is
+       sitting behind. The top-only fade replaces the two-ended desktop mask so
+       the sheet's own edge stays crisp. */
+    padding-block-start: 0.75rem;
+    border-top: 1px solid var(--ge-rail-border);
+    border-radius: 14px 14px 0 0;
+    background: linear-gradient(to bottom, rgb(4 7 11 / 72%), rgb(4 7 11 / 88%));
+    backdrop-filter: blur(10px);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 0.75rem);
+  }
+
+  /* Grab bar. Purely a read of "this surface scrolls" — the sheet is not
+     drag-resizable, so it stays decorative rather than becoming a false
+     affordance with a pointer cursor. */
+  html[data-stage-mode='godseye'] .panels-grid::before {
+    content: '';
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 1;
+    flex: 0 0 auto;
+    align-self: center;
+    width: 2.25rem;
+    height: 3px;
+    margin-block-end: 0.15rem;
+    border-radius: 999px;
+    background: var(--ge-hud-dim);
+  }
+
+  .godseye-hud__corner--br {
+    inset-inline-end: var(--ge-hud-inset);
+    inset-block-end: calc(var(--ge-sheet-h) + 0.5rem);
+  }
+
+  .godseye-hud__corner--bl {
+    inset-block-end: calc(var(--ge-sheet-h) + 0.5rem);
+  }
+
+  /* Collapsed on a phone should be the same promise as on a desktop: a bare
+     globe. Holding the sheet's clearance once it is gone left the readouts
+     hovering in mid-air over 46dvh of nothing. */
+  html[data-stage-mode='godseye'].ge-rail-hidden .godseye-hud__corner--bl,
+  html[data-stage-mode='godseye'].ge-rail-hidden .godseye-hud__corner--br {
+    inset-block-end: var(--ge-hud-inset);
+  }
+
+  /* The collapsed rail still has to clear the renderer's quick controls, but
+     the desktop answer — a 7rem horizontal gutter — is wider than this stage
+     can spare: it walks the status board straight into the VIEW CENTRE stack
+     on the left. Stepping up over the controls keeps both readouts on their
+     own edge. */
+  html[data-stage-mode='godseye'].ge-rail-hidden .godseye-hud__corner--br {
+    inset-inline-end: var(--ge-hud-inset);
+    inset-block-end: calc(var(--ge-hud-inset) + 2.25rem);
+  }
+
+  /* Left-centre puts the zoom stack straight through the VIEW CENTRE / SCALE
+     readouts at this width. The right edge above the sheet is the one region
+     of the narrow stage nothing else claims. */
+  /* Matches the desktop rule's selector exactly — `.map-section` included.
+     A media query does not add specificity, so dropping that class would have
+     left the left-centre placement in force at every width. */
+  html[data-stage-mode='godseye'] .map-section .map-controls {
+    inset-block-start: 4.5rem;
+    inset-block-end: auto;
+    inset-inline: auto var(--ge-hud-inset);
+    translate: none;
+  }
+
+  .godseye-hud__title {
+    letter-spacing: 0.14em;
+  }
+}
+
+/* ---- Light theme: keep the stage cinematic but not inverted ------------- */
+
+html[data-stage-mode='godseye'][data-theme='light'] {
+  --ge-stage-ink: #f2fbff;
+}
+
+/* The stage is a dark room by design — a light-theme reader keeps their theme
+   everywhere else, but a bright panel rail over a lit globe loses the globe.
+   Panels therefore stay on the dark rail treatment inside the stage only. */
+html[data-stage-mode='godseye'][data-theme='light'] .panels-grid .panel {
+  color: var(--ge-stage-ink);
+}
