@@ -175,13 +175,33 @@ html[data-stage-mode='godseye'] .panels-grid > * {
   max-height: 24rem;
 }
 
-html[data-stage-mode='godseye'] .panels-grid .panel,
+/*
+ * Glass is for panels that have actually mounted.
+ *
+ * `.panel-deferred-shell` also carries `.panel`, so an unqualified
+ * `.panels-grid .panel` handed a `backdrop-filter` to every not-yet-mounted
+ * shell as well — one compositing surface each, stacked down a scrolling rail,
+ * for content that is not on screen yet. The stage's own preset (applied at
+ * boot) is what removes most of those shells; this keeps the blur off whatever
+ * remains. NB: hiding a deferred shell is not an option — mounting is driven by
+ * an IntersectionObserver with no idle fallback, so a hidden shell never
+ * intersects and its panel never arrives.
+ */
+html[data-stage-mode='godseye'] .panels-grid .panel:not([data-deferred-panel]),
 html[data-stage-mode='godseye'] .panels-grid > section {
   border: 1px solid var(--ge-rail-border);
   border-radius: 10px;
   background: var(--ge-rail-bg);
   backdrop-filter: blur(14px) saturate(120%);
   box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+}
+
+/* The shells still have to read as part of the rail, just without the cost. */
+html[data-stage-mode='godseye'] .panels-grid .panel[data-deferred-panel] {
+  border: 1px solid var(--ge-rail-border);
+  border-radius: 10px;
+  background: var(--ge-rail-bg);
+  box-shadow: none;
 }
 
 /* Rail panels are secondary to the globe until touched. */

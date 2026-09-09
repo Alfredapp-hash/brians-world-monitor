@@ -197,6 +197,105 @@ test.describe("God's Eye stage smoke", () => {
     await expect(rail).toBeHidden();
   });
 
+  test('the stage rail is the preset’s curated read, not the whole dashboard', async ({ page }) => {
+    await seedStorage(page, 'analyst');
+    await page.goto('/?godseye=1', { waitUntil: 'domcontentloaded' });
+    await waitForEventHandlers(page);
+    await expect(page.locator('.godseye-hud')).toBeVisible({ timeout: 45_000 });
+
+    // The stage applies its own mission bundle transiently. Before that landed
+    // the rail inherited every panel the reader had enabled — tens of thousands
+    // of pixels of empty deferred shells stacked in a single column.
+    const railItems = page.locator('#panelsGrid > [data-panel]:not(.hidden)');
+    expect(await railItems.count()).toBeLessThanOrEqual(8);
+    expect(await page.locator('#panelsGrid .panel-deferred-shell').count()).toBeLessThanOrEqual(4);
+
+    // Whatever shells remain must not each carry a blur: `.panels-grid .panel`
+    // matches `.panel-deferred-shell` too, so the glass rule was handing a
+    // compositing surface to every unmounted placeholder.
+    const shellBlur = await page.evaluate(() => {
+      const shell = document.querySelector('#panelsGrid .panel-deferred-shell');
+      if (!shell) return 'none';
+      return getComputedStyle(shell).backdropFilter || 'none';
+    });
+    expect(shellBlur).toBe('none');
+
+    // And the HUD's layer count describes the stage rather than the dashboard.
+    const status = page.locator('.godseye-hud__corner--br .godseye-hud__readout').last();
+    await expect(status).toHaveText(/(LIVE|OFFLINE) · \d+ LAYERS?|ACQUIRING SIGNAL/);
+
+    // The bundle is transient: the reader's stored layout was never rewritten.
+    expect(await readStorage(page, 'panel-order')).toBeNull();
+  });
+
+  test('the stage frames the whole Earth rather than inheriting a city zoom', async ({ page }) => {
+    await seedStorage(page, 'analyst');
+    // Land on a street-level camera first, then engage from there.
+    await page.goto('/?lat=34.0522&lon=-118.2437&zoom=7', { waitUntil: 'domcontentloaded' });
+    await waitForEventHandlers(page);
+
+    await clickAndAwaitStage(page, '#godseyeEnterBtn', 'godseye');
+    await expect(page.locator('.godseye-hud')).toBeVisible({ timeout: 45_000 });
+
+    // The scale band is read straight off the camera altitude, so an inherited
+    // city zoom would show as LOCAL/THEATRE instead of a whole-Earth view.
+    const scaleReadout = page.locator('.godseye-hud__corner--bl .godseye-hud__readout').nth(1);
+    await expect(scaleReadout).toHaveText(/ORBITAL|CONTINENTAL/, { timeout: 45_000 });
+  });
+
+  test('?godseye=1 survives the map’s URL sync so the address bar stays shareable', async ({ page }) => {
+    await seedStorage(page, 'analyst');
+    await page.goto('/?godseye=1', { waitUntil: 'domcontentloaded' });
+    await waitForEventHandlers(page);
+    await expect(page.locator('.godseye-hud')).toBeVisible({ timeout: 45_000 });
+
+    // The debounced sync replaceStates the map's camera into the URL 250ms
+    // after any movement. It used to rebuild the query from origin+pathname,
+    // which deleted the stage parameter and made the address bar un-shareable.
+    await page.waitForFunction(() => new URLSearchParams(location.search).has('lat'), null, {
+      timeout: 45_000,
+    });
+    const search = new URLSearchParams(new URL(page.url()).search);
+    expect(search.get('godseye')).toBe('1');
+  });
+
+  test('exit strips ?godseye so a reload cannot walk back into the stage', async ({ page }) => {
+    await seedStorage(page, 'analyst');
+    await page.goto('/?godseye=1', { waitUntil: 'domcontentloaded' });
+    await waitForEventHandlers(page);
+    await expect(page.locator('.godseye-hud')).toBeVisible({ timeout: 45_000 });
+
+    await clickAndAwaitStage(page, '.godseye-hud__btn--exit', 'dashboard');
+
+    // Exit used to be releaseGodsEyeStage() + reload(), which re-requested the
+    // same `?godseye=1` URL — and the parameter outranks stored state, so the
+    // stage re-engaged. That is the trap this assertion guards.
+    expect(new URL(page.url()).searchParams.has('godseye')).toBe(false);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForEventHandlers(page);
+    await expect(page.locator('html')).not.toHaveAttribute('data-stage-mode', 'godseye');
+    await expect(page.locator('#godseyeEnterBtn')).toBeVisible();
+  });
+
+  test('exit gives the reader their camera back instead of the stage’s', async ({ page }) => {
+    await seedStorage(page, 'analyst');
+    await page.goto('/?lat=34.0522&lon=-118.2437&zoom=7&view=america', { waitUntil: 'domcontentloaded' });
+    await waitForEventHandlers(page);
+
+    await clickAndAwaitStage(page, '#godseyeEnterBtn', 'godseye');
+    await expect(page.locator('.godseye-hud')).toBeVisible({ timeout: 45_000 });
+
+    await clickAndAwaitStage(page, '.godseye-hud__btn--exit', 'dashboard');
+
+    // The stage frames itself at the preset's global view (lon 0), so a camera
+    // still in the western hemisphere is proof the reader's own position came
+    // back rather than the stage's framing being handed to them.
+    const search = new URL(page.url()).searchParams;
+    expect(search.has('lat')).toBe(true);
+    expect(Number(search.get('lon'))).toBeLessThan(0);
+  });
+
   test('the ?godseye=0 override wins over a stored stage preference', async ({ page }) => {
     await seedStorage(page, 'analyst');
     await page.addInitScript(

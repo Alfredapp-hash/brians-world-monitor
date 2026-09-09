@@ -80,8 +80,11 @@ import {
   isReaderAnalystOpen,
 } from '@/services/reader-mode';
 import { GodsEyeHud } from '@/components/GodsEyeHud';
+import type { MapView } from '@/components/MapContainer';
 import {
+  buildStageExitUrl,
   countActiveLayers,
+  getGodsEyeStagePreset,
   isGodsEyeStage,
   releaseGodsEyeStage,
 } from '@/services/godseye-mode';
@@ -827,10 +830,12 @@ export class PanelLayoutManager implements AppModule {
             : 'acquiring',
       }),
       onExit: () => {
-        releaseGodsEyeStage();
-        // Full reload: leaving restores reader mode, map dimension and the
-        // mission preset, all of which are read at boot.
-        window.location.reload();
+        const restored = releaseGodsEyeStage();
+        // Navigate rather than reload: a reload re-requests the same URL, and a
+        // URL still carrying `?godseye=1` walks straight back into the stage.
+        // The exit URL also replays the reader's camera, so the boot path
+        // restores the view by the same route as any other deep link.
+        window.location.assign(buildStageExitUrl(window.location.href, restored?.camera ?? null));
       },
       railVisible: true,
       onToggleRail: (visible) => {
@@ -2688,6 +2693,7 @@ export class PanelLayoutManager implements AppModule {
 
     this.applyPanelSettings();
     this.applyInitialUrlState();
+    this.applyStageFraming();
 
     // Observe each panel for viewport entry. As soon as a panel scrolls
     // within ~200px of the viewport it fires loadAllData() once
@@ -2835,6 +2841,27 @@ export class PanelLayoutManager implements AppModule {
     }
   }
 
+  /**
+   * Point the camera at the whole Earth when the stage boots.
+   *
+   * Nothing used to set a point of view on entry, so "God's Eye" inherited
+   * wherever the reader had left the map — a city zoom became a street-level
+   * stage, a pan over the Pacific became empty water. The stage's preset has
+   * declared its own framing (`view` + `zoom`) since it was written; this is
+   * what finally reads it.
+   *
+   * A URL that carries a camera outranks the preset: that is a shared stage
+   * link, and its author chose the shot.
+   */
+  private applyStageFraming(): void {
+    if (!this.ctx.map || !isGodsEyeStage()) return;
+    const { view, zoom, lat, lon } = this.ctx.initialUrlState ?? {};
+    if (view || zoom !== undefined || lat !== undefined || lon !== undefined) return;
+    const preset = getGodsEyeStagePreset();
+    if (!preset) return;
+    this.ctx.map.setView(preset.view as MapView, preset.zoom);
+  }
+
   private addDynamicPanel(key: string, panel: Panel): void {
     this.ctx.panels[key] = panel;
     const el = panel.getElement();
@@ -2884,6 +2911,9 @@ export class PanelLayoutManager implements AppModule {
   }
 
   private getSavedPanelOrder(): string[] {
+    // The stage's order is transient and lives only on the context — reading
+    // storage here would order the rail by the dashboard the stage replaced.
+    if (this.ctx.stagePanelOrder) return [...this.ctx.stagePanelOrder];
     try {
       const saved = localStorage.getItem(this.ctx.PANEL_ORDER_KEY);
       if (!saved) return [];
@@ -2942,6 +2972,10 @@ export class PanelLayoutManager implements AppModule {
   }
 
   savePanelOrder(): void {
+    // The stage's rail order is a transient bundle, not a layout the reader
+    // chose. Writing it back would survive exit and quietly replace the
+    // dashboard the snapshot restore is supposed to hand back intact.
+    if (this.ctx.stagePanelOrder) return;
     const grid = document.getElementById('panelsGrid');
     const bottomGrid = document.getElementById('mapBottomGrid');
     if (!grid || !bottomGrid) return;

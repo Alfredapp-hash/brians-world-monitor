@@ -24,8 +24,15 @@
 
 import { STORAGE_KEYS } from '@/config/variants/base';
 import type { MapModePreference } from '@/config/variants/base';
-import { MISSION_PRESET_STORAGE_KEY } from '@/services/mission-presets';
+import {
+  MISSION_PRESET_STORAGE_KEY,
+  applyMissionPresetToState,
+  getMissionPreset,
+  type AppliedMissionPreset,
+  type MissionPreset,
+} from '@/services/mission-presets';
 import { READER_MODE_KEY, type ReaderMode } from '@/services/reader-mode';
+import type { MapLayers, PanelConfig } from '@/types';
 
 export type StageMode = 'dashboard' | 'godseye';
 
@@ -43,6 +50,20 @@ export function isStageMode(value: string | null | undefined): value is StageMod
 }
 
 /**
+ * Where the reader's camera was pointing, in the terms the app already stores
+ * a camera in: a centre, a zoom level, and a named region preset. `altitude`
+ * is the globe renderer's native quantity and is carried alongside rather than
+ * instead of `zoom`, because the flat renderers have no altitude at all.
+ */
+export interface StageCamera {
+  lat: number;
+  lon: number;
+  zoom: number;
+  altitude: number | null;
+  view: string | null;
+}
+
+/**
  * What the reader had before the stage took over. Every field is optional
  * because a reader may never have set one — a missing field means "restore to
  * no stored preference", not "restore to a default we invented".
@@ -51,6 +72,46 @@ export interface StageRestoreSnapshot {
   readerMode: ReaderMode | null;
   mapMode: MapModePreference | null;
   missionPresetId: string | null;
+  /**
+   * Null when the stage was engaged before a renderer existed (a `?godseye=1`
+   * cold load). Exit then clears the camera params rather than inventing a
+   * position the reader never chose.
+   */
+  camera: StageCamera | null;
+}
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+function parseStageCamera(value: unknown): StageCamera | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Partial<StageCamera>;
+  if (!isFiniteNumber(candidate.lat) || !isFiniteNumber(candidate.lon)) return null;
+  return {
+    lat: candidate.lat,
+    lon: candidate.lon,
+    zoom: isFiniteNumber(candidate.zoom) ? candidate.zoom : 2,
+    altitude: isFiniteNumber(candidate.altitude) ? candidate.altitude : null,
+    view: typeof candidate.view === 'string' ? candidate.view : null,
+  };
+}
+
+/**
+ * globe.gl altitude → the app's zoom scale.
+ *
+ * The inverse of the ladder `GlobeMap.setCenter` uses to turn a zoom level
+ * into an altitude. Without it a globe camera cannot round-trip through the
+ * `?zoom=` parameter, because `GlobeMap.getState()` reports a constant zoom of
+ * 1 — the globe's real camera lives in `altitude`.
+ */
+export function altitudeToZoom(altitude: number): number {
+  if (!Number.isFinite(altitude)) return 2;
+  if (altitude <= 0.08) return 7;
+  if (altitude <= 0.15) return 6;
+  if (altitude <= 0.3) return 5;
+  if (altitude <= 0.5) return 4;
+  if (altitude <= 0.8) return 3;
+  return 2;
 }
 
 /** Minimal storage surface, so the pure logic is testable without a browser. */
@@ -126,7 +187,10 @@ export function resolveStageModeForLoad(
  * field — writing back a bare `globe` where a `"globe"` was expected would
  * silently reset the reader's map dimension.
  */
-export function captureStageRestore(store?: KeyValueStore | null): StageRestoreSnapshot {
+export function captureStageRestore(
+  store?: KeyValueStore | null,
+  camera?: StageCamera | null,
+): StageRestoreSnapshot {
   const area = safeStore(store);
   const readerMode = read(area, READER_MODE_KEY);
   const missionPresetId = read(area, MISSION_PRESET_STORAGE_KEY);
@@ -144,6 +208,7 @@ export function captureStageRestore(store?: KeyValueStore | null): StageRestoreS
     readerMode: readerMode === 'everyday' || readerMode === 'analyst' ? readerMode : null,
     mapMode,
     missionPresetId,
+    camera: camera ?? null,
   };
 }
 
@@ -162,6 +227,7 @@ export function parseStageRestore(raw: string | null | undefined): StageRestoreS
       readerMode: readerMode === 'everyday' || readerMode === 'analyst' ? readerMode : null,
       mapMode: mapMode === 'flat' || mapMode === 'globe' ? mapMode : null,
       missionPresetId: typeof parsed.missionPresetId === 'string' ? parsed.missionPresetId : null,
+      camera: parseStageCamera(parsed.camera),
     };
   } catch {
     return null;
@@ -174,12 +240,19 @@ export function parseStageRestore(raw: string | null | undefined): StageRestoreS
  * Re-entering an already-engaged stage is a no-op for the snapshot: the stored
  * one still describes the pre-stage world, and overwriting it with the stage's
  * own values is exactly how a reader loses their layout.
+ *
+ * `camera` is where the reader was looking when they pressed the button. It is
+ * a parameter rather than something this module reads, because the camera lives
+ * in the renderer and this module must stay free of component knowledge.
  */
-export function engageGodsEyeStage(store?: KeyValueStore | null): StageRestoreSnapshot {
+export function engageGodsEyeStage(
+  store?: KeyValueStore | null,
+  camera?: StageCamera | null,
+): StageRestoreSnapshot {
   const area = safeStore(store);
   const existing = parseStageRestore(read(area, STAGE_RESTORE_KEY));
   const alreadyStaged = getStageMode(area) === 'godseye';
-  const snapshot = alreadyStaged && existing ? existing : captureStageRestore(area);
+  const snapshot = alreadyStaged && existing ? existing : captureStageRestore(area, camera);
   if (!alreadyStaged || !existing) {
     write(area, STAGE_RESTORE_KEY, serializeStageRestore(snapshot));
   }
@@ -218,6 +291,130 @@ export function applyStageModeToDocument(mode: StageMode = getStageMode()): void
   const root = document.documentElement;
   if (mode === 'godseye') root.dataset.stageMode = 'godseye';
   else delete root.dataset.stageMode;
+}
+
+// ─── The stage's own panel / layer bundle ───────────────────────────────────
+
+/** The mission preset the stage runs on, or null if it was ever unregistered. */
+export function getGodsEyeStagePreset(): MissionPreset | null {
+  return getMissionPreset(GODSEYE_MISSION_PRESET_ID);
+}
+
+/**
+ * Build the stage's curated panel + layer bundle for THIS page load.
+ *
+ * The result is deliberately never persisted. `engageGodsEyeStage` writes the
+ * preset *id* so the boot path knows which bundle to stage, but writing the
+ * expanded bundle into `STORAGE_KEYS.panels` would mean exit had to un-apply it
+ * — a second restore path that can drift out of step with the snapshot. Holding
+ * it in memory means leaving the stage is still just "reload without the stage
+ * mode", and the reader's stored layout was never touched.
+ *
+ * Returns null when the preset cannot be applied, so the caller falls back to
+ * the reader's own layout rather than staging an empty dashboard.
+ */
+export function buildGodsEyeStageState(
+  panelSettings: Record<string, PanelConfig>,
+  defaultLayers?: MapLayers,
+  variant?: string,
+): AppliedMissionPreset | null {
+  try {
+    return applyMissionPresetToState(
+      GODSEYE_MISSION_PRESET_ID,
+      panelSettings,
+      defaultLayers,
+      variant,
+    );
+  } catch {
+    return null;
+  }
+}
+
+// ─── Stage entry / exit URLs ────────────────────────────────────────────────
+
+/**
+ * Camera and selection parameters. The stage frames itself and stages its own
+ * layers, so carrying a dashboard's leftovers into it produces the two failures
+ * this pass exists to fix: a street-level "God's Eye", or the reader's own
+ * layer set masquerading as the stage's.
+ */
+const CAMERA_PARAMS = ['lat', 'lon', 'zoom', 'view'] as const;
+const SELECTION_PARAMS = ['layers', 'country', 'expanded', 'chokepoint'] as const;
+
+function toStageUrl(href: string): URL | null {
+  try {
+    return new URL(href);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The URL that enters the stage.
+ *
+ * `?godseye=1` is set rather than left implicit so the address bar is
+ * shareable the moment the stage is up, and so a reader can see what they are
+ * in. The dashboard's camera and layer selection are dropped so the stage's own
+ * framing and bundle are what actually take effect.
+ */
+export function buildStageEntryUrl(href: string): string {
+  const url = toStageUrl(href);
+  if (!url) return href;
+  for (const key of [...CAMERA_PARAMS, ...SELECTION_PARAMS]) url.searchParams.delete(key);
+  url.searchParams.set(GODSEYE_URL_PARAM, '1');
+  return url.toString();
+}
+
+/**
+ * The URL that leaves the stage.
+ *
+ * Exit used to be `releaseGodsEyeStage()` + `location.reload()`, which
+ * re-requests the SAME url — and a URL still carrying `?godseye=1` re-engages
+ * the stage on the way back in. Stripping the parameter is what makes exit an
+ * exit rather than a loop.
+ *
+ * The reader's camera is replayed through the map's own URL parameters, so it
+ * arrives by the same path as any other deep link instead of needing a second
+ * restore channel. With no snapshotted camera the parameters are cleared, so
+ * the dashboard opens on its own default rather than inheriting the stage's
+ * whole-Earth framing.
+ */
+export function buildStageExitUrl(href: string, camera?: StageCamera | null): string {
+  const url = toStageUrl(href);
+  if (!url) return href;
+  url.searchParams.delete(GODSEYE_URL_PARAM);
+  // The stage's layer bundle is transient; letting it ride out on the URL would
+  // hand it to applyInitialUrlState, which persists what it applies.
+  for (const key of SELECTION_PARAMS) url.searchParams.delete(key);
+  for (const key of CAMERA_PARAMS) url.searchParams.delete(key);
+  if (camera) {
+    url.searchParams.set('lat', camera.lat.toFixed(4));
+    url.searchParams.set('lon', camera.lon.toFixed(4));
+    url.searchParams.set('zoom', camera.zoom.toFixed(2));
+    if (camera.view) url.searchParams.set('view', camera.view);
+  }
+  return url.toString();
+}
+
+/**
+ * Read a camera out of a URL's query. Used when a reader engages the stage by
+ * appending `&godseye=1` to the address bar: the URL they were already on is
+ * the only record of where they were looking.
+ */
+export function parseStageCameraFromSearch(search: string | null | undefined): StageCamera | null {
+  const params = new URLSearchParams(search || '');
+  const lat = Number.parseFloat(params.get('lat') ?? '');
+  const lon = Number.parseFloat(params.get('lon') ?? '');
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const zoom = Number.parseFloat(params.get('zoom') ?? '');
+  const view = params.get('view');
+  return {
+    lat,
+    lon,
+    zoom: Number.isFinite(zoom) ? zoom : 2,
+    altitude: null,
+    view: view || null,
+  };
 }
 
 // ─── HUD telemetry formatting (pure) ────────────────────────────────────────

@@ -74,9 +74,13 @@ import {
 } from '@/services/reader-mode';
 import {
   applyStageModeToDocument,
+  altitudeToZoom,
+  buildStageEntryUrl,
+  buildStageExitUrl,
   engageGodsEyeStage,
   isGodsEyeStage,
   releaseGodsEyeStage,
+  type StageCamera,
 } from '@/services/godseye-mode';
 import {
   saveSnapshot,
@@ -319,7 +323,10 @@ export class EventHandlerManager implements AppModule {
     }
     config.enabled = true;
     trackPanelToggled(panelId, true);
-    saveToStorage(STORAGE_KEYS.panels, this.ctx.panelSettings);
+    // Inside the stage `panelSettings` IS the stage's transient bundle, so
+    // persisting it here would write the stage's four curated panels over the
+    // dashboard layout the reader expects back when they leave.
+    if (!this.ctx.stagePanelOrder) saveToStorage(STORAGE_KEYS.panels, this.ctx.panelSettings);
     this.applyPanelSettings();
     this.ctx.unifiedSettings?.refreshPanelToggles();
 
@@ -913,9 +920,40 @@ export class EventHandlerManager implements AppModule {
     });
   }
 
+  /**
+   * Where the reader is looking right now, in terms the exit URL can replay.
+   *
+   * The globe reports its camera as an altitude and pins `getState().zoom` at
+   * a constant, so the zoom level has to be derived rather than read; the flat
+   * renderers have no altitude and their state zoom is the real one.
+   */
+  private captureStageCamera(): StageCamera | null {
+    const map = this.ctx.map;
+    if (!map) return null;
+    const center = map.getCenter();
+    if (!center) return null;
+    const altitude = map.getViewAltitude();
+    const state = map.getState();
+    return {
+      lat: center.lat,
+      lon: center.lon,
+      zoom: altitude !== null ? altitudeToZoom(altitude) : state.zoom,
+      altitude,
+      view: state.view,
+    };
+  }
+
   private enterGodsEyeStage(): void {
-    engageGodsEyeStage();
-    window.location.reload();
+    engageGodsEyeStage(undefined, this.captureStageCamera());
+    // Navigating (rather than reloading) puts `?godseye=1` in the address bar,
+    // so the stage is shareable from the moment it is up, and drops the
+    // dashboard's camera and layer parameters so the stage frames itself.
+    window.location.assign(buildStageEntryUrl(window.location.href));
+  }
+
+  private exitGodsEyeStage(): void {
+    const restored = releaseGodsEyeStage();
+    window.location.assign(buildStageExitUrl(window.location.href, restored?.camera ?? null));
   }
 
   private bindGodsEyeHotkeys(): void {
@@ -936,8 +974,7 @@ export class EventHandlerManager implements AppModule {
 
       if (event.key === 'Escape' && isGodsEyeStage()) {
         event.preventDefault();
-        releaseGodsEyeStage();
-        window.location.reload();
+        this.exitGodsEyeStage();
         return;
       }
 
@@ -1501,7 +1538,11 @@ export class EventHandlerManager implements AppModule {
     if (!this.ctx.map) return null;
     const state = this.ctx.map.getState();
     const center = this.ctx.map.getCenter();
-    const baseUrl = `${window.location.origin}${window.location.pathname}`;
+    // Carry the current query through: buildMapUrl overwrites the parameters it
+    // owns and leaves everything else alone. Rebuilding from origin+pathname is
+    // what let the 250ms map-movement URL sync delete `?godseye=1` out from
+    // under the reader mid-stage.
+    const baseUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
     const briefPage = this.ctx.countryBriefPage;
     const isCountryVisible = briefPage?.isVisible() ?? false;
     return buildMapUrl(baseUrl, {

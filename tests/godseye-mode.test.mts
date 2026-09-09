@@ -5,6 +5,10 @@ import {
   GODSEYE_MISSION_PRESET_ID,
   STAGE_MODE_KEY,
   STAGE_RESTORE_KEY,
+  altitudeToZoom,
+  buildGodsEyeStageState,
+  buildStageEntryUrl,
+  buildStageExitUrl,
   captureStageRestore,
   countActiveLayers,
   engageGodsEyeStage,
@@ -13,6 +17,7 @@ import {
   getStageMode,
   isGodsEyeStage,
   isStageMode,
+  parseStageCameraFromSearch,
   parseStageRestore,
   releaseGodsEyeStage,
   resolveStageModeForLoad,
@@ -21,6 +26,7 @@ import {
   type KeyValueStore,
 } from '../src/services/godseye-mode.ts';
 import { STORAGE_KEYS } from '../src/config/variants/base.ts';
+import { ALL_PANELS, DEFAULT_MAP_LAYERS } from '../src/config/panels.ts';
 import { MISSION_PRESET_STORAGE_KEY, getMissionPreset } from '../src/services/mission-presets.ts';
 import { READER_MODE_KEY } from '../src/services/reader-mode.ts';
 
@@ -104,6 +110,7 @@ describe('stage restore snapshot', () => {
       readerMode: 'everyday',
       mapMode: 'flat',
       missionPresetId: 'crisis-desk',
+      camera: null,
     });
   });
 
@@ -112,7 +119,13 @@ describe('stage restore snapshot', () => {
       readerMode: null,
       mapMode: null,
       missionPresetId: null,
+      camera: null,
     });
+  });
+
+  it('carries the camera it was handed', () => {
+    const camera = { lat: 34.05, lon: -118.24, zoom: 6, altitude: 0.15, view: 'america' };
+    assert.deepEqual(captureStageRestore(makeStore(), camera).camera, camera);
   });
 
   it('survives a corrupt map-mode value', () => {
@@ -126,7 +139,12 @@ describe('stage restore snapshot', () => {
   });
 
   it('round-trips through serialization', () => {
-    const snapshot = { readerMode: 'analyst', mapMode: 'globe', missionPresetId: 'energy-security' } as const;
+    const snapshot = {
+      readerMode: 'analyst',
+      mapMode: 'globe',
+      missionPresetId: 'energy-security',
+      camera: { lat: -33.87, lon: 151.21, zoom: 5, altitude: 0.3, view: 'oceania' },
+    } as const;
     assert.deepEqual(parseStageRestore(serializeStageRestore(snapshot)), snapshot);
   });
 
@@ -139,7 +157,170 @@ describe('stage restore snapshot', () => {
       readerMode: null,
       mapMode: null,
       missionPresetId: null,
+      camera: null,
     });
+  });
+
+  it('drops a camera with no usable centre rather than restoring to 0,0', () => {
+    assert.equal(parseStageRestore('{"camera":{"lat":"north","lon":12}}')?.camera, null);
+    assert.equal(parseStageRestore('{"camera":{"lat":null,"lon":null}}')?.camera, null);
+    assert.equal(parseStageRestore('{"camera":7}')?.camera, null);
+  });
+
+  it('fills a partial camera with usable defaults instead of discarding the centre', () => {
+    assert.deepEqual(parseStageRestore('{"camera":{"lat":10,"lon":20}}')?.camera, {
+      lat: 10,
+      lon: 20,
+      zoom: 2,
+      altitude: null,
+      view: null,
+    });
+  });
+});
+
+describe('altitudeToZoom', () => {
+  it('inverts the zoom → altitude ladder the globe renderer uses', () => {
+    // Mirrors GlobeMap.setCenter: zoom >= 7 → 0.08, >= 6 → 0.15, and so on.
+    assert.equal(altitudeToZoom(0.08), 7);
+    assert.equal(altitudeToZoom(0.15), 6);
+    assert.equal(altitudeToZoom(0.3), 5);
+    assert.equal(altitudeToZoom(0.5), 4);
+    assert.equal(altitudeToZoom(0.8), 3);
+    assert.equal(altitudeToZoom(1.8), 2);
+  });
+
+  it('falls back to a whole-world zoom on an unreadable altitude', () => {
+    assert.equal(altitudeToZoom(Number.NaN), 2);
+  });
+});
+
+describe('stage entry and exit URLs', () => {
+  const HOME = 'https://worldmonitor.app/';
+
+  it('marks the stage in the address bar so it is shareable immediately', () => {
+    const url = new URL(buildStageEntryUrl(HOME));
+    assert.equal(url.searchParams.get('godseye'), '1');
+  });
+
+  it('drops the dashboard camera and layers so the stage frames itself', () => {
+    const entry = new URL(
+      buildStageEntryUrl(`${HOME}?lat=34.05&lon=-118.24&zoom=7&view=america&layers=conflicts&country=US`),
+    );
+    for (const key of ['lat', 'lon', 'zoom', 'view', 'layers', 'country']) {
+      assert.equal(entry.searchParams.get(key), null, `${key} must not survive stage entry`);
+    }
+  });
+
+  it('leaves parameters that are nobody else’s business alone', () => {
+    const entry = new URL(buildStageEntryUrl(`${HOME}?lang=fr&utm_source=x`));
+    assert.equal(entry.searchParams.get('lang'), 'fr');
+    assert.equal(entry.searchParams.get('utm_source'), 'x');
+  });
+
+  it('strips the stage parameter on exit so a reload cannot re-engage', () => {
+    const exit = new URL(buildStageExitUrl(`${HOME}?godseye=1&zoom=2&layers=ais`, null));
+    assert.equal(exit.searchParams.get('godseye'), null);
+    // Exit must not hand the stage's transient layer bundle to the dashboard —
+    // applyInitialUrlState persists whatever layers it is given.
+    assert.equal(exit.searchParams.get('layers'), null);
+  });
+
+  it('replays the reader’s camera through the map’s own parameters', () => {
+    const exit = new URL(
+      buildStageExitUrl(`${HOME}?godseye=1&lat=0&lon=0&zoom=2&view=global`, {
+        lat: 51.5074,
+        lon: -0.1278,
+        zoom: 6,
+        altitude: 0.15,
+        view: 'eu',
+      }),
+    );
+    assert.equal(exit.searchParams.get('lat'), '51.5074');
+    assert.equal(exit.searchParams.get('lon'), '-0.1278');
+    assert.equal(exit.searchParams.get('zoom'), '6.00');
+    assert.equal(exit.searchParams.get('view'), 'eu');
+  });
+
+  it('clears the stage framing when there was no camera to restore', () => {
+    const exit = new URL(buildStageExitUrl(`${HOME}?godseye=1&lat=20&lon=0&zoom=1.90&view=global`, null));
+    for (const key of ['lat', 'lon', 'zoom', 'view']) {
+      assert.equal(exit.searchParams.get(key), null);
+    }
+  });
+
+  it('survives a href it cannot parse rather than navigating nowhere', () => {
+    assert.equal(buildStageEntryUrl('not a url'), 'not a url');
+    assert.equal(buildStageExitUrl('not a url', null), 'not a url');
+  });
+});
+
+describe('parseStageCameraFromSearch', () => {
+  it('reads the camera a hand-edited deep link was already carrying', () => {
+    assert.deepEqual(parseStageCameraFromSearch('?lat=48.85&lon=2.35&zoom=5&view=eu&godseye=1'), {
+      lat: 48.85,
+      lon: 2.35,
+      zoom: 5,
+      altitude: null,
+      view: 'eu',
+    });
+  });
+
+  it('reports no camera when the URL never described one', () => {
+    assert.equal(parseStageCameraFromSearch('?godseye=1'), null);
+    assert.equal(parseStageCameraFromSearch(''), null);
+    assert.equal(parseStageCameraFromSearch('?lat=48.85'), null);
+  });
+});
+
+describe('buildGodsEyeStageState', () => {
+  it('stages the preset’s curated panels instead of the reader’s dashboard', () => {
+    const preset = getMissionPreset(GODSEYE_MISSION_PRESET_ID)!;
+    // A reader with a wide analyst layout: every panel the app knows, enabled.
+    const dashboard: Record<string, { name: string; enabled: boolean; priority: number }> = {};
+    for (const key of Object.keys(ALL_PANELS)) {
+      dashboard[key] = { name: key, enabled: true, priority: 3 };
+    }
+
+    const staged = buildGodsEyeStageState(dashboard, DEFAULT_MAP_LAYERS, 'full');
+    assert.ok(staged, 'the stage must produce a bundle');
+
+    const enabled = Object.entries(staged.panelSettings)
+      .filter(([, config]) => config.enabled)
+      .map(([key]) => key);
+    // Every enabled panel gets a rail shell, so "far fewer than the dashboard"
+    // is the whole point — this is what turns ~84 empty shells into a read.
+    assert.ok(enabled.length < 10, `stage rail should be curated, got ${enabled.length} panels`);
+    assert.ok(enabled.includes('map'));
+    for (const key of enabled) {
+      assert.ok(preset.panels.includes(key), `${key} is not part of the stage preset`);
+    }
+  });
+
+  it('stages the preset’s layers so the HUD count describes the stage', () => {
+    const staged = buildGodsEyeStageState({}, DEFAULT_MAP_LAYERS, 'full');
+    assert.ok(staged);
+    const active = countActiveLayers(staged.mapLayers);
+    assert.ok(active > 0, 'the stage must light up layers');
+    assert.ok(active <= getMissionPreset(GODSEYE_MISSION_PRESET_ID)!.layers.length);
+  });
+
+  it('leaves the reader’s stored layout alone — the bundle is transient', () => {
+    const store = makeStore({
+      [READER_MODE_KEY]: 'analyst',
+      [MISSION_PRESET_STORAGE_KEY]: 'crisis-desk',
+    });
+    const dashboard = { map: { name: 'Map', enabled: true, priority: 1 } };
+    engageGodsEyeStage(store);
+    buildGodsEyeStageState(dashboard, DEFAULT_MAP_LAYERS, 'full');
+
+    // Nothing but the three snapshotted preferences and the stage keys moved.
+    assert.deepEqual(dashboard, { map: { name: 'Map', enabled: true, priority: 1 } });
+    assert.equal(store.getItem(STORAGE_KEYS.panels), null);
+
+    // And exit needs no un-apply: the snapshot alone restores the reader.
+    const restored = releaseGodsEyeStage(store);
+    assert.equal(restored?.missionPresetId, 'crisis-desk');
+    assert.equal(store.getItem(MISSION_PRESET_STORAGE_KEY), 'crisis-desk');
   });
 });
 
@@ -161,7 +342,15 @@ describe('engage and release', () => {
       readerMode: 'everyday',
       mapMode: 'flat',
       missionPresetId: 'everyday-reader',
+      camera: null,
     });
+  });
+
+  it('remembers the camera the reader was on so exit can give it back', () => {
+    const store = makeStore();
+    const camera = { lat: 34.05, lon: -118.24, zoom: 7, altitude: 0.08, view: 'america' };
+    engageGodsEyeStage(store, camera);
+    assert.deepEqual(releaseGodsEyeStage(store)?.camera, camera);
   });
 
   it('gives back exactly the pre-stage world on release', () => {
@@ -178,6 +367,7 @@ describe('engage and release', () => {
       readerMode: 'everyday',
       mapMode: 'flat',
       missionPresetId: 'everyday-reader',
+      camera: null,
     });
     assert.equal(store.getItem(STAGE_MODE_KEY), 'dashboard');
     assert.equal(store.getItem(READER_MODE_KEY), 'everyday');

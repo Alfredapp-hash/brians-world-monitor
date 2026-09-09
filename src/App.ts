@@ -32,9 +32,11 @@ import {
 } from '@/services/reader-mode';
 import {
   applyStageModeToDocument,
+  buildGodsEyeStageState,
   engageGodsEyeStage,
   getStageMode,
   isGodsEyeStage,
+  parseStageCameraFromSearch,
   releaseGodsEyeStage,
   resolveStageModeForLoad,
 } from '@/services/godseye-mode';
@@ -844,8 +846,14 @@ export class App {
     // those writes rather than race them. A `?godseye=` link therefore lands on
     // the stage on its first paint instead of the load after.
     const stageMode = resolveStageModeForLoad(window.location.search, getStageMode());
-    if (stageMode === 'godseye') engageGodsEyeStage();
-    else if (isGodsEyeStage()) releaseGodsEyeStage();
+    if (stageMode === 'godseye') {
+      // A reader who typed `&godseye=1` onto their own deep link has their
+      // camera in that URL and nowhere else, so it is the only thing exit can
+      // give back to them.
+      engageGodsEyeStage(undefined, parseStageCameraFromSearch(window.location.search));
+    } else if (isGodsEyeStage()) {
+      releaseGodsEyeStage();
+    }
     applyStageModeToDocument(stageMode);
 
     const seededReaderMode = seedReaderModePreference();
@@ -963,6 +971,34 @@ export class App {
       }
     }
 
+    // God's Eye stages its own bundle, transiently.
+    //
+    // `engageGodsEyeStage` records the preset id; this is what actually applies
+    // it. Without it the stage inherited whatever the reader's dashboard was
+    // showing — every enabled panel got a deferred shell in a single-column
+    // rail (~84 of them, tens of thousands of pixels of empty scroll), and the
+    // HUD's "LIVE · N LAYERS" described the dashboard rather than the stage.
+    //
+    // Nothing here is persisted. The reader's stored layout is untouched, so
+    // leaving the stage needs no un-apply beyond the snapshot restore that
+    // already runs. It sits AFTER the storage migrations above deliberately —
+    // several of them write `panelSettings` back out, and they must never see
+    // the stage's transient bundle.
+    let stagePanelOrder: string[] | null = null;
+    if (stageMode === 'godseye') {
+      const staged = buildGodsEyeStageState(panelSettings, defaultLayers, currentVariant);
+      if (staged) {
+        panelSettings = staged.panelSettings;
+        mapLayers = normalizeExclusiveChoropleths(
+          sanitizeLayersForVariant(staged.mapLayers, currentVariant as MapVariant),
+          null,
+        );
+        stagePanelOrder = staged.panelOrder;
+      } else {
+        console.warn("[App] God's Eye preset unavailable; staging the reader's own layout");
+      }
+    }
+
     const initialUrlState: ParsedMapUrlState | null = parseMapUrlState(window.location.search, mapLayers);
     if (initialUrlState.layers) {
       mapLayers = normalizeExclusiveChoropleths(
@@ -1067,6 +1103,7 @@ export class App {
       resolvedLocation: 'global',
       activeChokepoint: initialUrlState.chokepoint ?? null,
       initialUrlState,
+      stagePanelOrder,
       PANEL_ORDER_KEY,
       PANEL_SPANS_KEY,
     };

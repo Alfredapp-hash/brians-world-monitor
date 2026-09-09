@@ -119,6 +119,13 @@ export interface AppContext {
   activeChokepoint: string | null;
 
   initialUrlState: import('@/utils').ParsedMapUrlState | null;
+  /**
+   * God's Eye's curated panel order for this page load only. Non-null exactly
+   * while the stage is engaged; it stands in for the saved order without ever
+   * being written to storage, so exiting the stage returns the reader's own
+   * layout untouched.
+   */
+  stagePanelOrder: string[] | null;
   readonly PANEL_ORDER_KEY: string;
   readonly PANEL_SPANS_KEY: string;
 }
