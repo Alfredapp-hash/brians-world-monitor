@@ -843,9 +843,22 @@ export class PanelLayoutManager implements AppModule {
       },
     });
 
-    host.appendChild(hud.element);
+    // BEFORE the panel rail, not appended after it. The HUD is the stage's
+    // chrome, so Exit and Panels must come before the rail's contents in
+    // reading and tab order; appended last, reaching Exit by keyboard meant
+    // tabbing through every headline in every rail panel first, and on a phone
+    // — no Escape key — Exit is the only way out of the stage at all.
+    //
+    // Purely a DOM-order change: the HUD is `position: absolute; inset: 0`
+    // against `.main-content`, which stays its offset parent either way, so
+    // the composition and z-index are untouched.
+    const rail = document.getElementById('panelsGrid');
+    if (rail?.parentElement === host) host.insertBefore(hud.element, rail);
+    else host.insertBefore(hud.element, host.firstChild);
+
     hud.start();
     this.godsEyeHud = hud;
+    hud.focusExit();
   }
 
   private mountReaderHero(): void {

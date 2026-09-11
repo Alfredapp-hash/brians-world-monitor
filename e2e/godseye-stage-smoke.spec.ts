@@ -296,6 +296,88 @@ test.describe("God's Eye stage smoke", () => {
     expect(Number(search.get('lon'))).toBeLessThan(0);
   });
 
+  test('Exit comes before the rail in tab order and starts focused', async ({ page }) => {
+    await seedStorage(page, 'analyst');
+    await page.goto('/?godseye=1', { waitUntil: 'domcontentloaded' });
+    await waitForEventHandlers(page);
+    await expect(page.locator('.godseye-hud')).toBeVisible({ timeout: 45_000 });
+
+    // The stage hides the site header, so the HUD's Exit button is the only
+    // visible way out — and on a phone, with no Escape key, the only way out at
+    // all. The HUD used to be appended to `.main-content` AFTER `#panelsGrid`,
+    // which put Exit behind every headline, link, and control in the rail.
+    const order = await page.evaluate(() => {
+      const hud = document.querySelector('.godseye-hud');
+      const rail = document.getElementById('panelsGrid');
+      if (!hud || !rail) return null;
+      // DOCUMENT_POSITION_FOLLOWING === 4: the rail follows the HUD.
+      return {
+        hudPrecedesRail: !!(hud.compareDocumentPosition(rail) & 4),
+        sameParent: hud.parentElement === rail.parentElement,
+      };
+    });
+    expect(order).not.toBeNull();
+    expect(order!.hudPrecedesRail).toBe(true);
+    // Still a child of `.main-content`, so the absolute HUD keeps its offset
+    // parent and the composition is unchanged by the reorder.
+    expect(order!.sameParent).toBe(true);
+
+    // Entry lands focus on the way out, so Exit is reachable without hunting.
+    await expect(page.locator('#godseyeExitBtn')).toBeFocused();
+
+    // Exit is the LAST of the HUD's own controls, so everything a reader
+    // reaches before it is HUD chrome rather than rail content: stepping
+    // backwards lands on the Panels toggle, not on a headline.
+    await page.keyboard.press('Shift+Tab');
+    const beforeExit = await page.evaluate(() => {
+      const active = document.activeElement as HTMLElement | null;
+      return {
+        insideRail: !!active?.closest('#panelsGrid'),
+        insideHud: !!active?.closest('.godseye-hud'),
+        id: active?.id ?? '',
+      };
+    });
+    expect(beforeExit.insideRail).toBe(false);
+    expect(beforeExit.insideHud).toBe(true);
+    expect(beforeExit.id).toBe('godseyeRailBtn');
+  });
+
+  test('Escape closes an open modal and leaves the reader on the stage', async ({ page }) => {
+    await seedStorage(page, 'analyst');
+    await page.goto('/?godseye=1', { waitUntil: 'domcontentloaded' });
+    await waitForEventHandlers(page);
+    await expect(page.locator('.godseye-hud')).toBeVisible({ timeout: 45_000 });
+
+    // The stage's Escape handler is global, so it used to race every modal in
+    // the app: open something from the rail, press Escape to dismiss it, and
+    // the reader was ejected from the stage instead.
+    //
+    // Search is the modal that can be opened deterministically here (⌘K needs
+    // no data and no visible header). The harder variants — StoryModal and
+    // MapPopup, whose Escape handlers sit on `document` and call neither
+    // preventDefault nor stopPropagation, so ONLY the explicit modal check can
+    // stop the stage exiting — are covered in tests/godseye-mode.test.mts
+    // against the real markers those components emit.
+    await page.keyboard.press('ControlOrMeta+k');
+    const overlay = page.locator('.search-overlay');
+    await expect(overlay).toBeVisible({ timeout: 30_000 });
+
+    await page.keyboard.press('Escape');
+    await expect(overlay).toHaveCount(0);
+    // Still on the stage: the modal consumed that keystroke, not the stage.
+    await expect(page.locator('html')).toHaveAttribute('data-stage-mode', 'godseye');
+    await expect(page.locator('.godseye-hud')).toBeVisible();
+
+    // A second Escape, with nothing left open, is the one that leaves.
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60_000 }),
+      page.keyboard.press('Escape'),
+    ]);
+    await waitForEventHandlers(page);
+    await expect(page.locator('html')).not.toHaveAttribute('data-stage-mode', 'godseye');
+    await expect(page.locator('#godseyeEnterBtn')).toBeVisible();
+  });
+
   test('the ?godseye=0 override wins over a stored stage preference', async ({ page }) => {
     await seedStorage(page, 'analyst');
     await page.addInitScript(

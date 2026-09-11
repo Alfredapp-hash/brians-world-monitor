@@ -293,6 +293,131 @@ export function applyStageModeToDocument(mode: StageMode = getStageMode()): void
   else delete root.dataset.stageMode;
 }
 
+// ─── Cloud-sync policy: the stage is device-local ───────────────────────────
+
+/**
+ * The durable, CLOUD-SYNCED preferences the stage overwrites while it is up.
+ *
+ * `MISSION_PRESET_STORAGE_KEY` is deliberately absent: it is not a synced key,
+ * so the stage forcing it has no cross-device consequence.
+ */
+export const STAGE_FORCED_PREFERENCE_KEYS: readonly string[] = [
+  READER_MODE_KEY,
+  STORAGE_KEYS.mapMode,
+];
+
+export function isStageForcedPreferenceKey(key: string): boolean {
+  return STAGE_FORCED_PREFERENCE_KEYS.includes(key);
+}
+
+/**
+ * Rewrite a cloud-sync blob so it describes the READER, not the stage.
+ *
+ * THE CHOICE. The stage stays device-local, and the preferences it forces are
+ * reported to the cloud at their pre-stage values. The alternative — syncing
+ * `jsam-stage-mode` and `jsam-stage-restore-v1` alongside — was rejected:
+ * the restore snapshot describes the device that captured it, so replaying
+ * one device's snapshot on another would overwrite that device's real
+ * Everyday/Analyst and map-dimension preferences on exit. That breaks the one
+ * guarantee the stage makes, in exchange for teleporting a cinematic globe
+ * onto a phone nobody pointed at it.
+ *
+ * WHY REWRITE RATHER THAN JUST NOT MARK DIRTY. `jsam-view-mode` and
+ * `worldmonitor-map-mode` are synced keys, and the uploader rebuilds the whole
+ * blob from localStorage on every upload. Suppressing only the stage's own
+ * write still leaks the staged values the next time ANY other preference
+ * changes — flip the theme mid-stage and the phone flips to Analyst on a 3D
+ * globe with no stage and no way back. The blob has to be corrected at the
+ * point it is built.
+ *
+ * A key with no pre-stage value is DROPPED rather than sent empty: an absent
+ * key means "no opinion" to `applyCloudBlob`, which leaves the other device
+ * untouched. Saying nothing is always safer than uploading a value the reader
+ * never chose.
+ */
+export function withoutStageOverrides(
+  blob: Record<string, string>,
+  store?: KeyValueStore | null,
+): Record<string, string> {
+  const area = safeStore(store);
+  if (getStageMode(area) !== 'godseye') return blob;
+
+  const snapshot = parseStageRestore(read(area, STAGE_RESTORE_KEY));
+  const corrected = { ...blob };
+
+  if (snapshot?.readerMode) corrected[READER_MODE_KEY] = snapshot.readerMode;
+  else delete corrected[READER_MODE_KEY];
+
+  if (snapshot?.mapMode) corrected[STORAGE_KEYS.mapMode] = JSON.stringify(snapshot.mapMode);
+  else delete corrected[STORAGE_KEYS.mapMode];
+
+  return corrected;
+}
+
+// ─── Escape ownership ──────────────────────────────────────────────────────
+
+/**
+ * Surfaces that own Escape before the stage does.
+ *
+ * The stage's Escape handler is global, so without this list it races every
+ * modal in the app: open a story from the rail, press Escape, and the reader
+ * is ejected from the stage instead of closing the story.
+ *
+ * `event.defaultPrevented` cannot carry this alone. Most of these surfaces
+ * close on Escape WITHOUT calling `preventDefault` — `StoryModal` and
+ * `MapPopup` both just invoke their own close — so a later handler has
+ * nothing to detect, and which handler runs first is decided by registration
+ * order between two `document` listeners.
+ *
+ * Every entry names the marker the component ACTUALLY toggles rather than a
+ * generic `[aria-modal="true"]`, because several of these overlays live in the
+ * DOM permanently and only flip a class: `SignalModal` appends itself in its
+ * constructor with `aria-modal="true"` already set, and
+ * `CountryDeepDivePanel` is a persistent `<aside>` hidden with `visibility`
+ * (which `checkVisibility()` reports as visible by default). A generic
+ * attribute match would report "modal open" on every page load, and the stage
+ * could never be left by keyboard at all.
+ */
+export const STAGE_ESCAPE_OWNER_SELECTOR = [
+  '.story-modal-overlay',          // StoryModal — mounted on open, removed on close
+  '.signal-modal-overlay.active',  // SignalModal — persistent node, `.active` toggled
+  '.live-channels-modal-overlay',  // LiveNewsPanel channel picker — mounted on open
+  '.search-overlay',               // SearchModal (⌘K) — mounted on open
+  '.cc-modal-overlay',             // CoverageComparePanel — mounted on open
+  '.confirm-dialog-overlay',       // confirm-dialog — mounted on open
+  '.embed-modal-overlay',          // embed dialog — mounted on open
+  '.mission-preset-popover',       // mission presets — mounted on open
+  '.country-deep-dive.active',     // CountryDeepDivePanel — persistent aside, `.active` toggled
+  '.map-popup',                    // MapPopup — mounted on show, removed on hide
+  '.modal-overlay.active',         // shared overlay convention (main.css)
+  'dialog[open]',                  // native dialogs
+].join(', ');
+
+/** Minimal DOM surface, so Escape ownership is testable without a browser. */
+export interface ElementQueryRoot {
+  querySelector(selectors: string): unknown;
+}
+
+/**
+ * Is some other surface holding Escape right now?
+ *
+ * True means "leave this keystroke alone" — the modal closes itself, and the
+ * reader's NEXT Escape (with nothing left open) leaves the stage.
+ */
+export function isStageEscapeOwned(root?: ElementQueryRoot | null): boolean {
+  const area = root !== undefined
+    ? root
+    : (typeof document === 'undefined' ? null : document);
+  if (!area) return false;
+  try {
+    return area.querySelector(STAGE_ESCAPE_OWNER_SELECTOR) != null;
+  } catch {
+    // A selector an engine cannot parse must not strand the reader on the
+    // stage — fall back to letting Escape exit.
+    return false;
+  }
+}
+
 // ─── The stage's own panel / layer bundle ───────────────────────────────────
 
 /** The mission preset the stage runs on, or null if it was ever unregistered. */

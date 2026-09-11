@@ -79,6 +79,7 @@ import {
   buildStageExitUrl,
   engageGodsEyeStage,
   isGodsEyeStage,
+  isStageEscapeOwned,
   releaseGodsEyeStage,
   type StageCamera,
 } from '@/services/godseye-mode';
@@ -237,6 +238,7 @@ export class EventHandlerManager implements AppModule {
   private boundTvKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundFocalPointsReadyHandler: (() => void) | null = null;
   private godsEyeHotkeysBound = false;
+  private boundGodsEyeKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundThemeChangedHandler: (() => void) | null = null;
   private boundDropdownClickHandler: ((e: MouseEvent) => void) | null = null;
   private boundDropdownKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -425,6 +427,11 @@ export class EventHandlerManager implements AppModule {
     if (this.boundTvKeydownHandler) {
       document.removeEventListener('keydown', this.boundTvKeydownHandler);
       this.boundTvKeydownHandler = null;
+    }
+    if (this.boundGodsEyeKeydownHandler) {
+      window.removeEventListener('keydown', this.boundGodsEyeKeydownHandler);
+      this.boundGodsEyeKeydownHandler = null;
+      this.godsEyeHotkeysBound = false;
     }
     if (this.boundFocalPointsReadyHandler) {
       window.removeEventListener('focal-points-ready', this.boundFocalPointsReadyHandler);
@@ -956,11 +963,27 @@ export class EventHandlerManager implements AppModule {
     window.location.assign(buildStageExitUrl(window.location.href, restored?.camera ?? null));
   }
 
+  /**
+   * The stage's accelerators: Escape leaves, `G` enters.
+   *
+   * Registered on `window` in the BUBBLE phase, which is the very last stop on
+   * the event path. Every component handler — on the target, on `document` —
+   * therefore gets first refusal, so anything that calls `stopPropagation` (an
+   * open mission-preset popover) or `preventDefault` (CountryDeepDivePanel)
+   * wins without this handler having to know about it. It used to sit on
+   * `document` alongside those handlers, where which one ran first came down to
+   * registration order: a story modal opened from the rail registers its
+   * Escape handler LAST, so the stage exited before the modal ever saw the key.
+   *
+   * Being last is not sufficient on its own, because most of those surfaces
+   * close on Escape without marking the event at all — hence the explicit
+   * `isStageEscapeOwned()` check.
+   */
   private bindGodsEyeHotkeys(): void {
     if (this.godsEyeHotkeysBound) return;
     this.godsEyeHotkeysBound = true;
 
-    document.addEventListener('keydown', (event) => {
+    this.boundGodsEyeKeydownHandler = (event: KeyboardEvent) => {
       // Never steal a key from a field, a shortcut chord, or a surface that
       // already handled it (a popover closing on Escape, for instance).
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -973,16 +996,21 @@ export class EventHandlerManager implements AppModule {
       }
 
       if (event.key === 'Escape' && isGodsEyeStage()) {
+        // A modal owns this keystroke. It closes itself; the reader's next
+        // Escape, with nothing left open, leaves the stage.
+        if (isStageEscapeOwned()) return;
         event.preventDefault();
         this.exitGodsEyeStage();
         return;
       }
 
       if ((event.key === 'g' || event.key === 'G') && !isGodsEyeStage()) {
+        if (isStageEscapeOwned()) return;
         event.preventDefault();
         this.enterGodsEyeStage();
       }
-    });
+    };
+    window.addEventListener('keydown', this.boundGodsEyeKeydownHandler);
   }
 
   private renderReaderModeControl(): void {

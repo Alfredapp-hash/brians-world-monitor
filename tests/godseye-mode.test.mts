@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 
 import {
   GODSEYE_MISSION_PRESET_ID,
+  STAGE_ESCAPE_OWNER_SELECTOR,
+  STAGE_FORCED_PREFERENCE_KEYS,
   STAGE_MODE_KEY,
   STAGE_RESTORE_KEY,
   altitudeToZoom,
@@ -16,6 +18,8 @@ import {
   formatHudScale,
   getStageMode,
   isGodsEyeStage,
+  isStageEscapeOwned,
+  isStageForcedPreferenceKey,
   isStageMode,
   parseStageCameraFromSearch,
   parseStageRestore,
@@ -23,8 +27,10 @@ import {
   resolveStageModeForLoad,
   serializeStageRestore,
   summarizeStageTelemetry,
+  withoutStageOverrides,
   type KeyValueStore,
 } from '../src/services/godseye-mode.ts';
+import { CLOUD_SYNC_KEYS } from '../src/utils/sync-keys.ts';
 import { STORAGE_KEYS } from '../src/config/variants/base.ts';
 import { ALL_PANELS, DEFAULT_MAP_LAYERS } from '../src/config/panels.ts';
 import { MISSION_PRESET_STORAGE_KEY, getMissionPreset } from '../src/services/mission-presets.ts';
@@ -491,5 +497,221 @@ describe('countActiveLayers', () => {
     assert.equal(countActiveLayers({}), 0);
     assert.equal(countActiveLayers(null), 0);
     assert.equal(countActiveLayers(undefined), 0);
+  });
+});
+
+// ─── Escape ownership ──────────────────────────────────────────────────────
+
+interface FakeElement {
+  tag?: string;
+  classes?: string[];
+  attrs?: Record<string, string>;
+}
+
+/**
+ * A DOM stand-in that really matches the selector, so these tests fail if the
+ * selector list stops describing the markup the components emit.
+ *
+ * Supports exactly the shapes the stage's selector uses: a tag name, one or
+ * more `.class` qualifiers, and `[attr="value"]`.
+ */
+function fakeRoot(elements: FakeElement[]) {
+  const matchesCompound = (compound: string, el: FakeElement): boolean => {
+    const tag = compound.match(/^[a-z][a-z0-9-]*/i)?.[0];
+    if (tag && (el.tag ?? '').toLowerCase() !== tag.toLowerCase()) return false;
+    for (const [, cls] of compound.matchAll(/\.([\w-]+)/g)) {
+      if (!(el.classes ?? []).includes(cls)) return false;
+    }
+    for (const [, name, value] of compound.matchAll(/\[([\w-]+)(?:="([^"]*)")?\]/g)) {
+      const actual = (el.attrs ?? {})[name];
+      if (actual === undefined) return false;
+      if (value !== undefined && actual !== value) return false;
+    }
+    return true;
+  };
+
+  return {
+    querySelector(selectors: string) {
+      const compounds = selectors.split(',').map((s) => s.trim()).filter(Boolean);
+      for (const el of elements) {
+        if (compounds.some((compound) => matchesCompound(compound, el))) return el;
+      }
+      return null;
+    },
+  };
+}
+
+describe('stage Escape ownership', () => {
+  it('lets Escape exit when nothing else is open', () => {
+    assert.equal(isStageEscapeOwned(fakeRoot([])), false);
+  });
+
+  it('yields Escape to a story opened from the rail', () => {
+    // The reported bug: Esc ejected the reader from the stage instead of
+    // closing the story. StoryModal mounts on open and removes on close, and
+    // its own Escape handler calls neither preventDefault nor stopPropagation,
+    // so nothing but this check can stop the stage from exiting.
+    assert.equal(
+      isStageEscapeOwned(fakeRoot([
+        { tag: 'div', classes: ['story-modal-overlay'], attrs: { role: 'dialog', 'aria-modal': 'true' } },
+      ])),
+      true,
+    );
+  });
+
+  it('yields Escape to every modal surface the stage can be reached from', () => {
+    const surfaces: FakeElement[] = [
+      { tag: 'div', classes: ['signal-modal-overlay', 'active'] },
+      { tag: 'div', classes: ['live-channels-modal-overlay'] },
+      { tag: 'div', classes: ['search-overlay'] },
+      { tag: 'div', classes: ['cc-modal-overlay'] },
+      { tag: 'div', classes: ['confirm-dialog-overlay'] },
+      { tag: 'div', classes: ['embed-modal-overlay', 'active'] },
+      { tag: 'div', classes: ['mission-preset-popover'] },
+      { tag: 'aside', classes: ['country-deep-dive', 'active'] },
+      { tag: 'div', classes: ['map-popup', 'open'] },
+      { tag: 'div', classes: ['modal-overlay', 'active'] },
+      { tag: 'dialog', attrs: { open: '' } },
+    ];
+    for (const surface of surfaces) {
+      assert.equal(
+        isStageEscapeOwned(fakeRoot([surface])),
+        true,
+        `${surface.classes?.join('.') ?? surface.tag} must own Escape before the stage`,
+      );
+    }
+  });
+
+  it('ignores persistent overlays that are merely present, not open', () => {
+    // These two are the reason the selector cannot be a bare
+    // `[aria-modal="true"], [role="dialog"]` match. SignalModal appends itself
+    // in its constructor with aria-modal already set, and CountryDeepDivePanel
+    // is a permanent <aside> hidden with `visibility` (which
+    // checkVisibility() reports as visible by default). Matching either would
+    // mean Escape could never leave the stage on any page load.
+    assert.equal(
+      isStageEscapeOwned(fakeRoot([
+        { tag: 'div', classes: ['signal-modal-overlay'], attrs: { role: 'dialog', 'aria-modal': 'true' } },
+        { tag: 'aside', classes: ['country-deep-dive'], attrs: { 'aria-hidden': 'true' } },
+        { tag: 'div', classes: ['modal-overlay'] },
+        { tag: 'dialog', classes: [] },
+      ])),
+      false,
+    );
+  });
+
+  it('does not key on generic dialog attributes', () => {
+    assert.doesNotMatch(STAGE_ESCAPE_OWNER_SELECTOR, /\[aria-modal/);
+    assert.doesNotMatch(STAGE_ESCAPE_OWNER_SELECTOR, /\[role="dialog"\]/);
+  });
+
+  it('lets Escape exit rather than stranding the reader when the DOM is unreachable', () => {
+    assert.equal(isStageEscapeOwned(null), false);
+    assert.equal(
+      isStageEscapeOwned({ querySelector() { throw new Error('SyntaxError'); } }),
+      false,
+    );
+  });
+});
+
+// ─── Cloud-sync policy ─────────────────────────────────────────────────────
+
+describe('stage cloud-sync policy', () => {
+  it('keeps the stage itself off the sync list', () => {
+    // Syncing the restore snapshot would let one device's pre-stage world
+    // overwrite another device's real preferences on exit.
+    assert.ok(!CLOUD_SYNC_KEYS.includes(STAGE_MODE_KEY as never));
+    assert.ok(!CLOUD_SYNC_KEYS.includes(STAGE_RESTORE_KEY as never));
+  });
+
+  it('names exactly the synced keys the stage forces', () => {
+    for (const key of STAGE_FORCED_PREFERENCE_KEYS) {
+      assert.ok(
+        CLOUD_SYNC_KEYS.includes(key as never),
+        `${key} is only worth correcting because it syncs`,
+      );
+      assert.equal(isStageForcedPreferenceKey(key), true);
+    }
+    // The mission preset is forced too, but it is not a synced key, so it
+    // needs no correction — listing it would imply a cross-device effect
+    // that does not exist.
+    assert.equal(isStageForcedPreferenceKey(MISSION_PRESET_STORAGE_KEY), false);
+    assert.equal(isStageForcedPreferenceKey('worldmonitor-theme'), false);
+  });
+
+  it('leaves the blob untouched off the stage', () => {
+    const store = makeStore();
+    const blob = { [READER_MODE_KEY]: 'everyday', 'worldmonitor-theme': 'dark' };
+    assert.deepEqual(withoutStageOverrides(blob, store), blob);
+  });
+
+  it('reports the reader’s own preferences, not the stage’s, while staged', () => {
+    const store = makeStore({
+      [READER_MODE_KEY]: 'everyday',
+      [STORAGE_KEYS.mapMode]: JSON.stringify('flat'),
+    });
+    engageGodsEyeStage(store);
+
+    // localStorage genuinely holds the staged values — the boot path and the
+    // exact-restore contract both depend on that.
+    assert.equal(store.getItem(READER_MODE_KEY), 'analyst');
+    assert.equal(store.getItem(STORAGE_KEYS.mapMode), JSON.stringify('globe'));
+
+    // What goes to the cloud is the pre-stage world, so a second device is
+    // never flipped into Analyst on a globe it never asked for.
+    const corrected = withoutStageOverrides({
+      [READER_MODE_KEY]: store.getItem(READER_MODE_KEY)!,
+      [STORAGE_KEYS.mapMode]: store.getItem(STORAGE_KEYS.mapMode)!,
+      'worldmonitor-theme': 'dark',
+    }, store);
+    assert.equal(corrected[READER_MODE_KEY], 'everyday');
+    assert.equal(corrected[STORAGE_KEYS.mapMode], JSON.stringify('flat'));
+    // Unrelated preferences still sync normally mid-stage.
+    assert.equal(corrected['worldmonitor-theme'], 'dark');
+  });
+
+  it('says nothing about a preference the reader never set', () => {
+    // An absent key means "no opinion" to applyCloudBlob, which leaves the
+    // other device alone — safer than uploading a value nobody chose.
+    const store = makeStore();
+    engageGodsEyeStage(store);
+    const corrected = withoutStageOverrides({
+      [READER_MODE_KEY]: 'analyst',
+      [STORAGE_KEYS.mapMode]: JSON.stringify('globe'),
+    }, store);
+    assert.ok(!(READER_MODE_KEY in corrected));
+    assert.ok(!(STORAGE_KEYS.mapMode in corrected));
+  });
+
+  it('withholds the staged values when the snapshot is gone', () => {
+    const store = makeStore({ [READER_MODE_KEY]: 'everyday' });
+    engageGodsEyeStage(store);
+    store.removeItem(STAGE_RESTORE_KEY);
+    const corrected = withoutStageOverrides({ [READER_MODE_KEY]: 'analyst' }, store);
+    assert.ok(!(READER_MODE_KEY in corrected));
+  });
+
+  it('syncs the restored preferences again once the reader leaves', () => {
+    const store = makeStore({
+      [READER_MODE_KEY]: 'everyday',
+      [STORAGE_KEYS.mapMode]: JSON.stringify('flat'),
+    });
+    engageGodsEyeStage(store);
+    releaseGodsEyeStage(store);
+
+    const blob = {
+      [READER_MODE_KEY]: store.getItem(READER_MODE_KEY)!,
+      [STORAGE_KEYS.mapMode]: store.getItem(STORAGE_KEYS.mapMode)!,
+    };
+    // Off the stage the correction is a no-op, so exit reconciles the other
+    // device by the ordinary sync path.
+    assert.deepEqual(withoutStageOverrides(blob, store), {
+      [READER_MODE_KEY]: 'everyday',
+      [STORAGE_KEYS.mapMode]: JSON.stringify('flat'),
+    });
+  });
+
+  it('does not throw when storage is blocked', () => {
+    assert.doesNotThrow(() => withoutStageOverrides({ a: 'b' }, hostileStore));
   });
 });

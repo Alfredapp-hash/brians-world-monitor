@@ -12,6 +12,7 @@ export interface ImportResult {
 }
 
 import { CLOUD_SYNC_KEYS } from './sync-keys';
+import { withoutStageOverrides } from '@/services/godseye-mode';
 import { invalidatePanelStorageCacheForKeys } from './panel-storage';
 
 const MAX_IMPORT_SIZE_BYTES = 5 * 1024 * 1024;
@@ -53,7 +54,11 @@ export function exportSettings(): void {
     version: 1,
     timestamp: new Date().toISOString(),
     variant: localStorage.getItem('worldmonitor-variant') || 'full',
-    data,
+    // Same policy as cloud sync: a settings file exported from inside the
+    // God's Eye stage must describe the reader, not the stage. The stage keys
+    // are not settings keys, so an importer would otherwise get the stage's
+    // forced Analyst + globe with no snapshot to restore from.
+    data: withoutStageOverrides(data),
   };
 
   const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });

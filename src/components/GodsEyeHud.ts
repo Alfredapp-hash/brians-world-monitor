@@ -71,6 +71,8 @@ export class GodsEyeHud {
   private destroyed = false;
   /** Last centre the coordinate board reported, for the drift-vs-jump test. */
   private lastCenter: { lat: number; lon: number } | null = null;
+  /** The way out. Held so stage entry can land focus on it — see focusExit(). */
+  private exitBtn: HTMLButtonElement | null = null;
 
   constructor(options: GodsEyeHudOptions) {
     this.options = options;
@@ -147,6 +149,7 @@ export class GodsEyeHud {
       h('kbd', { 'aria-hidden': 'true' }, 'Esc'),
     ) as HTMLButtonElement;
     exitBtn.addEventListener('click', () => this.options.onExit());
+    this.exitBtn = exitBtn;
 
     const controls = h(
       'div',
@@ -176,6 +179,23 @@ export class GodsEyeHud {
     }
 
     return controls;
+  }
+
+  /**
+   * Land keyboard focus on the way out.
+   *
+   * Entering the stage replaces the whole page with a globe, and phones have
+   * no Escape key — the HUD's Exit button is the only way back. Starting focus
+   * there means the exit is the reader's first Tab stop instead of something
+   * they have to hunt for past every headline in the rail.
+   *
+   * `preventScroll` because `.main-content` is `overflow: hidden` on the
+   * stage: letting the browser scroll the button into view would shift the
+   * composition the stage exists to present.
+   */
+  focusExit(): void {
+    if (this.destroyed) return;
+    this.exitBtn?.focus({ preventScroll: true });
   }
 
   /** Fade the HUD in and begin the readout ticker. */

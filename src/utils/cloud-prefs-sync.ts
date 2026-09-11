@@ -13,6 +13,11 @@
  */
 
 import { CLOUD_SYNC_KEYS, type CloudSyncKey } from './sync-keys';
+import {
+  isGodsEyeStage,
+  isStageForcedPreferenceKey,
+  withoutStageOverrides,
+} from '@/services/godseye-mode';
 import { isDesktopRuntime } from '@/services/runtime';
 import { getClerkToken } from '@/services/clerk';
 import { FEEDS } from '@/config/feeds';
@@ -216,7 +221,13 @@ function buildCloudBlob(): Record<string, string> {
     const val = localStorage.getItem(key);
     if (val !== null) blob[key] = val;
   }
-  return blob;
+  // The God's Eye stage forces reader mode and map dimension for the page load
+  // it owns. Those are synced keys, and this blob is rebuilt from localStorage
+  // on EVERY upload, so without this correction any unrelated pref change made
+  // mid-stage (flipping the theme, say) ships the staged values to the user's
+  // other devices — a phone would flip Everyday → Analyst on a 3D globe with no
+  // stage and no restore snapshot to get back. See withoutStageOverrides.
+  return withoutStageOverrides(blob);
 }
 
 function dispatchCloudPrefsApplied(keys: CloudSyncKey[]): void {
@@ -689,10 +700,22 @@ export function install(variant: string): void {
 
   // Patch localStorage.setItem and removeItem to detect pref changes in this tab.
   // Use _suppressPatch to prevent applyCloudBlob from triggering spurious uploads.
+  // A write the stage forced is not a preference the reader expressed, so it
+  // must not mark the key dirty either — a dirty key survives a 409 CONFLICT
+  // merge as "the edit the user just made", which would push the staged value
+  // to the cloud on the very path designed to protect real edits.
+  const isStageForcedWrite = (key: string): boolean =>
+    isStageForcedPreferenceKey(key) && isGodsEyeStage();
+
   const originalSetItem = Storage.prototype.setItem;
   Storage.prototype.setItem = function setItem(key: string, value: string) {
     originalSetItem.call(this, key, value);
-    if (this === localStorage && !_suppressPatch && CLOUD_SYNC_KEYS.includes(key as CloudSyncKey)) {
+    if (
+      this === localStorage
+      && !_suppressPatch
+      && CLOUD_SYNC_KEYS.includes(key as CloudSyncKey)
+      && !isStageForcedWrite(key)
+    ) {
       markDirtyKey(key as CloudSyncKey);
       schedulePrefUpload(_currentVariant);
     }
@@ -701,7 +724,12 @@ export function install(variant: string): void {
   const originalRemoveItem = Storage.prototype.removeItem;
   Storage.prototype.removeItem = function removeItem(key: string) {
     originalRemoveItem.call(this, key);
-    if (this === localStorage && !_suppressPatch && CLOUD_SYNC_KEYS.includes(key as CloudSyncKey)) {
+    if (
+      this === localStorage
+      && !_suppressPatch
+      && CLOUD_SYNC_KEYS.includes(key as CloudSyncKey)
+      && !isStageForcedWrite(key)
+    ) {
       markDirtyKey(key as CloudSyncKey);
       schedulePrefUpload(_currentVariant);
     }
