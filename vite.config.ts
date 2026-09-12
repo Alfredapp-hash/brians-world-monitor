@@ -465,6 +465,7 @@ function sebufApiPlugin(): Plugin {
       leadsServerMod, leadsHandlerMod,
       scenarioServerMod, scenarioHandlerMod,
       shippingV2ServerMod, shippingV2HandlerMod,
+      webcamServerMod, webcamHandlerMod,
     ] = await Promise.all([
         import('./server/router'),
         import('./server/cors'),
@@ -521,6 +522,11 @@ function sebufApiPlugin(): Plugin {
         import('./server/worldmonitor/scenario/v1/handler'),
         import('./src/generated/server/worldmonitor/shipping/v2/service_server'),
         import('./server/worldmonitor/shipping/v2/handler'),
+        // WebcamService was live on Vercel (api/webcam/v1/[rpc].ts) but absent
+        // here, so the camera layer 404'd under `npm run dev` and could only be
+        // exercised in production.
+        import('./src/generated/server/worldmonitor/webcam/v1/service_server'),
+        import('./server/worldmonitor/webcam/v1/handler'),
       ]);
 
     const serverOptions = { onError: errorMod.mapErrorToResponse };
@@ -551,6 +557,7 @@ function sebufApiPlugin(): Plugin {
       ...leadsServerMod.createLeadsServiceRoutes(leadsHandlerMod.leadsHandler, serverOptions),
       ...scenarioServerMod.createScenarioServiceRoutes(scenarioHandlerMod.scenarioHandler, serverOptions),
       ...shippingV2ServerMod.createShippingV2ServiceRoutes(shippingV2HandlerMod.shippingV2Handler, serverOptions),
+      ...webcamServerMod.createWebcamServiceRoutes(webcamHandlerMod.webcamHandler, serverOptions),
     ];
     cachedCorsMod = corsMod;
     return routerMod.createRouter(allRoutes);

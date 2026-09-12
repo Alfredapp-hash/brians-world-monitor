@@ -38,6 +38,10 @@ const LAYER_KEYS: (keyof MapLayers)[] = [
   'satellites',
   'ciiChoropleth',
   'resilienceScore',
+  // Cameras are shareable like any other layer: without an entry here
+  // `?layers=webcams` parses to "every listed layer off, webcams untouched",
+  // so the link silently does nothing and the layer cannot be deep-linked.
+  'webcams',
 ];
 
 const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', '48h', '7d', 'all'];

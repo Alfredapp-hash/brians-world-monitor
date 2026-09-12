@@ -1,8 +1,48 @@
 ---
 title: "Webcam Layer"
-description: "World Monitor's global webcam coverage layer — timelapse playback, pinned webcam panel, and multi-source integration roadmap for live imagery."
+description: "World Monitor's global webcam coverage layer — openly published agency cameras, Windy timelapse playback, pinned webcam panel, and multi-source integration roadmap for live imagery."
 ---
 The Webcam layer provides global visual intelligence by overlaying webcam locations on the map, with interactive tooltips showing preview images and a pinned webcam panel for persistent monitoring of key locations.
+
+The layer draws on two kinds of source, merged into one set of markers:
+
+1. **Openly published agency cameras** — transport authorities that publish their own camera directories as open data. No API key, no account, no proxying around an access control.
+2. **Windy Webcams API v3** — a much larger global set, but one that requires a `WINDY_API_KEY`.
+
+Only the first is available on a deployment with no credentials configured. Both use the same RPCs, the same clustering, and the same tooltip.
+
+## Data Source: public agency cameras (no API key)
+
+These are traffic authorities that publish a camera directory over anonymous HTTPS, along with the still images — and in some cases the video streams — that they already serve to the public web.
+
+| Source | Operator | Cameras | Media | Attribution |
+|---|---|---|---|---|
+| Caltrans CCTV (districts 1–12) | California Dept. of Transportation | ~4,000 | JPEG still + HLS (`.m3u8`) | `Caltrans District N — California DOT open data` |
+| TfL JamCams | Transport for London | ~890 | JPEG still + MP4 | `Powered by TfL Open Data` |
+| NYC DOT traffic cameras | NYC Dept. of Transportation | ~970 | JPEG still | `NYC DOT Traffic Management Center` |
+
+### What makes a source eligible
+
+A camera is only included when all of the following hold. This is a deliberate line, not a technical limit:
+
+- The operator publishes the directory itself as open data, over anonymous HTTPS.
+- The image or stream URL is one the operator already serves to the public.
+- No credential, session, or token is involved at any point.
+- The operator is not signalling that the camera is down (`inService`, `available`, `isOnline` are all honoured).
+
+Unsecured-camera aggregators are explicitly out of scope — see [Insecam in the limitations table](#no-live-video-api-exists-at-free-tier). Reachability is not permission.
+
+### Sharding and cost
+
+Source directories are large (a single Caltrans district is ~2MB of JSON), so they are split into bounded shards with a bounding box each: one per Caltrans district, one per city elsewhere. A viewport loads only the shards it overlaps, each cached for 6 hours, and a single request may pull at most 6 *uncached* shards — a whole-Earth view warms up over successive requests instead of downloading every directory at once. Already-warm shards are always served, however many overlap.
+
+### Camera identifiers
+
+Public cameras carry a `pub-<shard>-<localId>` identifier (for example `pub-nycdot-8a6bc417_4877_4ebe_8052_88c1b261baf1`). Operator ids are sanitized into the RPC's `[\w-]` charset, and the shard segment tells `getWebcamImage` which single directory to load for a lookup. The prefix is also what the client uses to pick the right credit line and "open at source" link instead of defaulting everything to Windy.
+
+### Seeding and health
+
+`scripts/seed-public-cameras.mjs` writes a **coverage manifest** — which sources answered, how many usable cameras each had, and their attributions — to `webcam:public-cameras:v1`, plus `seed-meta:webcam:public-cameras:v1` for `/api/health`. It deliberately does **not** seed camera positions; markers are live viewport reads, so a stale manifest means a source went dark rather than a blank layer. If every source fails, the previous payload is left in place rather than overwritten with zeroes.
 
 ## Data Source: Windy Webcams API v3
 
@@ -59,24 +99,31 @@ The webcam layer requires a `WINDY_API_KEY` environment variable. Get a free key
 
 Without the key:
 - **Seeder** exits gracefully with "WINDY_API_KEY not set, skipping webcam seed"
-- **Image handler** returns `{ error: 'unavailable' }` and tooltips show "Preview unavailable"
-- **Map layer** still renders markers from cached geo data (if previously seeded), but image previews are unavailable
+- **Image handler** returns `{ error: 'unavailable' }` for Windy ids, and tooltips show "Preview unavailable"
+- **Map layer** still renders the public agency cameras above, plus Windy markers from cached geo data if previously seeded
+
+A missing Windy index is no longer fatal to the layer: `listWebcams` treats the seeded Windy set as one contributor and returns the public cameras on their own when it is absent.
 
 ## Architecture
 
 ```
 Seed (periodic):
-  Windy API → seed-webcams.mjs → Redis (geo index + metadata hash)
+  Windy API        → seed-webcams.mjs        → Redis (geo index + metadata hash)
+  Agency directories → seed-public-cameras.mjs → Redis (coverage manifest only)
 
 Runtime:
-  Browser map viewport → listWebcams RPC → Redis geo search → clustered response
-  User clicks marker → getWebcamImage RPC → Windy API (cached 5 min) → tooltip with preview
+  Browser map viewport → listWebcams RPC ─┬─ Redis geo search (Windy half, if seeded)
+                                          └─ agency shard fetch (cached 6h)
+                                          → merged, deduped, clustered response
+  User clicks marker → getWebcamImage RPC ─┬─ pub-* id  → operator still/stream URL (no key)
+                                           └─ Windy id  → Windy API (cached 5 min)
+                                           → tooltip with preview
   User pins webcam → localStorage → PinnedWebcamsPanel (2x2 iframe grid)
 ```
 
 ### Backed by endpoints
 
-The webcam layer does not hydrate marker or preview data from the bootstrap payload. Viewport reads are direct WebcamService RPC calls against the seeded Redis geo index, and preview/player URLs are fetched only after a user interacts with a marker.
+The webcam layer does not hydrate marker or preview data from the bootstrap payload. Viewport reads are direct WebcamService RPC calls, and preview/player URLs are fetched only after a user interacts with a marker. Bootstrap carries one webcam key — `publicCameras` (`webcam:public-cameras:v1`, slow tier) — and it is the coverage manifest described above, not camera positions.
 
 | Method | Route | What it feeds |
 |--------|-------|---------------|
@@ -149,18 +196,20 @@ Maximum 4 webcams can be active (showing in grid) at any time. The total number 
 
 ## Current Limitations
 
-### Not live video
+### The Windy half is not live video
 
-**This is the most important limitation to understand.** The Windy player does not show live video streams. Most webcams in the Windy network capture still images at periodic intervals (every 5-15 minutes). The embedded player compiles these stills into a timelapse, typically showing the last 24-72 hours of captures.
+**This is the most important limitation to understand about the Windy cameras.** The Windy player does not show live video streams. Most webcams in the Windy network capture still images at periodic intervals (every 5-15 minutes). The embedded player compiles these stills into a timelapse, typically showing the last 24-72 hours of captures.
 
 This means:
 - The "player" is a timelapse of recent snapshots, not a live feed
 - There is no way to filter for live-streaming cameras via the Windy API
 - Real-time situational awareness is limited to the latest captured image (visible in the tooltip preview)
 
+The public agency cameras refresh far faster — Caltrans stills update roughly every 5 minutes, and most Caltrans cameras additionally publish a genuine HLS stream — but they cover three metro regions, not the world.
+
 ### No live video API exists at free tier
 
-Free sources of actual live video webcam feeds with structured APIs do not currently exist. Live video requires streaming infrastructure (RTSP/HLS/WebRTC) which is expensive to operate. Known live sources are either paid, partner-only, or have no API:
+No *global* free source of live video webcam feeds with a structured API exists. Live video requires streaming infrastructure (RTSP/HLS/WebRTC) which is expensive to operate. Individual public agencies do publish HLS for their own territory (Caltrans is wired up above); beyond that, known live sources are either paid, partner-only, or have no API:
 
 | Source | Status |
 |--------|--------|
@@ -180,13 +229,13 @@ Free sources of actual live video webcam feeds with structured APIs do not curre
 
 ## Future Phases
 
-### Phase 2: US DOT 511 State APIs
+### Phase 2: US DOT 511 State APIs — partially shipped
 
-Tens of thousands of traffic cameras across 20+ US states. Free with developer key per state. These are also periodic still images (refresh every 30-60 seconds), not live video, but update more frequently than Windy cameras.
+The keyless subset of this phase is live: Caltrans, TfL, and NYC DOT are wired up above, each with its own normalizing adapter in `server/worldmonitor/webcam/v1/public-cameras.ts`.
 
-Target states: NY (511ny.org), CA (511.org), GA (511ga.org), AZ (az511.com), UT.
+Remaining: the states whose 511 APIs require a per-state developer key (GA, AZ, UT, and 511ny's authenticated endpoints). Those need the key stored through the existing env pattern before their adapters are worth writing — no key is ever to be committed, and a state that cannot be reached anonymously stays out until one is configured.
 
-Challenge: Each state has a slightly different schema requiring normalizing adapters.
+Adding a source is a new entry in `PUBLIC_CAMERA_SHARDS` plus a parser: bounding box, URL, and a function returning `PublicCameraRecord[]`.
 
 ### Phase 3: OpenWebcamDB
 

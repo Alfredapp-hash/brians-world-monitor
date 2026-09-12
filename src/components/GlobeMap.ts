@@ -1800,27 +1800,44 @@ export class GlobeMap {
       wrapper.appendChild(previewDiv);
 
       const link = document.createElement('a');
-      link.href = `https://www.windy.com/webcams/${encodeURIComponent(d.webcamId)}`;
       link.target = '_blank';
       link.rel = 'noopener';
       link.style.cssText = 'display:block;color:var(--accent);font-size:11px;text-decoration:none;';
-      link.textContent = 'Open on Windy \u2197';
       wrapper.appendChild(link);
 
       const attribution = document.createElement('div');
       attribution.style.cssText = 'opacity:.4;font-size:9px;margin-top:4px;';
-      attribution.textContent = 'Powered by Windy';
       wrapper.appendChild(attribution);
 
-      import('@/services/webcams').then(({ fetchWebcamImage }) => {
+      import('@/services/webcams').then(({ fetchWebcamImage, getWebcamSource, getWebcamSourceUrl }) => {
+        // Provider chrome is resolved from the id rather than hardcoded: the
+        // layer mixes Windy with openly published agency cameras.
+        const source = getWebcamSource(d.webcamId);
+        attribution.textContent = source.attribution;
+        link.textContent = source.linkLabel;
+        link.href = getWebcamSourceUrl(d.webcamId);
+
         fetchWebcamImage(d.webcamId).then(img => {
           if (!el.isConnected) return;
+          const resolvedHref = getWebcamSourceUrl(d.webcamId, img);
+          if (resolvedHref) link.href = resolvedHref;
+          else link.remove();
           previewDiv.replaceChildren();
           if (img.thumbnailUrl) {
             const imgEl = document.createElement('img');
             imgEl.src = img.thumbnailUrl;
             imgEl.style.cssText = 'width:200px;border-radius:4px;margin-bottom:4px;';
             imgEl.loading = 'lazy';
+            // A camera the operator still lists but is no longer serving is the
+            // normal failure here, not an exception. Swap in a broken-camera
+            // line rather than leaving a torn image icon in the popup.
+            imgEl.addEventListener('error', () => {
+              if (!imgEl.isConnected) return;
+              const broken = document.createElement('span');
+              broken.style.cssText = 'opacity:.5;font-size:11px;';
+              broken.textContent = '\u{1F4F7}\u200A\u2715 Camera offline';
+              imgEl.replaceWith(broken);
+            });
             previewDiv.appendChild(imgEl);
           } else {
             const span = document.createElement('span');

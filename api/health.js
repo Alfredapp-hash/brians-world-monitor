@@ -588,6 +588,7 @@ const SEED_META = {
   fossilElectricityShare:  { key: 'seed-meta:resilience:fossil-electricity-share',  maxStaleMin: 11520 },
   powerLosses:             { key: 'seed-meta:resilience:power-losses',              maxStaleMin: 11520 },
   webcams:                 { key: 'seed-meta:webcam:cameras:geo',                   maxStaleMin: 1440 }, // seed-webcams writes 24h geo/meta keys plus a 30h active pointer; stale at 24h before the layer goes blank.
+  publicCameras:           { key: 'seed-meta:webcam:public-cameras:v1',             maxStaleMin: 10080 }, // seed-public-cameras writes a 7d coverage manifest; markers come from live source reads, so staleness here means a source went dark, not a blank layer.
 };
 
 // Iran-events sunset: when disabled (default), drop it from all health

@@ -93,6 +93,14 @@ export const MISSION_PRESETS: readonly MissionPreset[] = [
     ],
     // Layers chosen to read at globe scale: broad geographic spread, moving
     // tracks, and point events that stay legible from orbit.
+    //
+    // `webcams` is the stage's one look-down-and-see-it layer: everything else
+    // here is a plotted event, and the cameras are the point where the reader
+    // stops reading about a place and looks at it. Density is handled by the
+    // server's zoom-aware clustering, so it stays a cluster count from orbit
+    // and only resolves into individual cameras on the way down. It is allowed
+    // only in the `full` variant (VARIANT_LAYER_ORDER), so presets applied
+    // under happy/tech/finance/energy drop it in sanitizeLayersForVariant.
     layers: [
       'hotspots',
       'conflicts',
@@ -105,6 +113,7 @@ export const MISSION_PRESETS: readonly MissionPreset[] = [
       'cyberThreats',
       'weather',
       'natural',
+      'webcams',
     ],
   },
   {

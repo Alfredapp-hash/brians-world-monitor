@@ -3288,28 +3288,51 @@ export class MapComponent {
     previewDiv.appendChild(loadingSpan);
     tooltip.appendChild(previewDiv);
 
+    const link = document.createElement('a');
     if (cam.webcamId) {
-      const link = document.createElement('a');
-      link.href = `https://www.windy.com/webcams/${cam.webcamId}`;
       link.target = '_blank';
       link.rel = 'noopener';
       link.style.cssText = 'display:block;margin-top:4px;color:var(--accent);font-size:11px;text-decoration:none;';
-      link.textContent = 'Open on Windy \u2197';
       tooltip.appendChild(link);
     }
+
+    // Operator credit is a licence condition for the open-data sources (TfL
+    // requires "Powered by TfL Open Data" verbatim), not decoration.
+    const attribution = document.createElement('div');
+    attribution.style.cssText = 'opacity:.4;font-size:9px;margin-top:4px;';
+    tooltip.appendChild(attribution);
 
     this.placeWebcamTooltip(tooltip, clientX, clientY);
 
     if (cam.webcamId) {
-      import('@/services/webcams').then(({ fetchWebcamImage }) => {
+      import('@/services/webcams').then(({ fetchWebcamImage, getWebcamSource, getWebcamSourceUrl }) => {
+        // Resolved from the id: the layer mixes Windy with openly published
+        // agency cameras, which credit and link elsewhere.
+        const source = getWebcamSource(cam.webcamId);
+        attribution.textContent = source.attribution;
+        link.textContent = source.linkLabel;
+        link.href = getWebcamSourceUrl(cam.webcamId);
+
         fetchWebcamImage(cam.webcamId).then(img => {
           if (!tooltip.isConnected) return;
+          const resolvedHref = getWebcamSourceUrl(cam.webcamId, img);
+          if (resolvedHref) link.href = resolvedHref;
+          else link.remove();
           previewDiv.replaceChildren();
           if (img.thumbnailUrl) {
             const imgEl = document.createElement('img');
             imgEl.src = img.thumbnailUrl;
             imgEl.style.cssText = 'width:200px;border-radius:4px;margin-bottom:4px;';
             imgEl.loading = 'lazy';
+            // Operator still lists the camera but stopped serving it — degrade
+            // to a broken-camera line rather than a torn image icon.
+            imgEl.addEventListener('error', () => {
+              if (!imgEl.isConnected) return;
+              const broken = document.createElement('span');
+              broken.style.cssText = 'opacity:0.5;font-size:10px;';
+              broken.textContent = '\u{1F4F7}\u200A\u2715 Camera offline';
+              imgEl.replaceWith(broken);
+            });
             previewDiv.appendChild(imgEl);
           } else {
             const span = document.createElement('span');
