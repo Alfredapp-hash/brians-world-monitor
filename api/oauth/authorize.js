@@ -13,14 +13,13 @@ const CLIENT_TTL_SECONDS = 90 * 24 * 3600; // 90-day sliding reset
 // First-party origin allowlist for the consent POST. This fork does not
 // control worldmonitor.app (a separate, unaffiliated live product) and must
 // never treat it — or any of its subdomains — as first-party for CORS/OAuth
-// consent purposes. Trust only this fork's own Vercel deployment(s): the
-// production alias plus preview-deployment aliases (branch/hash variants),
-// mirroring the pattern in api/_cors.js. Foreign origins are still rejected;
+// consent purposes. Trust the live Netlify host (thepublicdispatch.com) and
+// this fork's own Vercel deployment(s): the production alias plus preview
+// aliases, mirroring api/_cors.js. Foreign origins are still rejected;
 // the single-use CSRF nonce (server-stored, the source of every authoritative
 // value) is the primary protection, this is defense-in-depth. Anchored, so it
-// rejects brians-world-monitor.vercel.app.evil.example, a bare *.vercel.app,
-// and any :port.
-const WM_ORIGIN = /^https:\/\/brians-world-monitor(-[a-z0-9-]+)?\.vercel\.app$/;
+// rejects suffix/prefix spoofs, a bare *.vercel.app / *.netlify.app, and any :port.
+const WM_ORIGIN = /^https:\/\/(?:(www\.)?thepublicdispatch\.com|brians-world-monitor(-[a-z0-9-]+)?\.vercel\.app)$/;
 
 let _rl = null;
 function getRatelimit() {

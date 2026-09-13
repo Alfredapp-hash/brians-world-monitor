@@ -33,10 +33,32 @@ test('rejects unrelated external origins', () => {
   assert.equal(isDisallowedOrigin(req), true);
   const cors = getCorsHeaders(req);
   // Fork: a disallowed origin is never echoed back — it falls back to the
-  // fork's own default origin (ALLOWED_ORIGIN env, or the Vercel domain).
+  // live paper host (ALLOWED_ORIGIN env, or thepublicdispatch.com).
   assert.notEqual(cors['Access-Control-Allow-Origin'], 'https://evil.example.com');
-  assert.equal(cors['Access-Control-Allow-Origin'], 'https://brians-world-monitor.vercel.app');
+  assert.equal(cors['Access-Control-Allow-Origin'], 'https://thepublicdispatch.com');
   assert.equal(cors['Access-Control-Allow-Credentials'], 'true');
+});
+
+test('allows the live Netlify paper host', () => {
+  for (const origin of ['https://thepublicdispatch.com', 'https://www.thepublicdispatch.com']) {
+    const req = makeRequest(origin);
+    assert.equal(isDisallowedOrigin(req), false, `origin should be allowed: ${origin}`);
+    const cors = getCorsHeaders(req);
+    assert.equal(cors['Access-Control-Allow-Origin'], origin);
+    assert.equal(cors['Access-Control-Allow-Credentials'], 'true');
+  }
+});
+
+test('rejects spoofed Public Dispatch origins', () => {
+  for (const origin of [
+    'http://thepublicdispatch.com',
+    'https://thepublicdispatch.com.evil.example',
+    'https://evilthepublicdispatch.com',
+    'https://thepublicdispatch.com:8443',
+  ]) {
+    const req = makeRequest(origin);
+    assert.equal(isDisallowedOrigin(req), true, `origin should be rejected: ${origin}`);
+  }
 });
 
 test('requests without origin remain allowed', () => {

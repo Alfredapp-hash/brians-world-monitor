@@ -248,6 +248,21 @@ test('localhost session cookie remains host-only for dev', async () => {
   assert.doesNotMatch(session, /Domain=/);
 });
 
+test('POST from the live Netlify host sets a host-scoped Public Dispatch cookie', async () => {
+  const req = new Request('https://thepublicdispatch.com/api/wm-session', {
+    method: 'POST',
+    headers: { origin: 'https://thepublicdispatch.com' },
+  });
+  const resp = await handler(req);
+  assert.equal(resp.status, 200);
+  const cookies = setCookies(resp);
+  const session = cookies.find((cookie) => cookie.startsWith('wm-session='));
+  assert.ok(session, 'wm-session cookie should be set');
+  assert.match(session, /wm-session=.*HttpOnly/);
+  assert.match(session, /Domain=\.thepublicdispatch\.com/);
+  assert.doesNotMatch(session, /Domain=\.worldmonitor\.app/);
+});
+
 test('OPTIONS preflight returns 204 with CORS', async () => {
   delete process.env.UPSTASH_REDIS_REST_URL;
   delete process.env.UPSTASH_REDIS_REST_TOKEN;

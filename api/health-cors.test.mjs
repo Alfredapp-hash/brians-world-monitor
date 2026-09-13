@@ -35,6 +35,14 @@ test('health preflight is compatible with credentialed browser fetches', async (
   assert.equal(resp.headers.get('vary'), 'Origin');
 });
 
+test('health preflight allows the live Netlify paper host', async () => {
+  const resp = await handler(makePreflight('https://thepublicdispatch.com'));
+
+  assert.equal(resp.status, 204);
+  assert.equal(resp.headers.get('access-control-allow-origin'), 'https://thepublicdispatch.com');
+  assert.equal(resp.headers.get('access-control-allow-credentials'), 'true');
+});
+
 test('health GET response is compatible with credentialed browser fetches', async () => {
   const resp = await handler(new Request('https://api.worldmonitor.app/api/health?compact=1', {
     method: 'GET',

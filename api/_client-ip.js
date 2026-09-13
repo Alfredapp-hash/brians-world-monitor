@@ -37,14 +37,15 @@ export function hasCloudflareTransitProof(request) {
 export function getClientIp(request) {
   const cf = (request.headers.get('cf-connecting-ip') ?? '').trim();
   const xr = (request.headers.get('x-real-ip') ?? '').trim();
+  const nf = (request.headers.get('x-nf-client-connection-ip') ?? '').trim();
   // cf-connecting-ip is only unforgeable for traffic that actually transited
   // Cloudflare. On a direct-to-origin hit (bypassing CF) it is fully client-
   // controlled, so an attacker sending a fresh value per request rotates the
   // sliding-window bucket and neutralises the IP limits (GHSA-c267). Trust it
-  // only with proof of CF transit. Otherwise use Vercel's own x-real-ip (the
-  // real peer IP) then the shared UNKNOWN bucket; the spoofable cf-connecting-ip
-  // and the client-settable x-forwarded-for (#3531) are deliberately NOT
-  // fallbacks here.
+  // only with proof of CF transit. Otherwise use Vercel's own x-real-ip or
+  // Netlify's x-nf-client-connection-ip (platform-set peer IP) then the shared
+  // UNKNOWN bucket; the spoofable cf-connecting-ip and the client-settable
+  // x-forwarded-for (#3531) are deliberately NOT fallbacks here.
   if (cf && hasCloudflareTransitProof(request)) return cf;
-  return xr || UNKNOWN_CLIENT_IP;
+  return xr || nf || UNKNOWN_CLIENT_IP;
 }

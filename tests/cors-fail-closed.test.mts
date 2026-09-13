@@ -89,6 +89,8 @@ describe('isAllowedOrigin — Vercel preview allowlist (this fork\'s deployments
     !isDisallowedOriginJs(new Request('https://brians-world-monitor.vercel.app/x', { headers: { Origin: origin } }));
 
   const ALLOWED = [
+    ['live Netlify paper host', 'https://thepublicdispatch.com'],
+    ['live Netlify www host', 'https://www.thepublicdispatch.com'],
     ['git-branch alias URL', 'https://brians-world-monitor-git-main.vercel.app'],
     ['hash deployment URL', 'https://brians-world-monitor-abc123def456.vercel.app'],
     ['apex production origin', 'https://brians-world-monitor.vercel.app'],
@@ -97,6 +99,7 @@ describe('isAllowedOrigin — Vercel preview allowlist (this fork\'s deployments
   const REJECTED = [
     ['non-fork vercel.app origin', 'https://some-other-app.vercel.app'],
     ['bare vercel.app (no fork prefix)', 'https://worldmonitor.vercel.app'],
+    ['suffix-spoofed paper host', 'https://thepublicdispatch.com.evil.com'],
     ['suffix-spoofed origin', 'https://brians-world-monitor.vercel.app.evil.com'],
     ['worldmonitor.app apex (foreign, separately-owned product)', 'https://worldmonitor.app'],
     ['worldmonitor.app subdomain (foreign, separately-owned product)', 'https://tech.worldmonitor.app'],
@@ -141,6 +144,10 @@ describe("CORS triplet parity — this fork's preview pattern stays tight in all
         `${rel} must allow brians-world-monitor(-<suffix>)?.vercel.app previews`,
       );
       assert.ok(
+        source.includes('(www\\.)?thepublicdispatch\\.com'),
+        `${rel} must allow the live Netlify paper host`,
+      );
+      assert.ok(
         !/\*\.vercel\.app/.test(stripComments(source)),
         `${rel} must not widen to a bare *.vercel.app wildcard (security allowlist)`,
       );
@@ -167,6 +174,8 @@ describe('CORS Worker superset invariant — edge allowlist ⊇ function allowli
     !isDisallowedOriginJs(new Request('https://worldmonitor.app/x', { headers: { Origin: origin } }));
 
   const PROD_ORIGINS = [
+    'https://thepublicdispatch.com',
+    'https://www.thepublicdispatch.com',
     'https://worldmonitor.app',
     'https://www.worldmonitor.app',
     'https://tech.worldmonitor.app',
