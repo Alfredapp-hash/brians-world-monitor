@@ -54,14 +54,16 @@
   --radius-lg: 12px;
   --radius-pill: 999px;
 
-  /* Z-index ladder */
+  /* Z-index ladder — values match the live overlay stack in main.css
+   * (popovers ~5000, modals 9999–10020, palette above them). The earlier
+   * 1000/1100 pair was too low to adopt, so ⌘K had to hard-code 10050. */
   --z-base: 1;
   --z-panel: 10;
-  --z-dropdown: 100;
-  --z-toast: 500;
-  --z-modal: 1000;
-  --z-palette: 1100;
-  --z-max: 2000;
+  --z-dropdown: 5000;
+  --z-modal: 10000;
+  --z-toast: 10002;
+  --z-palette: 10050;
+  --z-max: 100000;
 
   /* Type steps (match dominant 9/10/11/12/14px usage) */
   --text-xs: 9px;
@@ -69,6 +71,11 @@
   --text-md: 11px;
   --text-lg: 12px;
   --text-xl: 14px;
+  /* Sprint aliases — states.css and new work read --text-size-*. */
+  --text-size-xs: var(--text-xs);
+  --text-size-sm: var(--text-sm);
+  --text-size-md: var(--text-md);
+  --text-size-lg: var(--text-lg);
 
   /* Semantic status scale — tuned to sit alongside amber #f0a832
    * on #0a0c10. All foreground values clear WCAG AA on --bg:
@@ -83,6 +90,9 @@
   --status-warn-bg: rgba(224, 138, 60, 0.12);
   --status-alert: #e05252;
   --status-alert-bg: rgba(224, 82, 82, 0.12);
+  --status-alert-strong: #ff6b5c;
+  --semantic-warning: var(--status-watch);
+  --warning: var(--status-watch);
 
   /* Critical tier above --status-alert (map severity s5: extreme events,
    * total outages). Mirrored by SEVERITY.s5 in src/styles/tokens.ts. */
@@ -177,6 +187,10 @@
   --red: #dc2626;
   --green: #16a34a;
   --yellow: #d97706;
+
+  --semantic-warning: #d97706;
+  --warning: #d97706;
+  --status-alert-strong: #dc2626;
 }
 
 /* SVG-fallback map: retire upstream's radar-green land/grid for the

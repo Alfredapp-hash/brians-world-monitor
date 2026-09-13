@@ -263,6 +263,7 @@ export class EventHandlerManager implements AppModule {
   private boundMissionKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundEmbedModalKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private missionPresetPopover: HTMLElement | null = null;
+  private missionPresetScrim: HTMLElement | null = null;
   private missionDataRefreshTimer: number | null = null;
   private proGateUnsubscribers: Array<() => void> = [];
   private exportPanelLoad: Promise<NonNullable<AppContext['exportPanel']>> | null = null;
@@ -1157,6 +1158,12 @@ export class EventHandlerManager implements AppModule {
   private openMissionPresetPopover(anchor: HTMLElement | null, mobile: boolean): void {
     this.closeMissionPresetPopover();
 
+    const scrim = document.createElement('div');
+    scrim.className = 'mission-preset-scrim';
+    scrim.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(scrim);
+    this.missionPresetScrim = scrim;
+
     const active = loadStoredMissionPreset();
     const popover = document.createElement('div');
     popover.className = `mission-preset-popover${mobile ? ' mission-preset-popover--mobile' : ''}`;
@@ -1266,6 +1273,8 @@ export class EventHandlerManager implements AppModule {
     }
     this.missionPresetPopover?.remove();
     this.missionPresetPopover = null;
+    this.missionPresetScrim?.remove();
+    this.missionPresetScrim = null;
     document.getElementById('missionPresetBtn')?.setAttribute('aria-expanded', 'false');
   }
 

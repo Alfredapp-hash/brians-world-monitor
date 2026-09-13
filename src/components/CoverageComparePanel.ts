@@ -352,7 +352,7 @@ export class CoverageComparePanel extends Panel {
     });
     this.getLatestNews = getLatestNews;
 
-    const refreshBtn = h('button', { className: 'cc-refresh-btn', type: 'button' }, everyday ? 'Refresh framing' : 'Analyze coverage') as HTMLButtonElement;
+    const refreshBtn = h('button', { className: 'btn btn-primary cc-refresh-btn', type: 'button' }, everyday ? 'Refresh framing' : 'Analyze coverage') as HTMLButtonElement;
     refreshBtn.addEventListener('click', () => void this.analyze());
 
     this.statusEl = h('div', { className: 'cc-status' }, everyday
@@ -364,7 +364,11 @@ export class CoverageComparePanel extends Panel {
     this.aiStatusEl = h('span', { className: 'cc-ai-status cc-ai-status-none' }, '● Local AI: checking…');
 
     // Discord alerts config (collapsible).
-    const alertsBtn = h('button', { className: 'cc-alerts-btn', type: 'button', title: 'Discord alert settings', 'aria-label': 'Discord alert settings', 'aria-expanded': 'false' }, '🔔') as HTMLButtonElement;
+    const alertsBtn = h('button', { className: 'cc-alerts-btn', type: 'button', title: 'Discord alert settings', 'aria-label': 'Discord alert settings', 'aria-expanded': 'false' }) as HTMLButtonElement;
+    setTrustedHtml(alertsBtn, trustedHtml(
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+      'Static line-icon bell for Discord alert settings',
+    ));
     const alertsPanel = this.buildAlertsConfig();
     alertsBtn.addEventListener('click', () => {
       const open = alertsPanel.style.display === 'none';
@@ -564,7 +568,7 @@ export class CoverageComparePanel extends Panel {
 
     const status = h('span', { className: 'cc-alerts-status' });
 
-    const saveBtn = h('button', { className: 'cc-copy-btn', type: 'button' }, 'Save') as HTMLButtonElement;
+    const saveBtn = h('button', { className: 'btn btn-ghost cc-copy-btn', type: 'button' }, 'Save') as HTMLButtonElement;
     saveBtn.addEventListener('click', () => {
       const url = input.value.trim();
       if (url && !isValidWebhookUrl(url)) {
@@ -577,7 +581,7 @@ export class CoverageComparePanel extends Panel {
       status.className = 'cc-alerts-status cc-alerts-ok';
     });
 
-    const testBtn = h('button', { className: 'cc-copy-btn', type: 'button' }, 'Send test') as HTMLButtonElement;
+    const testBtn = h('button', { className: 'btn btn-ghost cc-copy-btn', type: 'button' }, 'Send test') as HTMLButtonElement;
     testBtn.addEventListener('click', async () => {
       testBtn.disabled = true;
       status.textContent = 'Sending…';
@@ -997,7 +1001,7 @@ export class CoverageComparePanel extends Panel {
           h('span', { className: 'cc-nci-evidence' }, s.evidence),
         );
       });
-      const copyBtn = h('button', { className: 'cc-copy-btn', type: 'button' }, 'Copy report') as HTMLButtonElement;
+      const copyBtn = h('button', { className: 'btn btn-ghost cc-copy-btn', type: 'button' }, 'Copy report') as HTMLButtonElement;
       copyBtn.addEventListener('click', () => {
         const report = buildNciReport(cc.cluster.primaryTitle, result, {
           sources: [...new Set(cc.items.map(i => i.item.source))],
@@ -1046,7 +1050,7 @@ export class CoverageComparePanel extends Panel {
       );
     };
 
-    const nciAiBtn = h('button', { className: 'cc-ai-btn cc-nci-ai-btn', type: 'button' }, everyday ? 'Full score (local AI)' : 'Full NCI Score (AI)') as HTMLButtonElement;
+    const nciAiBtn = h('button', { className: 'btn btn-secondary cc-ai-btn cc-nci-ai-btn', type: 'button' }, everyday ? 'Full score (local AI)' : 'Full NCI Score (AI)') as HTMLButtonElement;
     nciAiBtn.addEventListener('click', async () => {
       nciAiBtn.disabled = true;
       nciAiBtn.textContent = 'Scoring…';
@@ -1097,7 +1101,7 @@ export class CoverageComparePanel extends Panel {
     });
 
     // ── Local coverage finder ──
-    const localBtn = h('button', { className: 'cc-local-btn', type: 'button' }, 'Find local coverage') as HTMLButtonElement;
+    const localBtn = h('button', { className: 'btn btn-ghost cc-local-btn', type: 'button' }, 'Find local coverage') as HTMLButtonElement;
     const localResult = h('div', { className: 'cc-local-result' });
     localBtn.addEventListener('click', async () => {
       localBtn.disabled = true;
@@ -1122,7 +1126,7 @@ export class CoverageComparePanel extends Panel {
       }
     });
 
-    const aiBtn = h('button', { className: 'cc-ai-btn', type: 'button' }, 'AI Compare') as HTMLButtonElement;
+    const aiBtn = h('button', { className: 'btn btn-primary cc-ai-btn', type: 'button' }, 'AI Compare') as HTMLButtonElement;
     const aiResult = h('div', { className: 'cc-ai-result' });
     aiBtn.addEventListener('click', async () => {
       aiBtn.disabled = true;

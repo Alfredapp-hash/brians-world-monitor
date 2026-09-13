@@ -497,7 +497,7 @@ canvas,
 
 .mission-preset-popover {
   position: fixed;
-  z-index: 5000;
+  z-index: var(--z-modal, 5000);
   width: min(360px, calc(100vw - 24px));
   max-height: min(620px, calc(100vh - 64px));
   overflow: auto;
@@ -11207,7 +11207,7 @@ a.prediction-link:hover {
   align-items: flex-start;
   justify-content: center;
   padding-top: 15vh;
-  z-index: 2000;
+  z-index: var(--z-palette, 2000);
   backdrop-filter: blur(4px);
 }
 
