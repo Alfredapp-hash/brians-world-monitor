@@ -17,6 +17,7 @@ import {
 import type { McpDataPanel } from '@/components/McpDataPanel';
 import { deleteMcpPanel, getMcpPanel, saveMcpPanel } from '@/services/mcp-store';
 import { registerSettingsOpener } from '@/services/settings-bus';
+import { BRAND } from '@/config/brand';
 import type { PanelConfig, MapLayers, MilitaryFlight } from '@/types';
 import type { MapView } from '@/components/MapContainer';
 import type { PositionSample } from '@/services/aviation';
@@ -1644,7 +1645,7 @@ export class EventHandlerManager implements AppModule {
 
     const preview = document.createElement('iframe');
     preview.className = 'embed-preview-frame';
-    preview.title = "JSA's Monitor live map preview";
+    preview.title = `${BRAND.name} live map preview`;
     preview.loading = 'lazy';
     preview.referrerPolicy = 'strict-origin-when-cross-origin';
     preview.src = embedUrl;

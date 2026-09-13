@@ -54,7 +54,7 @@ describe('discord-alerts', () => {
       phrases: [{ phrase: 'unprecedented security threat', kind: 'coordinated', sources: ['A', 'B', 'C'] }],
       flags: ['⚠ TALKING POINT — synchronized phrasing'],
     })) as { username: string; embeds: Array<{ title: string; fields: Array<{ name: string; value: string }> }> };
-    assert.equal(payload.username, "JSA's Monitor");
+    assert.equal(payload.username, 'The Public Dispatch');
     assert.ok(payload.embeds[0]!.title.includes('TALKING POINT'));
     const phraseField = payload.embeds[0]!.fields.find(f => f.name === 'Synchronized phrasing');
     assert.ok(phraseField!.value.includes('unprecedented security threat'));

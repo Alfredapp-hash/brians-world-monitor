@@ -62,8 +62,10 @@ export class ReaderHero {
   private retryBtn: HTMLButtonElement | null = null;
 
   constructor() {
+    // `wm-plate` is the shared console surface (console-2026.css §4): the lead
+    // story is an object on the grey stage, the same material as every panel.
     this.element = h('section', {
-      className: 'reader-hero',
+      className: 'reader-hero wm-plate',
       'aria-label': "Today's briefing",
     });
 

@@ -3,6 +3,7 @@ import './styles/happy-theme.css';
 import './styles/embed.css';
 import { MapContainer, type MapContainerState } from '@/components/MapContainer';
 import { initI18n } from '@/services/i18n';
+import { BRAND } from '@/config/brand';
 import { EmbedDataLoader } from '@/embed/embed-data-loader';
 import {
   buildWorldMonitorAttributionUrl,
@@ -60,7 +61,7 @@ async function bootEmbed(): Promise<void> {
     attribution.href = buildWorldMonitorAttributionUrl(new URL('/dashboard', window.location.origin).toString(), getReferrerHost());
     attribution.target = '_blank';
     attribution.rel = 'noopener noreferrer';
-    attribution.textContent = "Live map by JSA's Monitor";
+    attribution.textContent = `Live map by ${BRAND.name}`;
     root.appendChild(attribution);
 
     const loader = new EmbedDataLoader(map, params.layerIds);
@@ -72,7 +73,7 @@ async function bootEmbed(): Promise<void> {
     }, { once: true });
   } catch (error) {
     console.error('[embed] Failed to boot map:', error);
-    mountError(root, "JSA's Monitor map embed could not load.");
+    mountError(root, `${BRAND.name} map embed could not load.`);
     document.body.dataset.embedReady = 'error';
   }
 }

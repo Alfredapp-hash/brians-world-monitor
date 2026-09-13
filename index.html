@@ -11,14 +11,14 @@
     <meta name="description" content="A clear daily brief on the stories that matter — who covered them, who stayed quiet, and how outlets frame the news. Deeper analysis when you want it." />
     <meta name="keywords" content="world news brief, daily briefing, outlet framing, geopolitics, financial markets, science discoveries, archaeology news, real-time monitoring, OSINT, local AI, Ollama" />
     <meta name="author" content="Elie Habib" />
-    <meta name="theme-color" content="#e0d2b4" />
+    <meta name="theme-color" content="#1c1f25" />
     <meta name="robots" content="index, follow" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Libre Caslon is the paper's voice: Display for the masthead and section
-         heads, Text for prose in the reader. Fraunces/Outfit stay loaded because
-         the happy variant and a handful of panels still name them. -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Fraunces:opsz,wght@9..144,560;9..144,700&family=Outfit:wght@400;500;600&display=swap" />
+    <!-- Console 2026 sets the whole app in one contemporary sans; Inter is the
+         system face. Fraunces/Outfit stay loaded because the happy variant and
+         a handful of panels still name them by hand. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,700&family=Outfit:wght@400;500;600&display=swap" />
     <link rel="canonical" href="https://brians-world-monitor.vercel.app/dashboard" />
     <link rel="alternate" hreflang="x-default" href="https://brians-world-monitor.vercel.app/dashboard" />
     <link rel="alternate" hreflang="en" href="https://brians-world-monitor.vercel.app/dashboard" />
@@ -203,20 +203,19 @@
 
     <!-- Critical CSS: inline skeleton visible before JS boots -->
     <style>
-      /* --dashboard-grid-gap must match dispatch.css :root — leaves need more
-         air than the old console plates did, and a skeleton/app mismatch here
-         shifts every row on hydration. */
-      :root{--wm-pro-banner-slot-height:40px;--dashboard-panel-row-min:200px;--dashboard-panel-row-max:380px;--dashboard-grid-gap:14px;--dashboard-first-grid-reservation:calc(var(--dashboard-panel-row-min) + var(--dashboard-panel-row-min) + var(--dashboard-grid-gap))}
-      @media (max-width:900px){:root{--dashboard-grid-gap:10px}}
-      html,body{margin:0;height:100%;width:100%;overflow:hidden;background:#ded0b0}
-      html.wm-pro-banner-reserved #app::before{content:'';display:block;height:var(--wm-pro-banner-slot-height);flex:0 0 var(--wm-pro-banner-slot-height);background:#f7f1e3;border-bottom:1px solid rgba(36,26,18,.4);box-sizing:border-box}
+      /* --dashboard-grid-gap must match console-2026.css :root — a
+         skeleton/app mismatch here shifts every row on hydration. */
+      :root{--wm-pro-banner-slot-height:40px;--dashboard-panel-row-min:200px;--dashboard-panel-row-max:380px;--dashboard-grid-gap:10px;--dashboard-first-grid-reservation:calc(var(--dashboard-panel-row-min) + var(--dashboard-panel-row-min) + var(--dashboard-grid-gap))}
+      @media (max-width:900px){:root{--dashboard-grid-gap:8px}}
+      html,body{margin:0;height:100%;width:100%;overflow:hidden;background:#1c1f25}
+      html.wm-pro-banner-reserved #app::before{content:'';display:block;height:var(--wm-pro-banner-slot-height);flex:0 0 var(--wm-pro-banner-slot-height);background:#000;border-bottom:1px solid rgba(255,255,255,.09);box-sizing:border-box}
       html.wm-pro-banner-reserved.wm-layout-hydrated #app::before{content:none;display:none}
       .pro-banner-slot{flex:0 0 auto;min-height:0;box-sizing:border-box}
       html.wm-pro-banner-reserved .pro-banner-slot{min-height:var(--wm-pro-banner-slot-height)}
       .pro-banner-slot .pro-banner{box-sizing:border-box;min-height:var(--wm-pro-banner-slot-height);width:100%}
       #country-deep-dive-panel.country-deep-dive[aria-hidden="true"]{position:fixed;top:0;right:0;width:430px;height:100vh;visibility:hidden;z-index:5000;box-sizing:border-box;transform:translateX(calc(100% + 30px));contain:layout paint}
       @media (max-width:767px){#country-deep-dive-panel.country-deep-dive[aria-hidden="true"]{width:100vw;transform:translateX(100%)}}
-      [data-theme="dark"].wm-pro-banner-reserved #app::before{background:#2a2118;border-bottom-color:rgba(236,225,199,.26)}
+      [data-theme="light"].wm-pro-banner-reserved #app::before{background:#fff;border-bottom-color:rgba(15,20,30,.1)}
       [data-variant="happy"].wm-pro-banner-reserved #app::before{background:#fff;border-bottom-color:#DDD9CF}
       [data-variant="happy"][data-theme="dark"].wm-pro-banner-reserved #app::before{background:#222E3E;border-bottom-color:#344050}
       html:not(.js),html:not(.js) body{height:auto;min-height:100%;overflow:auto}
@@ -224,78 +223,81 @@
       html:not(.js) #app .skeleton-shell{display:none}
       .app-heading{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 
-      /* ---------- skeleton shell (The Public Dispatch — parchment default) ----------
-         The first frame has to already be the paper. These values are the
-         literal resolutions of the dispatch.css tokens (--tpd-field, --tpd-leaf,
-         --tpd-ink, --tpd-rule, --tpd-seal), so hydration is a content swap, not
-         a change of material. Keep them in step if the tokens move. */
-      .skeleton-shell{display:flex;flex-direction:column;height:100vh;color:#241a12;background-color:#ded0b0;background-image:radial-gradient(38% 26% at 8% 14%,rgba(138,92,44,.13) 0,transparent 100%),radial-gradient(24% 34% at 92% 76%,rgba(126,80,38,.11) 0,transparent 100%),radial-gradient(125% 105% at 50% 42%,transparent 48%,rgba(88,60,28,.2) 100%),repeating-linear-gradient(90deg,transparent 0 26px,rgba(255,250,236,.26) 26px 28px),repeating-linear-gradient(0deg,rgba(125,98,60,.05) 0 1px,transparent 1px 3px),linear-gradient(158deg,#e7dabd 0%,#dccdab 34%,#e2d5b6 62%,#d4c49f 100%);font-family:'Inter','Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',Arial,sans-serif;overflow:hidden}
+      /* ---------- skeleton shell (Console 2026 — the default) ----------
+         The first frame has to already be the console. These values are the
+         literal resolutions of the console-2026.css tokens (--wm-stage,
+         --wm-plate, --wm-hairline, --wm-ink, --wm-red), so hydration is a
+         content swap, not a change of material. Keep them in step if the
+         tokens move. */
+      .skeleton-shell{display:flex;flex-direction:column;height:100vh;color:#f2f4f7;background:#1c1f25;font-family:'Inter','Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',Arial,sans-serif;letter-spacing:-.006em;overflow:hidden}
       .skeleton-shell *{box-sizing:border-box}
       html.wm-pro-banner-reserved .skeleton-shell{height:calc(100vh - var(--wm-pro-banner-slot-height))}
-      /* Nameplate: leaf stock, heavy rule, hairline 2px under it. */
-      .skeleton-header{display:flex;align-items:center;justify-content:space-between;height:40px;padding:8px 16px;background:linear-gradient(180deg,#faf5e9 0%,#f7f1e3 62%,#efe5cf 100%);border-bottom:2px solid rgba(36,26,18,.72);box-shadow:0 4px 0 -3px rgba(36,26,18,.4);flex-shrink:0}
+      /* Major surfaces are the true-black plate with a 1px top highlight. */
+      .skeleton-header{display:flex;align-items:center;justify-content:space-between;height:40px;padding:8px 14px;background:#000;border-bottom:1px solid rgba(255,255,255,.09);box-shadow:inset 0 1px 0 0 rgba(255,255,255,.06),0 1px 0 0 rgba(255,47,69,.08);flex-shrink:0}
       .skeleton-header-left{display:flex;align-items:center;gap:12px}
       .skeleton-header-right{display:flex;align-items:center;gap:12px}
-      .skeleton-brand{display:flex;align-items:center;gap:8px;margin:0;color:#241a12;font-family:'Libre Caslon Display','Libre Caslon Text',Baskerville,'Iowan Old Style','Palatino Linotype',Georgia,serif;font-size:15px;line-height:1;font-weight:700;letter-spacing:.015em}
-      /* The seal: pressed wax, not a letter in a ring. */
-      .skeleton-brand-mark{display:inline-block;width:15px;height:15px;font-size:0;color:transparent;border-radius:47% 53% 51% 49%/50% 48% 52% 50%;background:radial-gradient(circle at 35% 29%,rgba(255,240,232,.34) 0 16%,transparent 46%),radial-gradient(circle at 64% 74%,rgba(0,0,0,.32) 0 20%,transparent 62%),radial-gradient(circle at 48% 44%,#b2412f 0%,#8d2b1f 56%,#59150c 100%);box-shadow:inset 0 0 0 1.5px rgba(255,236,224,.16),0 1px 1.5px rgba(58,40,20,.4)}
-      .skeleton-kicker{color:#6b5a46;font-size:11px;line-height:1;white-space:nowrap}
-      .skeleton-chip{display:inline-flex;align-items:center;min-height:22px;padding:0 8px;border:1px solid #c9b894;border-radius:2px;color:#47382a;background:#f6efdf;font-size:11px;line-height:1;white-space:nowrap}
-      .skeleton-chip.live{color:#3f6b48;border-color:rgba(63,107,72,.45);background:rgba(63,107,72,.08)}
-      .skeleton-pill{height:24px;border-radius:2px;background:#f6efdf}
-      .skeleton-dot{width:8px;height:8px;border-radius:50%;background:#3f6b48}
-      .skeleton-tabs{height:36px;background:#f7f1e3;border-bottom:1px solid rgba(36,26,18,.4);flex-shrink:0}
-      .skeleton-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:transparent}
-      /* The map is a plate bound into the document. */
-      .skeleton-map{height:50vh;min-height:350px;border:1px solid rgba(36,26,18,.4);border-radius:3px;background:#f1e9d7;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,252,242,.7),0 1px 1px rgba(58,40,20,.1),0 14px 28px -20px rgba(58,40,20,.5)}
-      .skeleton-map-bar{height:32px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 12px;background:transparent;border-bottom:1px solid rgba(36,26,18,.4);box-shadow:0 2px 0 -1px rgba(36,26,18,.18)}
-      .skeleton-section-label{color:#241a12;font-family:'Libre Caslon Display','Libre Caslon Text',Georgia,serif;font-size:11.5px;line-height:1;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
-      .skeleton-section-note{color:#6b5a46;font-size:11px;line-height:1;white-space:nowrap}
+      .skeleton-brand{display:flex;align-items:center;gap:8px;margin:0;color:#f2f4f7;font-size:14px;line-height:1;font-weight:650;letter-spacing:-.01em}
+      /* The dispatch mark: a struck crimson tick, lit like the plate rims. */
+      .skeleton-brand-mark{display:inline-block;width:3px;height:14px;font-size:0;color:transparent;border-radius:1px;background:linear-gradient(180deg,#ff8a96 0%,#ff2f45 55%,#8d0f1e 100%);box-shadow:0 0 10px -1px rgba(255,47,69,.45)}
+      .skeleton-kicker{color:#9aa1ac;font-size:11px;line-height:1;white-space:nowrap}
+      .skeleton-chip{display:inline-flex;align-items:center;min-height:22px;padding:0 8px;border:1px solid rgba(255,255,255,.09);border-radius:6px;color:#c5cad2;background:#14181e;font-size:11px;line-height:1;white-space:nowrap}
+      .skeleton-chip.live{color:#4ade80;border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.08)}
+      .skeleton-pill{height:24px;border-radius:6px;background:#14181e}
+      .skeleton-dot{width:8px;height:8px;border-radius:50%;background:#22c55e}
+      .skeleton-tabs{height:36px;background:#000;border-bottom:1px solid rgba(255,255,255,.09);flex-shrink:0}
+      .skeleton-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#1c1f25}
+      /* The map is the hero plate: black, hairline, a static red bleed. */
+      .skeleton-map{height:50vh;min-height:350px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:#000;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-shadow:inset 0 1px 0 0 rgba(255,255,255,.06),0 0 34px -14px rgba(255,47,69,.13)}
+      .skeleton-map-bar{height:32px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 12px;background:transparent;border-bottom:1px solid rgba(255,255,255,.09)}
+      .skeleton-section-label{color:#f2f4f7;font-size:12px;line-height:1;font-weight:600;letter-spacing:-.012em;white-space:nowrap}
+      .skeleton-section-note{color:#9aa1ac;font-size:11px;line-height:1;white-space:nowrap}
       .skeleton-map-body{flex:1;position:relative;overflow:hidden}
-      .skeleton-map-body::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 62% 54% at 50% 50%,#f0e7d0 0%,#d8cbb0 100%);opacity:.6}
-      .skeleton-map-content{position:relative;z-index:1;display:flex;flex-direction:column;gap:10px;max-width:560px;margin:32px;padding:22px;border:1px solid rgba(36,26,18,.4);border-radius:3px;background:rgba(247,241,227,.92);box-shadow:0 1px 1px rgba(58,40,20,.1),0 14px 30px -20px rgba(58,40,20,.5)}
-      .skeleton-map-eyebrow{margin:0;color:#241a12;font-family:'Libre Caslon Display','Libre Caslon Text',Georgia,serif;font-size:13px;line-height:1.2;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-      .skeleton-map-title{margin:0;color:#241a12;font-family:'Libre Caslon Display','Libre Caslon Text',Georgia,serif;font-size:28px;line-height:1.14;font-weight:400}
-      .skeleton-map-copy{margin:0;max-width:52ch;color:#47382a;font-size:14px;line-height:1.5}
+      .skeleton-map-body::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 50%,#12171f 0%,#000 100%);opacity:.9}
+      .skeleton-map-content{position:relative;z-index:1;display:flex;flex-direction:column;gap:10px;max-width:560px;margin:32px;padding:22px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(0,0,0,.72);box-shadow:inset 0 1px 0 0 rgba(255,255,255,.06),0 10px 30px -18px rgba(0,0,0,.85)}
+      .skeleton-map-eyebrow{margin:0;color:#9aa1ac;font-size:10px;line-height:1.2;font-weight:500;letter-spacing:.09em;text-transform:uppercase}
+      .skeleton-map-title{margin:0;color:#f2f4f7;font-size:28px;line-height:1.12;font-weight:600;letter-spacing:-.025em}
+      .skeleton-map-copy{margin:0;max-width:52ch;color:#c5cad2;font-size:14px;line-height:1.5}
       .skeleton-map-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
       .skeleton-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));grid-auto-flow:row dense;grid-auto-rows:minmax(var(--dashboard-panel-row-min),var(--dashboard-panel-row-max));gap:var(--dashboard-grid-gap);padding:var(--dashboard-grid-gap);align-content:start}
-      /* Leaves of the document, resting on the desk. */
-      .skeleton-panel{height:100%;min-height:var(--dashboard-panel-row-min);background:linear-gradient(172deg,#f7f1e3 0%,#f1e9d7 46%,#ece3cd 100%);border:1px solid rgba(36,26,18,.18);border-radius:3px;display:flex;flex-direction:column;box-shadow:inset 0 1px 0 0 rgba(255,252,242,.7),0 1px 1px rgba(58,40,20,.1),0 10px 22px -16px rgba(58,40,20,.45)}
+      /* Plates on the bench. The rim ring is a border here rather than the
+         rotating conic — the skeleton must not own an animating layer per
+         panel before the app has even booted. */
+      .skeleton-panel{height:100%;min-height:var(--dashboard-panel-row-min);background:#000;border:1px solid #2b3037;border-radius:14px;display:flex;flex-direction:column;box-shadow:inset 0 1px 0 0 rgba(255,255,255,.06),0 10px 30px -18px rgba(0,0,0,.85)}
       .skeleton-panel:first-child{grid-column:span 2;grid-row:span 2;min-height:var(--dashboard-first-grid-reservation)}
-      .skeleton-panel-header{height:36px;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid rgba(36,26,18,.4);box-shadow:0 2px 0 -1px rgba(36,26,18,.18)}
-      .skeleton-panel-title{margin:0;color:#241a12;font-family:'Libre Caslon Display','Libre Caslon Text',Georgia,serif;font-size:11.5px;line-height:1;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+      .skeleton-panel-header{height:36px;display:flex;align-items:center;padding:0 11px;border-bottom:1px solid rgba(255,255,255,.09)}
+      .skeleton-panel-title{margin:0;color:#f2f4f7;font-size:12px;line-height:1;font-weight:600;letter-spacing:-.012em}
       .skeleton-panel-body{flex:1;padding:12px;display:flex;flex-direction:column;gap:10px}
-      .skeleton-panel-kicker{margin:0;color:#8d2b1f;font-size:11px;line-height:1.3;font-weight:700;letter-spacing:.04em}
-      .skeleton-panel-copy{margin:0;color:#47382a;font-size:13px;line-height:1.45}
-      .skeleton-panel-metric{display:flex;align-items:baseline;gap:8px;margin-top:auto;color:#241a12;font-variant-numeric:tabular-nums}
-      .skeleton-panel-metric strong{font-size:26px;line-height:1;font-weight:650}
-      .skeleton-panel-metric span{color:#6b5a46;font-size:11px;line-height:1.2}
-      /* Setting still wet: a line of type coming up on the stone. */
-      .skeleton-line{height:14px;border-radius:1px;background:linear-gradient(90deg,rgba(36,26,18,.05) 25%,rgba(36,26,18,.11) 50%,rgba(36,26,18,.05) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
+      .skeleton-panel-kicker{margin:0;color:#9aa1ac;font-size:10px;line-height:1.3;font-weight:500;letter-spacing:.09em;text-transform:uppercase}
+      .skeleton-panel-copy{margin:0;color:#c5cad2;font-size:13px;line-height:1.45}
+      .skeleton-panel-metric{display:flex;align-items:baseline;gap:8px;margin-top:auto;color:#f2f4f7;font-variant-numeric:tabular-nums}
+      .skeleton-panel-metric strong{font-size:26px;line-height:1;font-weight:650;letter-spacing:-.02em}
+      .skeleton-panel-metric span{color:#9aa1ac;font-size:11px;line-height:1.2}
+      .skeleton-line{height:14px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,.05) 25%,rgba(255,255,255,.1) 50%,rgba(255,255,255,.05) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
       .skeleton-line.w75{width:75%}.skeleton-line.w60{width:60%}.skeleton-line.w50{width:50%}.skeleton-line.w85{width:85%}.skeleton-line.w40{width:40%}
 
       @keyframes skel-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-      /* ---------- skeleton shell (night edition) ----------
-         Mirrors dispatch.css section 3: the same document by lamplight, never
-         the old console. Only the values that actually invert are restated. */
-      [data-theme="dark"] .skeleton-shell{color:#ece1c7;background-color:#17120c;background-image:radial-gradient(38% 26% at 8% 14%,rgba(120,80,40,.14) 0,transparent 100%),radial-gradient(24% 34% at 92% 76%,rgba(105,66,32,.12) 0,transparent 100%),radial-gradient(125% 105% at 50% 42%,transparent 42%,rgba(0,0,0,.46) 100%),repeating-linear-gradient(90deg,transparent 0 26px,rgba(255,250,236,.05) 26px 28px),linear-gradient(158deg,#1c150e 0%,#15100a 45%,#1a140d 100%)}
-      [data-theme="dark"] .skeleton-header{background:linear-gradient(180deg,#2e2419 0%,#2a2118 62%,#1d1710 100%);border-bottom-color:rgba(236,225,199,.52);box-shadow:0 4px 0 -3px rgba(236,225,199,.26)}
-      [data-theme="dark"] .skeleton-brand,[data-theme="dark"] .skeleton-section-label,[data-theme="dark"] .skeleton-map-eyebrow,[data-theme="dark"] .skeleton-map-title,[data-theme="dark"] .skeleton-panel-title,[data-theme="dark"] .skeleton-panel-metric{color:#ece1c7}
-      [data-theme="dark"] .skeleton-kicker,[data-theme="dark"] .skeleton-section-note,[data-theme="dark"] .skeleton-panel-metric span{color:#a3937a}
-      [data-theme="dark"] .skeleton-map-copy,[data-theme="dark"] .skeleton-panel-copy{color:#cbbc9c}
-      [data-theme="dark"] .skeleton-chip{color:#cbbc9c;background:#2a2118;border-color:#463a2a}
-      [data-theme="dark"] .skeleton-chip.live{color:#7fae7c;background:rgba(127,174,124,.1);border-color:rgba(127,174,124,.4)}
-      [data-theme="dark"] .skeleton-pill{background:#2a2118}
-      [data-theme="dark"] .skeleton-dot{background:#7fae7c}
-      [data-theme="dark"] .skeleton-tabs{background:#2a2118;border-bottom-color:rgba(236,225,199,.26)}
-      [data-theme="dark"] .skeleton-map{background:#211a12;border-color:rgba(236,225,199,.26);box-shadow:inset 0 0 0 1px rgba(255,244,220,.07),0 1px 1px rgba(0,0,0,.4),0 14px 28px -20px rgba(0,0,0,.75)}
-      [data-theme="dark"] .skeleton-map-bar,[data-theme="dark"] .skeleton-panel-header{border-bottom-color:rgba(236,225,199,.26);box-shadow:0 2px 0 -1px rgba(236,225,199,.13)}
-      [data-theme="dark"] .skeleton-map-body::after{background:radial-gradient(ellipse 62% 54% at 50% 50%,#241d13 0%,#14100a 100%)}
-      [data-theme="dark"] .skeleton-map-content{border-color:rgba(236,225,199,.26);background:rgba(42,33,24,.92);box-shadow:0 1px 1px rgba(0,0,0,.5),0 14px 30px -20px rgba(0,0,0,.8)}
-      [data-theme="dark"] .skeleton-panel-kicker{color:#c24b37}
-      [data-theme="dark"] .skeleton-panel{background:linear-gradient(172deg,#2a2118 0%,#211a12 52%,#1c150e 100%);border-color:rgba(236,225,199,.13);box-shadow:inset 0 1px 0 0 rgba(255,244,220,.07),0 1px 1px rgba(0,0,0,.4),0 12px 26px -18px rgba(0,0,0,.75)}
-      [data-theme="dark"] .skeleton-line{background:linear-gradient(90deg,rgba(236,225,199,.05) 25%,rgba(236,225,199,.11) 50%,rgba(236,225,199,.05) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
+      /* ---------- skeleton shell (light theme) ----------
+         Mirrors console-2026.css: paper on the same bench — white plates, ink
+         hairlines. Only the values that actually invert are restated. */
+      [data-theme="light"] .skeleton-shell{color:#12151a;background:#e9ebef}
+      [data-theme="light"] .skeleton-header{background:#fff;border-bottom-color:rgba(15,20,30,.1);box-shadow:inset 0 1px 0 0 rgba(255,255,255,.8),0 1px 0 0 rgba(216,16,48,.08)}
+      [data-theme="light"] .skeleton-brand,[data-theme="light"] .skeleton-section-label,[data-theme="light"] .skeleton-map-title,[data-theme="light"] .skeleton-panel-title,[data-theme="light"] .skeleton-panel-metric{color:#12151a}
+      [data-theme="light"] .skeleton-kicker,[data-theme="light"] .skeleton-section-note,[data-theme="light"] .skeleton-map-eyebrow,[data-theme="light"] .skeleton-panel-kicker,[data-theme="light"] .skeleton-panel-metric span{color:#5c636d}
+      [data-theme="light"] .skeleton-map-copy,[data-theme="light"] .skeleton-panel-copy{color:#3a4048}
+      [data-theme="light"] .skeleton-brand-mark{background:linear-gradient(180deg,#ff5468 0%,#d81030 55%,#6d0716 100%);box-shadow:0 0 10px -1px rgba(216,16,48,.4)}
+      [data-theme="light"] .skeleton-chip{color:#3a4048;background:#fff;border-color:rgba(15,20,30,.1)}
+      [data-theme="light"] .skeleton-chip.live{color:#166534;background:#dcfce7;border-color:#86efac}
+      [data-theme="light"] .skeleton-pill{background:#f2f4f7}
+      [data-theme="light"] .skeleton-dot{background:#16a34a}
+      [data-theme="light"] .skeleton-tabs{background:#fff;border-bottom-color:rgba(15,20,30,.1)}
+      [data-theme="light"] .skeleton-main{background:#e9ebef}
+      [data-theme="light"] .skeleton-map{background:#fff;border-color:rgba(15,20,30,.1);box-shadow:inset 0 1px 0 0 rgba(255,255,255,.8),0 0 34px -14px rgba(216,16,48,.1)}
+      [data-theme="light"] .skeleton-map-bar,[data-theme="light"] .skeleton-panel-header{border-bottom-color:rgba(15,20,30,.1)}
+      [data-theme="light"] .skeleton-map-body::after{background:radial-gradient(ellipse 60% 50% at 50% 50%,#f4f0e6 0%,#eef1f5 100%)}
+      [data-theme="light"] .skeleton-map-content{border-color:rgba(15,20,30,.1);background:rgba(255,255,255,.86);box-shadow:inset 0 1px 0 0 rgba(255,255,255,.8),0 10px 30px -18px rgba(15,20,30,.2)}
+      [data-theme="light"] .skeleton-panel{background:#fff;border-color:#cfd4dc;box-shadow:inset 0 1px 0 0 rgba(255,255,255,.8),0 10px 30px -18px rgba(15,20,30,.2)}
+      [data-theme="light"] .skeleton-line{background:linear-gradient(90deg,rgba(15,20,30,.04) 25%,rgba(15,20,30,.08) 50%,rgba(15,20,30,.04) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
 
       /* ---------- skeleton shell (happy variant — light) ---------- */
       [data-variant="happy"] .skeleton-shell{background:#FAFAF5;font-family:'Nunito',system-ui,sans-serif}
@@ -357,29 +359,32 @@
       [data-variant="happy"][data-theme="dark"] .skeleton-line{background:linear-gradient(90deg,rgba(139,175,122,.05) 25%,rgba(139,175,122,.10) 50%,rgba(139,175,122,.05) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
 
       /* ---------- Everyday reader boot skeleton (the front page) ----------
-         Above the fold this is a gazette: nameplate, dateline rule, the lead.
-         No hero card, no glow — the hero IS the sheet. */
+         The lead story is a plate on the grey stage, laid out exactly like the
+         hydrated hero: masthead + crimson tick, the rule, then the lead. The
+         .skeleton-map box IS that plate here — it is reused rather than given
+         a second recipe, so boot and hydrate are the same object. */
       html[data-reader-mode="everyday"] .skeleton-header{height:44px}
       html[data-reader-mode="everyday"] .skeleton-tabs{display:none}
-      html[data-reader-mode="everyday"] .skeleton-map{height:auto;min-height:0;border:0;border-radius:0;border-bottom:2px solid rgba(36,26,18,.72);box-shadow:0 4px 0 -3px rgba(36,26,18,.4);background:linear-gradient(172deg,#f7f1e3 0%,#f1e9d7 55%,#eae0c8 100%)}
+      html[data-reader-mode="everyday"] .skeleton-map{height:auto;min-height:0;margin:clamp(.75rem,2vw,1.5rem) clamp(.75rem,2vw,1.5rem) 0}
       html[data-reader-mode="everyday"] .skeleton-map-bar{display:none}
-      html[data-reader-mode="everyday"] .skeleton-map-body{min-height:clamp(11rem,28vh,16rem);padding:clamp(1.25rem,3vw,2.25rem) clamp(1.1rem,3vw,2.5rem)}
+      html[data-reader-mode="everyday"] .skeleton-map-body{min-height:clamp(11rem,28vh,16rem);padding:clamp(1.5rem,3vw,2.6rem) clamp(1.35rem,3vw,2.6rem)}
       html[data-reader-mode="everyday"] .skeleton-map-body::after{display:none}
-      html[data-reader-mode="everyday"] .skeleton-map-content{max-width:40rem;margin:0;padding:0;border:0;background:transparent;box-shadow:none;gap:12px}
-      /* The nameplate, then the thick/thin dateline rule under it. */
-      html[data-reader-mode="everyday"] .skeleton-map-eyebrow{color:#241a12;font-size:clamp(1.9rem,4.4vw,3.1rem);font-weight:700;letter-spacing:.005em;line-height:1.02;text-transform:none;padding-bottom:.6rem;border-bottom:3px double rgba(36,26,18,.6)}
-      html[data-reader-mode="everyday"] .skeleton-map-title{color:#241a12;font-size:clamp(1.2rem,2.5vw,1.75rem);font-weight:400;line-height:1.26;min-height:2.4em}
-      html[data-reader-mode="everyday"] .skeleton-map-copy{color:#47382a;font-family:'Libre Caslon Text','Iowan Old Style',Georgia,serif;font-size:1.05rem;line-height:1.58;max-width:38rem}
+      html[data-reader-mode="everyday"] .skeleton-map-content{max-width:46rem;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;gap:12px}
+      /* The masthead: wordmark, crimson tick, then the rule under it. */
+      html[data-reader-mode="everyday"] .skeleton-map-eyebrow{display:flex;align-items:center;gap:.65rem;color:#f2f4f7;font-size:clamp(.9rem,1.4vw,1.15rem);font-weight:600;letter-spacing:.16em;line-height:1;text-transform:uppercase;padding-bottom:clamp(.85rem,1.6vw,1.15rem);border-bottom:1px solid rgba(255,255,255,.16)}
+      html[data-reader-mode="everyday"] .skeleton-map-eyebrow::before{content:'';flex:0 0 auto;width:3px;height:1.1em;border-radius:1px;background:linear-gradient(180deg,#ff8a96 0%,#ff2f45 55%,#8d0f1e 100%);box-shadow:0 0 12px -1px rgba(255,47,69,.45)}
+      html[data-reader-mode="everyday"] .skeleton-map-title{color:#f2f4f7;font-size:clamp(1.55rem,3vw,2.5rem);font-weight:600;letter-spacing:-.025em;line-height:1.08;min-height:2.2em}
+      html[data-reader-mode="everyday"] .skeleton-map-copy{color:#c5cad2;font-size:1rem;line-height:1.55;max-width:46rem}
       html[data-reader-mode="everyday"] .skeleton-map-badges{gap:8px}
-      html[data-reader-mode="everyday"] .skeleton-map-badges .skeleton-chip{min-height:2.1rem;border-radius:2px}
+      html[data-reader-mode="everyday"] .skeleton-map-badges .skeleton-chip{min-height:2.5rem;border-radius:8px}
       html[data-reader-mode="everyday"] .skeleton-grid{grid-template-columns:1fr;padding:16px;gap:12px}
       html[data-reader-mode="everyday"] .skeleton-panel{min-height:140px}
       html[data-reader-mode="everyday"] .skeleton-panel:first-child{grid-column:span 1;grid-row:span 1;min-height:180px}
       html[data-reader-mode="everyday"] .skeleton-panel:nth-child(n+3){display:none}
-      html[data-theme="dark"][data-reader-mode="everyday"] .skeleton-map{background:linear-gradient(172deg,#2e2419 0%,#211a12 55%,#1a140d 100%);border-bottom-color:rgba(236,225,199,.52);box-shadow:0 4px 0 -3px rgba(236,225,199,.26)}
-      html[data-theme="dark"][data-reader-mode="everyday"] .skeleton-map-eyebrow,html[data-theme="dark"][data-reader-mode="everyday"] .skeleton-map-title{color:#ece1c7}
-      html[data-theme="dark"][data-reader-mode="everyday"] .skeleton-map-eyebrow{border-bottom-color:rgba(236,225,199,.45)}
-      html[data-theme="dark"][data-reader-mode="everyday"] .skeleton-map-copy{color:#cbbc9c}
+      html[data-theme="light"][data-reader-mode="everyday"] .skeleton-map-eyebrow{color:#12151a;border-bottom-color:rgba(15,20,30,.2)}
+      html[data-theme="light"][data-reader-mode="everyday"] .skeleton-map-eyebrow::before{background:linear-gradient(180deg,#ff5468 0%,#d81030 55%,#6d0716 100%)}
+      html[data-theme="light"][data-reader-mode="everyday"] .skeleton-map-title{color:#12151a}
+      html[data-theme="light"][data-reader-mode="everyday"] .skeleton-map-copy{color:#3a4048}
       /* Collapsed-map FOUC: Everyday peek strip under hero, not a blank bar */
       html[data-reader-mode="everyday"].wm-map-collapsed .skeleton-map{height:auto;min-height:0}
       html[data-reader-mode="everyday"].wm-map-collapsed .skeleton-map-body{display:block;min-height:clamp(11rem,28vh,16rem)}
@@ -590,14 +595,14 @@
       </div>
     </aside>
     <noscript>
-      <div style="max-width:800px;margin:0 auto;padding:40px 20px;font-family:Georgia,'Iowan Old Style',serif;color:#241a12;background:#ded0b0;">
+      <div style="max-width:800px;margin:0 auto;padding:40px 20px;font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;color:#c5cad2;background:#1c1f25;">
         <h2>The Public Dispatch — Real-Time Global Intelligence Dashboard</h2>
         <p>AI-powered real-time global intelligence dashboard with live news, markets, military tracking, infrastructure monitoring, and geopolitical data — plus Coverage Compare, talking-point detection, and NCI Engineered Reality scoring.</p>
 
-        <p>The platform combines real-time conflict events from <a href="https://acleddata.com/" style="color:#8d2b1f;" rel="noopener noreferrer">ACLED</a> and <a href="https://ucdp.uu.se/" style="color:#8d2b1f;" rel="noopener noreferrer">UCDP</a>, satellite fire detection from <a href="https://firms.modaps.eosdis.nasa.gov/" style="color:#8d2b1f;" rel="noopener noreferrer">NASA FIRMS</a>, earthquakes from <a href="https://earthquake.usgs.gov/" style="color:#8d2b1f;" rel="noopener noreferrer">USGS</a>, aircraft tracking from <a href="https://opensky-network.org/" style="color:#8d2b1f;" rel="noopener noreferrer">OpenSky</a>, ship AIS from <a href="https://aisstream.io/" style="color:#8d2b1f;" rel="noopener noreferrer">AISStream</a>, and macro data from <a href="https://fred.stlouisfed.org/" style="color:#8d2b1f;" rel="noopener noreferrer">FRED</a>, <a href="https://www.imf.org/en/Data" style="color:#8d2b1f;" rel="noopener noreferrer">IMF</a>, and <a href="https://www.bis.org/" style="color:#8d2b1f;" rel="noopener noreferrer">BIS</a>.</p>
+        <p>The platform combines real-time conflict events from <a href="https://acleddata.com/" style="color:#ff8a96;" rel="noopener noreferrer">ACLED</a> and <a href="https://ucdp.uu.se/" style="color:#ff8a96;" rel="noopener noreferrer">UCDP</a>, satellite fire detection from <a href="https://firms.modaps.eosdis.nasa.gov/" style="color:#ff8a96;" rel="noopener noreferrer">NASA FIRMS</a>, earthquakes from <a href="https://earthquake.usgs.gov/" style="color:#ff8a96;" rel="noopener noreferrer">USGS</a>, aircraft tracking from <a href="https://opensky-network.org/" style="color:#ff8a96;" rel="noopener noreferrer">OpenSky</a>, ship AIS from <a href="https://aisstream.io/" style="color:#ff8a96;" rel="noopener noreferrer">AISStream</a>, and macro data from <a href="https://fred.stlouisfed.org/" style="color:#ff8a96;" rel="noopener noreferrer">FRED</a>, <a href="https://www.imf.org/en/Data" style="color:#ff8a96;" rel="noopener noreferrer">IMF</a>, and <a href="https://www.bis.org/" style="color:#ff8a96;" rel="noopener noreferrer">BIS</a>.</p>
 
         <h3>Read more</h3>
-        <p>Learn how the NCI Engineered Reality score works on the <a href="/methodology.html" style="color:#8d2b1f;">methodology page</a>, or read <a href="/about.html" style="color:#8d2b1f;">about The Public Dispatch</a>. Full source on <a href="https://github.com/Alfredapp-hash/brians-world-monitor" style="color:#8d2b1f;" rel="noopener noreferrer">GitHub (AGPL-3.0)</a>. Join the community on <a href="https://discord.gg/BCHZDq8Xt" style="color:#8d2b1f;" rel="noopener noreferrer">Discord</a> or follow <a href="https://x.com/JSAsmonitor" style="color:#8d2b1f;" rel="noopener noreferrer">@JSAsmonitor</a>.</p>
+        <p>Learn how the NCI Engineered Reality score works on the <a href="/methodology.html" style="color:#ff8a96;">methodology page</a>, or read <a href="/about.html" style="color:#ff8a96;">about The Public Dispatch</a>. Full source on <a href="https://github.com/Alfredapp-hash/brians-world-monitor" style="color:#ff8a96;" rel="noopener noreferrer">GitHub (AGPL-3.0)</a>. Join the community on <a href="https://discord.gg/BCHZDq8Xt" style="color:#ff8a96;" rel="noopener noreferrer">Discord</a> or follow <a href="https://x.com/JSAsmonitor" style="color:#ff8a96;" rel="noopener noreferrer">@JSAsmonitor</a>.</p>
       </div>
     </noscript>
     <!-- Force-clear stale service worker if module scripts 404 (post-deploy cache mismatch) -->

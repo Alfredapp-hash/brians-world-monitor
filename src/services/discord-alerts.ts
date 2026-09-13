@@ -11,6 +11,8 @@
  * localStorage, so feed refreshes don't spam the channel.
  */
 
+import { BRAND } from '@/config/brand';
+
 const WEBHOOK_KEY = 'bwm-discord-webhook';
 const ENABLED_KEY = 'bwm-discord-alerts-enabled';
 const SENT_KEY = 'bwm-discord-sent';
@@ -116,13 +118,13 @@ export function buildAlertPayload(story: AlertStory): object {
   }
 
   return {
-    username: "JSA's Monitor",
+    username: BRAND.name,
     embeds: [{
       title: kind,
       description: `**${story.title}**`.slice(0, 2000),
       color: TIER_COLORS[story.tierLevel] ?? TIER_COLORS[2],
       fields,
-      footer: { text: 'NCI measures indicators, not proof · JSA\'s Monitor' },
+      footer: { text: `NCI measures indicators, not proof · ${BRAND.name}` },
       timestamp: new Date().toISOString(),
     }],
   };
@@ -207,7 +209,7 @@ export function buildDigestPayload(input: DigestInput, now: number = Date.now())
   const lines = top.map((s, i) =>
     `**${i + 1}.** [NCI ${s.nci}] ${s.talkingPoint ? '⚠ ' : ''}${s.title}`.slice(0, 250));
   return {
-    username: "JSA's Monitor",
+    username: BRAND.name,
     embeds: [{
       title: `📰 Daily Intelligence Digest — ${new Date(now).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
       description: lines.join('\n').slice(0, 3500) || 'No multi-source stories in the current window.',
@@ -217,7 +219,7 @@ export function buildDigestPayload(input: DigestInput, now: number = Date.now())
         { name: 'Talking-point alerts', value: String(input.alerts), inline: true },
         { name: 'Avg / Peak NCI', value: `${input.avgNci} / ${input.peakNci}`, inline: true },
       ],
-      footer: { text: "NCI measures indicators, not proof · JSA's Monitor" },
+      footer: { text: `NCI measures indicators, not proof · ${BRAND.name}` },
       timestamp: new Date(now).toISOString(),
     }],
   };
@@ -255,7 +257,7 @@ export async function sendTestAlert(webhookUrl: string): Promise<boolean> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: "JSA's Monitor",
+        username: BRAND.name,
         embeds: [{
           title: '✅ Webhook connected',
           description: 'Coverage Compare alerts will post here: talking-point detections, recurring narratives, and high-NCI stories.',
