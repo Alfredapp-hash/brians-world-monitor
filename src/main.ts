@@ -1,7 +1,6 @@
 import './styles/base-layer.css';
 import './bootstrap/zod-csp';
 import { SITE_VARIANT } from '@/config/variant';
-import { isPublicWebHost } from '@/config/brand';
 import { installLcpAttributionDebug } from '@/bootstrap/lcp-attribution';
 import { markLcpDebug } from '@/utils/lcp-debug';
 import { enqueueSentryCall, installPreInitErrorQueue, scheduleSentryInit } from '@/bootstrap/sentry-defer';
@@ -139,8 +138,12 @@ function shouldSuppressCspViolation(
   if (directive === 'default-src') {
     try {
       const u = new URL(blockedURI);
+      const host = u.hostname.toLowerCase();
+      const isOwnedHost = host === 'thepublicdispatch.com'
+        || host === 'www.thepublicdispatch.com'
+        || host.endsWith('.netlify.app');
       if (u.protocol === 'http:'
-          && !isPublicWebHost(u.hostname)) return true;
+          && !isOwnedHost) return true;
     } catch { /* scheme-only values fall through */ }
   }
   // First-party Convex backend: corporate proxies / privacy extensions that mutate the
@@ -175,8 +178,12 @@ function shouldSuppressCspViolation(
   if (directive === 'img-src') {
     try {
       const url = new URL(blockedURI);
+      const host = url.hostname.toLowerCase();
+      const isOwnedHost = host === 'thepublicdispatch.com'
+        || host === 'www.thepublicdispatch.com'
+        || host.endsWith('.netlify.app');
       if (url.protocol === 'https:'
-          && isPublicWebHost(url.hostname)) return true;
+          && isOwnedHost) return true;
     } catch { /* scheme-only values fall through */ }
   }
   // YouTube IFrame API loader: explicitly allowed by our script-src

@@ -71,8 +71,8 @@ export class DesktopUpdater implements AppModule {
 
   private async checkForUpdate(): Promise<void> {
     try {
-      const remote = getRemoteApiBaseUrl();
-      const res = await fetch(remote ? `${remote}/api/version` : '/api/version', {
+      const apiBase = getRemoteApiBaseUrl();
+      const res = await fetch(apiBase ? `${apiBase}/api/version` : '/api/version', {
         signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) {
