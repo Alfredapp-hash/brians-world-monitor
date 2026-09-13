@@ -1,4 +1,5 @@
 import { SITE_VARIANT } from '@/config/variant';
+import { isPublicWebHost, PUBLIC_ORIGIN } from '@/config/brand';
 import { getClerkToken } from '@/services/clerk';
 
 const ENV = (() => {
@@ -16,9 +17,9 @@ const ENV = (() => {
 })();
 
 const WS_API_URL = ENV.VITE_WS_API_URL || '';
-// Fork: no separate api.<domain> edge — this deployment serves its own
-// /api/* routes same-origin on the Vercel project domain.
-const DEFAULT_WEB_API_URL = 'https://brians-world-monitor.vercel.app';
+// Netlify is host of record. Browser API calls stay same-origin relative
+// `/api/*`. An absolute default host would send the SPA back to Vercel.
+const DEFAULT_WEB_API_URL = '';
 const KEYED_CLOUD_API_PATTERN = /^\/api\/(?:[^/]+\/v1\/|bootstrap(?:\?|$)|polymarket(?:\?|$)|ais-snapshot(?:\?|$))/;
 
 const DEFAULT_REMOTE_HOSTS: Record<string, string> = {
@@ -129,12 +130,9 @@ export function getApiBaseUrl(): string {
 }
 
 function isWorldMonitorWebHost(hostname: string): boolean {
-  // Fork: this app only ever runs on the Vercel project domain (no custom
-  // domain / subdomains yet). Cover the production host plus preview
-  // deployments (*.vercel.app) — never trust the upstream worldmonitor.app
-  // domain, which this fork does not own or control.
-  return hostname === 'brians-world-monitor.vercel.app'
-    || hostname.endsWith('.vercel.app');
+  // Live paper + Netlify previews. Never treat Vercel or the upstream
+  // worldmonitor.app domain as first-party — this fork does not own those.
+  return isPublicWebHost(hostname);
 }
 
 export function getConfiguredWebApiBaseUrl(): string {
@@ -150,8 +148,9 @@ export function getConfiguredWebApiBaseUrl(): string {
     return '';
   }
 
-  const hostname = window.location?.hostname ?? '';
-  if (!isWorldMonitorWebHost(hostname)) {
+  // Same-origin `/api/*` on the paper and Netlify previews. Do not rewrite
+  // relative fetches onto an absolute hosted API origin.
+  if (isWorldMonitorWebHost(window.location?.hostname ?? '')) {
     return '';
   }
 
@@ -159,7 +158,22 @@ export function getConfiguredWebApiBaseUrl(): string {
 }
 
 export function getCanonicalApiOrigin(): string {
-  return getConfiguredWebApiBaseUrl() || DEFAULT_WEB_API_URL;
+  const configured = getConfiguredWebApiBaseUrl();
+  if (configured) return configured;
+
+  if (typeof window !== 'undefined') {
+    const origin = window.location?.origin ?? '';
+    const host = window.location?.hostname ?? '';
+    if (
+      (origin.startsWith('http://') || origin.startsWith('https://'))
+      && host !== 'tauri.localhost'
+      && !host.endsWith('.tauri.localhost')
+    ) {
+      return origin;
+    }
+  }
+
+  return DEFAULT_WEB_API_URL;
 }
 
 export function getRemoteApiBaseUrl(): string {
@@ -176,8 +190,8 @@ export function getRemoteApiBaseUrl(): string {
   const fromHosts = DEFAULT_REMOTE_HOSTS[SITE_VARIANT] ?? DEFAULT_REMOTE_HOSTS.full ?? '';
   if (fromHosts) return fromHosts;
 
-  // Desktop builds may not set VITE_WS_API_URL; default to production.
-  if (isDesktopRuntime()) return 'https://brians-world-monitor.vercel.app';
+  // Desktop cloud fallback is opt-in via VITE_TAURI_REMOTE_API_BASE_URL /
+  // VITE_WS_API_URL. Do not hardcode a hosted API origin.
   return '';
 }
 
@@ -221,7 +235,8 @@ function extractHostnames(...urls: (string | undefined)[]): string[] {
 }
 
 const APP_HOSTS = new Set([
-  'brians-world-monitor.vercel.app',
+  'thepublicdispatch.com',
+  'www.thepublicdispatch.com',
   'localhost',
   '127.0.0.1',
   ...extractHostnames(WS_API_URL, ENV.VITE_WS_RELAY_URL),
@@ -231,10 +246,9 @@ function isAppOriginUrl(urlStr: string): boolean {
   try {
     const u = new URL(urlStr);
     const host = u.hostname;
-    // .vercel.app covers preview deployments of this project; never trust
-    // the upstream worldmonitor.app domain as first-party (this fork does
-    // not own or control it).
-    return APP_HOSTS.has(host) || host.endsWith('.vercel.app');
+    // Live paper + Netlify previews. Never treat Vercel or worldmonitor.app
+    // as first-party (this fork does not own those hosts).
+    return APP_HOSTS.has(host) || isPublicWebHost(host);
   } catch {
     return false;
   }
@@ -495,7 +509,7 @@ export function installRuntimeFetchPatch(): void {
 
 import { PREMIUM_RPC_PATHS as WEB_PREMIUM_API_PATHS } from '@/shared/premium-paths';
 
-const ALLOWED_REDIRECT_HOSTS = /^https:\/\/([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)*vercel\.app(:\d+)?$/;
+const ALLOWED_REDIRECT_HOSTS = /^https:\/\/([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)*(thepublicdispatch\.com|netlify\.app)(:\d+)?$/;
 
 function isAllowedRedirectTarget(url: string): boolean {
   try {
@@ -595,7 +609,7 @@ export function installWebApiRedirect(): void {
           return fetchWithRedirectFallback(`${API_BASE}${input}`, input, enriched ? withCredentials(enriched) : withCredentials(init));
         }
         // Absolute URL already targeting the API base (generated clients call fetch
-        // with full URLs like https://brians-world-monitor.vercel.app/api/...) — just inject auth.
+        // with full URLs like https://thepublicdispatch.com/api/...) — just inject auth.
         if (input.startsWith(`${API_BASE}/api/`)) {
           const pathAndSearch = input.slice(API_BASE.length);
           const enriched = await enrichInitForPremium(pathAndSearch, init);
@@ -641,15 +655,15 @@ export function installWebApiRedirect(): void {
           const enriched = await enrichInitForPremium(input, init);
           return nativeFetch(input, enriched ? withCredentials(enriched) : withCredentials(init));
         }
-        if (input.startsWith(`${DEFAULT_WEB_API_URL}/api/`)) {
-          const pathAndSearch = input.slice(DEFAULT_WEB_API_URL.length);
+        if (input.startsWith(`${PUBLIC_ORIGIN}/api/`)) {
+          const pathAndSearch = input.slice(PUBLIC_ORIGIN.length);
           const enriched = await enrichInitForPremium(pathAndSearch, init);
           return nativeFetch(input, enriched ? withCredentials(enriched) : withCredentials(init));
         }
       }
       if (input instanceof URL) {
         const pathAndSearch = `${input.pathname}${input.search}`;
-        if ((input.origin === window.location.origin || input.origin === DEFAULT_WEB_API_URL)
+        if ((input.origin === window.location.origin || input.origin === PUBLIC_ORIGIN)
             && (shouldRedirectPath(pathAndSearch) || pathAndSearch.startsWith('/api/'))) {
           const enriched = await enrichInitForPremium(pathAndSearch, init);
           return nativeFetch(input, enriched ? withCredentials(enriched) : withCredentials(init));
@@ -658,7 +672,7 @@ export function installWebApiRedirect(): void {
       if (input instanceof Request) {
         const u = new URL(input.url);
         const pathAndSearch = `${u.pathname}${u.search}`;
-        if ((u.origin === window.location.origin || u.origin === DEFAULT_WEB_API_URL)
+        if ((u.origin === window.location.origin || u.origin === PUBLIC_ORIGIN)
             && (shouldRedirectPath(pathAndSearch) || pathAndSearch.startsWith('/api/'))) {
           const enriched = await enrichInitForPremium(pathAndSearch, init);
           return nativeFetch(new Request(input, enriched ? withCredentials(enriched) : withCredentials(init)));

@@ -32,6 +32,7 @@
  * — those keys travel via X-WorldMonitor-Key which works on any path.
  */
 import { enqueueSentryCall } from '@/bootstrap/sentry-defer';
+import { PUBLIC_ORIGIN } from '@/config/brand';
 import { PREMIUM_RPC_PATHS } from '@/shared/premium-paths';
 
 /**
@@ -70,7 +71,7 @@ export function reportServerError(
   if (res.headers.get('X-Wm-Session-Degraded') === '1') return;
   try {
     const href = input instanceof Request ? input.url : String(input);
-    const path = new URL(href, globalThis.location?.href ?? 'https://brians-world-monitor.vercel.app').pathname;
+    const path = new URL(href, globalThis.location?.href ?? PUBLIC_ORIGIN).pathname;
     // Cloudflare edge errors (520-527) are CDN<->origin transport failures, not
     // origin application errors — a single one is a transient blip. Capture at
     // `warning` so a sustained outage still escalates by volume without a lone
@@ -100,7 +101,7 @@ function isPremiumRpcTarget(input: RequestInfo | URL, forcePremium = false): boo
   if (forcePremium) return true;
   try {
     const href = input instanceof Request ? input.url : String(input);
-    const path = new URL(href, globalThis.location?.href ?? 'https://brians-world-monitor.vercel.app').pathname;
+    const path = new URL(href, globalThis.location?.href ?? PUBLIC_ORIGIN).pathname;
     return PREMIUM_RPC_PATHS.has(path);
   } catch {
     // If we can't parse the URL, fall through to the strict path: keep

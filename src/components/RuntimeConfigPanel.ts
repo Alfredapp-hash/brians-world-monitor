@@ -18,6 +18,7 @@ import {
 import { invokeTauri } from '@/services/tauri-bridge';
 import { escapeHtml } from '@/utils/sanitize';
 import { isDesktopRuntime } from '@/services/runtime';
+import { PUBLIC_PRO_URL } from '@/config/brand';
 import { fetchOllamaModels as fetchOllamaModelsFromService } from '@/services/ollama-models';
 import { t } from '@/services/i18n';
 import { trackFeatureToggle } from '@/services/analytics';
@@ -372,7 +373,7 @@ export class RuntimeConfigPanel extends Panel {
 
     if (this.mode === 'alert') {
       this.content.querySelector<HTMLButtonElement>('[data-early-access]')?.addEventListener('click', () => {
-        const url = 'https://brians-world-monitor.vercel.app/pro';
+        const url = PUBLIC_PRO_URL;
         if (isDesktopRuntime()) {
           void invokeTauri<void>('open_url', { url }).catch(() => window.open(url, '_blank', 'noopener,noreferrer'));
         } else {

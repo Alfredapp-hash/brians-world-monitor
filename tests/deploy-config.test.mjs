@@ -550,7 +550,7 @@ describe('welcome landing page routing', () => {
     assert.equal(rootDestinationForHost('worldmonitor.app.evil.example'), DASHBOARD_HTML_DESTINATION);
 
     // variant-meta.ts now points every variant at this fork's single real
-    // domain (brians-world-monitor.vercel.app) rather than 5 distinct
+    // domain (thepublicdispatch.com) rather than 5 distinct
     // subdomains, so it no longer matches APP_ROOT_HOST_PATTERN — root
     // requests correctly fall through to the dashboard catch-all until the
     // welcome page above is rebranded and wired up for this fork's domain.
@@ -566,7 +566,7 @@ describe('welcome landing page routing', () => {
 
   it('keeps variant canonicals aligned with the /dashboard routing strategy', () => {
     const variantUrls = getVariantUrls();
-    assert.equal(variantUrls.full, 'https://brians-world-monitor.vercel.app/dashboard');
+    assert.equal(variantUrls.full, 'https://thepublicdispatch.com/dashboard');
 
     const nonFullUrls = Object.entries(variantUrls).filter(([variant]) => variant !== 'full');
     assert.ok(nonFullUrls.length >= 5, 'expected non-full variant metadata entries');
@@ -751,7 +751,7 @@ describe('welcome landing page routing', () => {
       'generated welcome HTML must launch the dashboard at /dashboard'
     );
     assert.ok(
-      dashboardHtml.includes('<link rel="canonical" href="https://brians-world-monitor.vercel.app/dashboard" />'),
+      dashboardHtml.includes('<link rel="canonical" href="https://thepublicdispatch.com/dashboard" />'),
       'dashboard shell must canonicalize to /dashboard'
     );
   });

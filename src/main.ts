@@ -1,6 +1,7 @@
 import './styles/base-layer.css';
 import './bootstrap/zod-csp';
 import { SITE_VARIANT } from '@/config/variant';
+import { isPublicWebHost } from '@/config/brand';
 import { installLcpAttributionDebug } from '@/bootstrap/lcp-attribution';
 import { markLcpDebug } from '@/utils/lcp-debug';
 import { enqueueSentryCall, installPreInitErrorQueue, scheduleSentryInit } from '@/bootstrap/sentry-defer';
@@ -132,14 +133,14 @@ function shouldSuppressCspViolation(
   // this default-src fallback. Preserve first-party http blocks on our own
   // deployment host so a real mixed-content regression on our own assets
   // still surfaces (WORLDMONITOR-S0 — http://www.euronews.com article
-  // prefetch, 1 user/775 ev). Fork: this app only ever runs on the Vercel
-  // project domain (no custom domain / subdomains yet) — do NOT scope this
-  // to worldmonitor.app, which this fork does not own or control.
+  // prefetch, 1 user/775 ev). Fork: this app only ever runs on the paper
+  // host and Netlify previews — do NOT scope this to worldmonitor.app or
+  // Vercel, which this fork does not use as the live host.
   if (directive === 'default-src') {
     try {
       const u = new URL(blockedURI);
       if (u.protocol === 'http:'
-          && u.hostname !== 'brians-world-monitor.vercel.app') return true;
+          && !isPublicWebHost(u.hostname)) return true;
     } catch { /* scheme-only values fall through */ }
   }
   // First-party Convex backend: corporate proxies / privacy extensions that mutate the
@@ -162,9 +163,9 @@ function shouldSuppressCspViolation(
   // CSP-blocked even though our policy (`img-src 'self' data: blob: https:`) allows
   // them. Scope to our own deployment host — img-src blocks to foreign hosts
   // (a third-party CDN we never load, attacker-controlled host) still surface
-  // (WORLDMONITOR-JP). Fork: single Vercel project domain, no custom domain /
-  // subdomains yet — do NOT scope this to worldmonitor.app, which this fork
-  // does not own or control.
+  // (WORLDMONITOR-JP). Fork: live paper + Netlify previews — do NOT scope
+  // this to worldmonitor.app or Vercel, which this fork does not use as
+  // the live host.
   //
   // REQUIRE https: protocol — our CSP only allows https: for img-src, so a real
   // mixed-content regression (`<img src="http://...">`) would be
@@ -175,7 +176,7 @@ function shouldSuppressCspViolation(
     try {
       const url = new URL(blockedURI);
       if (url.protocol === 'https:'
-          && url.hostname === 'brians-world-monitor.vercel.app') return true;
+          && isPublicWebHost(url.hostname)) return true;
     } catch { /* scheme-only values fall through */ }
   }
   // YouTube IFrame API loader: explicitly allowed by our script-src

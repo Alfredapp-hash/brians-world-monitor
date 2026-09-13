@@ -1,3 +1,4 @@
+import { PUBLIC_PRO_URL } from '@/config/brand';
 import { type AuthSession, getAuthState, subscribeAuthState } from '@/services/auth-state';
 import { PanelGateReason, getPanelGateReason } from '@/services/panel-gating';
 import { getResilienceScore, type ResilienceDomain, type ResilienceScoreResponse } from '@/services/resilience';
@@ -213,7 +214,7 @@ export class ResilienceWidget {
           return;
         }
         void this.openUpgradeFlow().catch(() => {
-          window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer');
+          window.open(PUBLIC_PRO_URL, '_blank', 'noopener,noreferrer');
         });
       },
     }, cta) as HTMLButtonElement;
@@ -482,15 +483,15 @@ export class ResilienceWidget {
 
     if (isDesktopRuntime()) {
       const { invokeTauri } = await import('@/services/tauri-bridge');
-      await invokeTauri<void>('open_url', { url: 'https://brians-world-monitor.vercel.app/pro' })
-        .catch(() => { window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer'); });
+      await invokeTauri<void>('open_url', { url: PUBLIC_PRO_URL })
+        .catch(() => { window.open(PUBLIC_PRO_URL, '_blank', 'noopener,noreferrer'); });
       return;
     }
 
     await import('@/services/checkout')
       .then((module) => module.startCheckout(DEFAULT_UPGRADE_PRODUCT))
       .catch(() => {
-        window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer');
+        window.open(PUBLIC_PRO_URL, '_blank', 'noopener,noreferrer');
       });
   }
 }

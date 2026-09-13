@@ -1,4 +1,5 @@
 import { isDesktopRuntime } from '../services/runtime';
+import { PUBLIC_PRO_URL } from '@/config/brand';
 import { invokeTauri } from '../services/tauri-bridge';
 import { t } from '../services/i18n';
 import { h, replaceChildren, safeHtml as sanitizeHtmlFragment, setTrustedHtml, trustedHtml } from '../utils/dom-utils';
@@ -949,11 +950,11 @@ export class Panel {
 
     const ctaBtn = h('button', { type: 'button', className: 'panel-locked-cta' }, 'Upgrade to Pro');
     if (isDesktopRuntime()) {
-      ctaBtn.addEventListener('click', () => void invokeTauri<void>('open_url', { url: 'https://brians-world-monitor.vercel.app/pro' }).catch(() => window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer')));
+      ctaBtn.addEventListener('click', () => void invokeTauri<void>('open_url', { url: PUBLIC_PRO_URL }).catch(() => window.open(PUBLIC_PRO_URL, '_blank', 'noopener,noreferrer')));
     } else {
       ctaBtn.addEventListener('click', () => {
         import('@/services/checkout').then(m => import('@/config/products').then(p => m.startCheckout(p.DEFAULT_UPGRADE_PRODUCT))).catch(() => {
-          window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer');
+          window.open(PUBLIC_PRO_URL, '_blank', 'noopener,noreferrer');
         });
       });
     }

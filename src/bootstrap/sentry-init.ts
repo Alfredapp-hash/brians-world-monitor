@@ -59,12 +59,14 @@ function buildSentryInitOptions(): Parameters<SentryNs['init']>[0] {
   return {
     dsn: sentryDsn || undefined,
     release: `worldmonitor@${__APP_VERSION__}`,
-    environment: (location.hostname === 'worldmonitor.app' || location.hostname.endsWith('.worldmonitor.app')) ? 'production'
-      : location.hostname.includes('vercel.app') ? 'preview'
+    environment: (location.hostname === 'thepublicdispatch.com' || location.hostname === 'www.thepublicdispatch.com') ? 'production'
+      : (location.hostname.endsWith('.netlify.app') || location.hostname.includes('vercel.app')) ? 'preview'
       : 'development',
     enabled: Boolean(sentryDsn) && !location.hostname.startsWith('localhost') && !('__TAURI_INTERNALS__' in window),
     allowUrls: [
-      /https?:\/\/(www\.|tech\.|finance\.|commodity\.|happy\.)?worldmonitor\.app/,
+      /https?:\/\/(www\.)?thepublicdispatch\.com/,
+      /https?:\/\/.*\.netlify\.app/,
+      // Leftover Vercel preview deploys until that project is retired.
       /https?:\/\/.*\.vercel\.app/,
     ],
     sendDefaultPii: true,
@@ -664,8 +666,11 @@ function buildSentryInitOptions(): Parameters<SentryNs['init']>[0] {
           try {
             const host = new URL(assetUrl).hostname;
             const currentHost = typeof location !== 'undefined' ? location.hostname : '';
-            isOwnedDynamicImportAssetUrl = host === 'worldmonitor.app'
-              || host.endsWith('.worldmonitor.app')
+            isOwnedDynamicImportAssetUrl = host === 'thepublicdispatch.com'
+              || host === 'www.thepublicdispatch.com'
+              || host.endsWith('.netlify.app')
+              || (currentHost.endsWith('.netlify.app') && host === currentHost)
+              // Leftover Vercel preview deploys until that project is retired.
               || (currentHost.endsWith('.vercel.app') && host === currentHost);
           } catch {
             isOwnedDynamicImportAssetUrl = false;

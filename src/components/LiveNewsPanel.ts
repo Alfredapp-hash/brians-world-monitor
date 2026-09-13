@@ -1,6 +1,7 @@
 import { Panel } from './Panel';
 import { fetchLiveVideoInfo } from '@/services/live-news';
 import { isDesktopRuntime, getRemoteApiBaseUrl, getApiBaseUrl, getLocalApiPort } from '@/services/runtime';
+import { PUBLIC_ORIGIN } from '@/config/brand';
 import { t } from '../services/i18n';
 import { loadFromStorage, saveToStorage } from '@/utils';
 import { IDLE_PAUSE_MS, STORAGE_KEYS, SITE_VARIANT } from '@/config';
@@ -625,7 +626,7 @@ export class LiveNewsPanel extends Panel {
 
   private get embedOrigin(): string {
     if (isDesktopRuntime()) return `http://localhost:${getLocalApiPort()}`;
-    try { return new URL(getRemoteApiBaseUrl()).origin; } catch { return 'https://brians-world-monitor.vercel.app'; }
+    try { return new URL(getRemoteApiBaseUrl()).origin; } catch { return PUBLIC_ORIGIN; }
   }
 
   private setupBridgeMessageListener(): void {
@@ -665,9 +666,7 @@ export class LiveNewsPanel extends Panel {
   }
 
   private static resolveYouTubeOrigin(): string | null {
-    const fallbackOrigin = SITE_VARIANT === 'tech'
-      ? 'https://brians-world-monitor.vercel.app'
-      : 'https://brians-world-monitor.vercel.app';
+    const fallbackOrigin = PUBLIC_ORIGIN;
 
     try {
       const { protocol, origin, host } = window.location;
@@ -1277,7 +1276,7 @@ export class LiveNewsPanel extends Panel {
     if (quality !== 'auto') params.set('vq', quality);
     // origin = canonical site origin YouTube trusts for embed restrictions.
     // parentOrigin = actual parent frame origin so postMessage round-trips work.
-    params.set('origin', this.youtubeOrigin || 'https://brians-world-monitor.vercel.app');
+    params.set('origin', this.youtubeOrigin || PUBLIC_ORIGIN);
     params.set('parentOrigin', window.location.origin);
     const embedUrl = `http://localhost:${getLocalApiPort()}/api/youtube-embed?${params.toString()}`;
 

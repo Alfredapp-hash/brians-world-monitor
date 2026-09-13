@@ -1,5 +1,5 @@
 import type { MapLayers } from '@/types';
-import { BRAND } from '@/config/brand';
+import { BRAND, PUBLIC_ORIGIN } from '@/config/brand';
 
 export const EMBEDDABLE_LAYERS = [
   { id: 'conflicts', mapLayer: 'conflicts', label: 'Conflicts' },
@@ -229,7 +229,7 @@ export function buildEmbedMapUrl(
     variant?: EmbedVariant;
   } = {},
 ): string {
-  const url = new URL(baseUrl, 'https://brians-world-monitor.vercel.app');
+  const url = new URL(baseUrl, PUBLIC_ORIGIN);
   const layerIds = state.layerIds ?? embedLayerIdsFromMapLayers(state.layers ?? mapLayersFromEmbedIds(DEFAULT_EMBED_LAYER_IDS));
   const center = normalizeCenter(state.center ?? DEFAULT_EMBED_CENTER);
   const zoom = Number.isFinite(state.zoom) ? clamp(state.zoom as number, 1, 10) : DEFAULT_EMBED_ZOOM;
@@ -258,7 +258,7 @@ export function buildEmbedIframeSnippet(url: string, options: { width?: string; 
 }
 
 export function buildWorldMonitorAttributionUrl(baseUrl: string, referrerHost: string | null): string {
-  const url = new URL(baseUrl, 'https://brians-world-monitor.vercel.app');
+  const url = new URL(baseUrl, PUBLIC_ORIGIN);
   url.searchParams.set('utm_source', 'embed');
   url.searchParams.set('utm_medium', 'iframe');
   url.searchParams.set('utm_campaign', referrerHost ? referrerHost.slice(0, 80) : 'direct');

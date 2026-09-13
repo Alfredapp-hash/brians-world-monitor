@@ -26,3 +26,16 @@ export const BRAND = {
   /** Upstream project this fork is based on (credit + AGPL lineage). */
   upstream: 'https://github.com/koala73/worldmonitor',
 } as const;
+
+/** Canonical public origin for marketing, OG, and share links — never an API host. */
+export const PUBLIC_ORIGIN = `https://${BRAND.domain}` as const;
+export const PUBLIC_WWW_ORIGIN = `https://www.${BRAND.domain}` as const;
+export const PUBLIC_PRO_URL = `${PUBLIC_ORIGIN}/pro` as const;
+export const PUBLIC_MCP_URL = `${PUBLIC_ORIGIN}/mcp` as const;
+
+export function isPublicWebHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host === BRAND.domain
+    || host === `www.${BRAND.domain}`
+    || host.endsWith('.netlify.app');
+}
