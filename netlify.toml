@@ -11,9 +11,9 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Same-origin /api/health and /api/wm-session are Netlify Functions
-# (netlify/functions/{health,wm-session}.js). Do not force-proxy /api/*
-# or those functions are shadowed.
+# Same-origin /api/health, /api/wm-session, and /api/bootstrap are
+# Netlify Functions (netlify/functions/{health,wm-session,bootstrap}.js).
+# Do not force-proxy /api/* or those functions are shadowed.
 [[redirects]]
   from = "/api/*"
   to = "https://brians-world-monitor.vercel.app/api/:splat"
