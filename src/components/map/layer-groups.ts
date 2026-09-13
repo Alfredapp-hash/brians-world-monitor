@@ -20,7 +20,10 @@ import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 
 export interface LayerGroupDef {
   id: string;
+  /** Plain-language group name. What a non-analyst would call this shelf. */
   label: string;
+  /** One-line "what is in here" shown as the header tooltip. */
+  hint?: string;
   layers: readonly (keyof MapLayers)[];
 }
 
@@ -32,6 +35,36 @@ export const LAYER_PANEL_COLLAPSED_STORAGE_KEY = 'jsam-layer-panel-collapsed';
 
 const HAMBURGER_ICON = '&#9776;'; // ☰
 const CLOSE_ICON = '&#10005;'; // ✕
+
+/**
+ * Human name for the collapsed picker button. The panel boots collapsed, so
+ * this pill IS the map's layer affordance — a bare ☰ next to a legend reads as
+ * "some menu", which is why the picker went unfound.
+ */
+const COLLAPSED_PANEL_LABEL = 'Layers';
+
+/**
+ * `data-*` attribute `groupLayerToggles().refresh()` writes the live
+ * active-layer count onto the panel element, so the collapsed pill can report
+ * "Layers · 7" without the two binders having to share a closure.
+ */
+const ACTIVE_COUNT_ATTR = 'data-active-layers';
+
+/**
+ * Panel element → "redraw your collapsed pill" callback, registered by
+ * `bindLayerPanelCollapse` and invoked from `groupLayerToggles().refresh()`.
+ * A WeakMap rather than a parameter because the engines call the two functions
+ * separately (and in opposite orders), and neither needs to learn about the
+ * other to keep the count honest.
+ */
+const collapsedLabelUpdaters = new WeakMap<HTMLElement, () => void>();
+
+/** Repaint the collapsed pill of the panel that owns `listEl`, if any. */
+function refreshCollapsedPanelLabel(listEl: HTMLElement): void {
+  const panel = listEl.closest<HTMLElement>('.layer-toggles');
+  if (!panel) return;
+  collapsedLabelUpdaters.get(panel)?.();
+}
 
 function loadPanelCollapsed(): boolean | null {
   try {
@@ -63,18 +96,51 @@ function savePanelCollapsed(collapsed: boolean): void {
  */
 export function bindLayerPanelCollapse(panelEl: HTMLElement, collapseBtn: HTMLElement): void {
   const stored = loadPanelCollapsed();
+  collapseBtn.classList.add('layer-panel-toggle');
+
+  const paint = (): void => {
+    const collapsed = panelEl.classList.contains('layer-panel-collapsed');
+    const active = Number(panelEl.getAttribute(ACTIVE_COUNT_ATTR) ?? '0');
+    collapseBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    collapseBtn.setAttribute(
+      'aria-label',
+      collapsed
+        ? `Choose map layers${active > 0 ? ` — ${active} on` : ''}`
+        : 'Hide map layers',
+    );
+    collapseBtn.setAttribute('title', collapsed ? 'Choose what is on the map' : 'Hide map layers');
+    // Collapsed, the button is the picker's only affordance, so it says what it
+    // opens and how much is already on. Expanded, the panel header carries the
+    // title and the button goes back to being a plain close control.
+    if (!collapsed) {
+      setTrustedHtml(collapseBtn, trustedHtml(CLOSE_ICON, 'static close glyph for the layer panel toggle'));
+      return;
+    }
+    setTrustedHtml(
+      collapseBtn,
+      trustedHtml(
+        `${HAMBURGER_ICON} <span class="layer-panel-toggle-text">${COLLAPSED_PANEL_LABEL}</span>`
+        + (active > 0 ? ` <span class="layer-panel-toggle-count">${active}</span>` : ''),
+        'static hamburger glyph plus a numeric active-layer count',
+      ),
+    );
+  };
+  collapsedLabelUpdaters.set(panelEl, paint);
+
   const setCollapsed = (collapsed: boolean): void => {
     // Reuses the SAME class name the SVG fallback's panel pill already uses
     // (see the `opts.panelLabel` branch below) so all three map engines
     // share one collapsed-panel CSS rule instead of three near-duplicates.
     panelEl.classList.toggle('layer-panel-collapsed', collapsed);
-    collapseBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    collapseBtn.setAttribute('aria-label', collapsed ? 'Show map layers menu' : 'Hide map layers menu');
-    setTrustedHtml(collapseBtn, trustedHtml(collapsed ? HAMBURGER_ICON : CLOSE_ICON, 'static hamburger/close glyph for the layer panel toggle'));
+    paint();
   };
   setCollapsed(stored ?? true);
   collapseBtn.addEventListener('click', () => {
-    const nowCollapsed = !panelEl.classList.contains('panel-collapsed');
+    // Reads the class this function actually SETS. It previously probed
+    // `panel-collapsed` — a Panel.ts class never applied here — so the
+    // expression was permanently `true` and every click re-collapsed an
+    // already-collapsed panel. The picker could not be opened at all.
+    const nowCollapsed = !panelEl.classList.contains('layer-panel-collapsed');
     setCollapsed(nowCollapsed);
     savePanelCollapsed(nowCollapsed);
   });
@@ -89,50 +155,184 @@ export const OTHER_GROUP_ID = 'other';
  * Within a group, layers render in the order declared here (identical across
  * engines); layers unavailable in the current variant/engine simply have no
  * row, same as today.
+ *
+ * GROUPS ARE NAMED FOR WHAT PEOPLE COME LOOKING FOR, not for the desk that
+ * owns the feed. "Cameras & live views" beats "Surveillance" because someone
+ * hunting for street cameras types "camera", and disease belongs on its own
+ * shelf rather than filed behind "Nuclear & Hazard" where nobody looks for it.
+ * Groups whose every row is missing in the current variant/engine are hidden
+ * by refresh(), so a `happy` reader never sees a war shelf.
  */
 export const LAYER_GROUPS: readonly LayerGroupDef[] = [
   {
-    id: 'military-conflict',
-    label: 'Military & Conflict',
-    layers: ['conflicts', 'ucdpEvents', 'hotspots', 'bases', 'military', 'iranAttacks'],
+    id: 'cameras',
+    label: 'Cameras & live views',
+    hint: 'Public traffic and city cameras you can watch, plus what is overhead.',
+    layers: ['webcams', 'alprCameras', 'satellites'],
   },
   {
-    id: 'nuclear-hazard',
-    label: 'Nuclear & Hazard',
-    layers: ['nuclear', 'irradiators', 'radiationWatch', 'weather', 'natural', 'fires', 'climate', 'diseaseOutbreaks'],
+    id: 'health',
+    label: 'Health & disease',
+    hint: 'Active disease outbreaks being tracked around the world.',
+    layers: ['diseaseOutbreaks'],
   },
   {
-    id: 'surveillance',
-    label: 'Surveillance',
-    layers: ['alprCameras', 'gpsJamming', 'satellites', 'webcams'],
+    id: 'weather-nature',
+    label: 'Weather & nature',
+    hint: 'Storm warnings, earthquakes, wildfires and climate anomalies.',
+    layers: ['weather', 'natural', 'fires', 'climate', 'dayNight'],
   },
   {
-    id: 'infrastructure-energy',
-    label: 'Infrastructure & Energy',
+    id: 'conflict',
+    label: 'War & conflict',
+    hint: 'Fighting, tension hotspots and military presence.',
+    layers: ['conflicts', 'ucdpEvents', 'hotspots', 'military', 'bases', 'gpsJamming', 'iranAttacks'],
+  },
+  {
+    id: 'travel',
+    label: 'Ships & flights',
+    hint: 'Live vessel and aircraft movement, ports, routes and chokepoints.',
+    layers: ['ais', 'liveTankers', 'flights', 'commodityPorts', 'tradeRoutes', 'waterways'],
+  },
+  {
+    id: 'nuclear-radiation',
+    label: 'Nuclear & radiation',
+    hint: 'Reactors, radiation readings and radioactive-source sites.',
+    layers: ['nuclear', 'radiationWatch', 'irradiators'],
+  },
+  {
+    id: 'energy-internet',
+    label: 'Power, pipes & internet',
+    hint: 'Pipelines, fuel, clean energy, cables, outages and cyber attacks.',
     layers: [
-      'pipelines', 'cables', 'datacenters', 'outages', 'cyberThreats',
-      'storageFacilities', 'fuelShortages', 'renewableInstallations',
-      'minerals', 'miningSites', 'processingPlants', 'spaceports', 'cloudRegions',
-      'economic', 'ciiChoropleth', 'resilienceScore',
-      'stockExchanges', 'financialCenters', 'centralBanks', 'commodityHubs', 'gulfInvestments',
+      'pipelines', 'storageFacilities', 'fuelShortages', 'renewableInstallations',
+      'cables', 'outages', 'cyberThreats', 'datacenters', 'cloudRegions', 'spaceports',
     ],
   },
   {
-    id: 'movement',
-    label: 'Movement',
-    layers: ['ais', 'liveTankers', 'flights', 'waterways', 'tradeRoutes', 'commodityPorts'],
+    id: 'people',
+    label: 'People & society',
+    hint: 'Protests, displacement, sanctions and good-news signals.',
+    layers: [
+      'protests', 'displacement', 'sanctions',
+      'positiveEvents', 'kindness', 'happiness', 'speciesRecovery',
+    ],
   },
   {
-    id: 'civil',
-    label: 'Civil',
-    layers: ['protests', 'sanctions', 'displacement', 'positiveEvents', 'kindness', 'happiness', 'speciesRecovery'],
+    id: 'money-resources',
+    label: 'Money & resources',
+    hint: 'Markets, banks, mines, minerals and the tech economy.',
+    layers: [
+      'economic', 'stockExchanges', 'financialCenters', 'centralBanks',
+      'commodityHubs', 'gulfInvestments',
+      'minerals', 'miningSites', 'processingPlants',
+      'startupHubs', 'techHQs', 'accelerators', 'techEvents',
+    ],
+  },
+  {
+    id: 'country-risk',
+    label: 'Country risk',
+    hint: 'Whole-country shading for instability and resilience.',
+    layers: ['ciiChoropleth', 'resilienceScore'],
   },
   {
     id: OTHER_GROUP_ID,
     label: 'Other',
-    layers: ['startupHubs', 'techHQs', 'accelerators', 'techEvents', 'dayNight'],
+    layers: [],
   },
 ];
+
+/**
+ * Picker-only plain-language renames.
+ *
+ * The engines build each row's label through `resolveLayerLabel()`, which
+ * prefers the i18n string and falls back to `LayerDefinition.fallbackLabel`.
+ * Those names are written for analysts — "Ship Traffic", "Armed Conflict
+ * Events", "CII Instability" — and the legend, the CMD+K palette and the
+ * layer-explanation cards all read the same source, so renaming them there
+ * would ripple into surfaces this pass is not touching.
+ *
+ * `from` is therefore matched against the label the engine actually rendered:
+ * a rename applies ONLY when the row is still showing the English source
+ * string. A reader on a translated locale keeps their translation untouched
+ * instead of being dropped back into English — which is exactly what a blind
+ * overwrite would do, since most of these keys do have locale entries.
+ */
+export interface PlainLayerLabel {
+  /** The English label the engines currently render for this layer. */
+  from: string;
+  /** What a non-analyst would call it. */
+  to: string;
+}
+
+export const PLAIN_LAYER_LABELS: Partial<Record<keyof MapLayers, PlainLayerLabel>> = {
+  webcams: { from: 'Live Webcams', to: 'Live cameras' },
+  alprCameras: { from: 'ALPR Cameras', to: 'Plate-reader cameras' },
+  satellites: { from: 'Orbital Surveillance', to: 'Satellites overhead' },
+  diseaseOutbreaks: { from: 'Disease Outbreaks', to: 'Disease outbreaks' },
+  weather: { from: 'Weather Alerts', to: 'Weather warnings' },
+  natural: { from: 'Natural Events', to: 'Earthquakes & disasters' },
+  fires: { from: 'Fires', to: 'Wildfires' },
+  climate: { from: 'Climate Anomalies', to: 'Climate anomalies' },
+  dayNight: { from: 'Day/Night', to: 'Daylight & night' },
+  conflicts: { from: 'Conflict Zones', to: 'Conflict zones' },
+  ucdpEvents: { from: 'Armed Conflict Events', to: 'Battles & clashes' },
+  hotspots: { from: 'Intel Hotspots', to: 'Tension hotspots' },
+  military: { from: 'Military Activity', to: 'Military movements' },
+  bases: { from: 'Military Bases', to: 'Military bases' },
+  gpsJamming: { from: 'GPS JAMMING', to: 'GPS jamming' },
+  ais: { from: 'Ship Traffic', to: 'Ships' },
+  liveTankers: { from: 'Live Tanker Positions', to: 'Oil tankers' },
+  flights: { from: 'Aviation', to: 'Flights & airports' },
+  commodityPorts: { from: 'Commodity Ports', to: 'Ports' },
+  tradeRoutes: { from: 'Trade Routes', to: 'Shipping routes' },
+  waterways: { from: 'Chokepoints', to: 'Shipping chokepoints' },
+  nuclear: { from: 'Nuclear Sites', to: 'Nuclear sites' },
+  radiationWatch: { from: 'Radiation Watch', to: 'Radiation readings' },
+  irradiators: { from: 'Gamma Irradiators', to: 'Gamma irradiators' },
+  pipelines: { from: 'Pipelines', to: 'Oil & gas pipelines' },
+  storageFacilities: { from: 'Storage Facilities', to: 'Fuel storage' },
+  fuelShortages: { from: 'Fuel Shortages', to: 'Fuel shortages' },
+  renewableInstallations: { from: 'Clean Energy', to: 'Clean energy' },
+  cables: { from: 'Undersea Cables', to: 'Internet cables' },
+  outages: { from: 'Internet Disruptions', to: 'Internet outages' },
+  cyberThreats: { from: 'Cyber Threats', to: 'Cyber attacks' },
+  datacenters: { from: 'AI Data Centers', to: 'AI data centers' },
+  cloudRegions: { from: 'Cloud Regions', to: 'Cloud regions' },
+  protests: { from: 'Protests', to: 'Protests' },
+  displacement: { from: 'Displacement Flows', to: 'Refugee movements' },
+  positiveEvents: { from: 'Positive Events', to: 'Good news' },
+  kindness: { from: 'Acts of Kindness', to: 'Acts of kindness' },
+  happiness: { from: 'World Happiness', to: 'World happiness' },
+  speciesRecovery: { from: 'Species Recovery', to: 'Wildlife recovery' },
+  economic: { from: 'Economic Centers', to: 'Economic centers' },
+  stockExchanges: { from: 'Stock Exchanges', to: 'Stock exchanges' },
+  financialCenters: { from: 'Financial Centers', to: 'Financial centers' },
+  centralBanks: { from: 'Central Banks', to: 'Central banks' },
+  commodityHubs: { from: 'Commodity Hubs', to: 'Commodity hubs' },
+  gulfInvestments: { from: 'GCC Investments', to: 'Gulf investments' },
+  minerals: { from: 'Critical Minerals', to: 'Critical minerals' },
+  miningSites: { from: 'Mining Sites', to: 'Mines' },
+  processingPlants: { from: 'Processing Plants', to: 'Processing plants' },
+  startupHubs: { from: 'Startup Hubs', to: 'Startup hubs' },
+  techHQs: { from: 'Tech HQs', to: 'Tech headquarters' },
+  accelerators: { from: 'Accelerators', to: 'Startup accelerators' },
+  techEvents: { from: 'Tech Events', to: 'Tech events' },
+  ciiChoropleth: { from: 'CII Instability', to: 'Country instability' },
+  resilienceScore: { from: 'Resilience', to: 'Country resilience' },
+};
+
+/**
+ * Plain-language name for a picker row, or `rendered` untouched when there is
+ * no rename or the row is already showing a translation.
+ */
+export function plainLayerLabel(key: keyof MapLayers, rendered: string): string {
+  const entry = PLAIN_LAYER_LABELS[key];
+  if (!entry) return rendered;
+  const trimmed = rendered.trim();
+  if (trimmed.toLowerCase() !== entry.from.toLowerCase()) return rendered;
+  return entry.to;
+}
 
 /** Resolve the group a layer belongs to; unknown keys land in 'other'. */
 export function groupForLayer(key: keyof MapLayers): LayerGroupDef {
@@ -203,6 +403,53 @@ function isRowLayerHidden(row: HTMLElement): boolean {
   return false;
 }
 
+/** The clickable control inside a row: a checkbox (DeckGL/Globe) or a button (SVG). */
+function rowControl(row: HTMLElement): HTMLInputElement | HTMLButtonElement | null {
+  return row.querySelector<HTMLInputElement>('.layer-toggle input[type="checkbox"]')
+    ?? row.querySelector<HTMLButtonElement>('button.layer-toggle');
+}
+
+/**
+ * Swap a row's analyst label for its plain-language name in place.
+ *
+ * Only text is rewritten — the lock glyph stays attached to the name and the
+ * `PRO` badge element is left alone — so premium gating and the unlock pass in
+ * DeckGLMap (which strips ' 🔒' from `.toggle-label`) keep working unchanged.
+ * The original name is preserved on the toggle as `data-search-alias` so a
+ * reader who knows the old vocabulary can still search for it.
+ */
+export function applyPlainRowLabel(key: keyof MapLayers, row: HTMLElement): void {
+  const toggle = row.querySelector<HTMLElement>('.layer-toggle');
+  if (!toggle) return;
+  // DeckGL/Globe wrap the name in `.toggle-label`; the SVG chip is a bare
+  // button whose textContent IS the name.
+  const host = row.querySelector<HTMLElement>('.toggle-label')
+    ?? (toggle.tagName === 'BUTTON' ? toggle : null);
+  if (!host) return;
+
+  const textNode = Array.from(host.childNodes).find(
+    (node) => node.nodeType === 3 && (node.textContent ?? '').trim().length > 0,
+  );
+  if (!textNode) return;
+
+  const raw = textNode.textContent ?? '';
+  const locked = raw.includes('\uD83D\uDD12');
+  const rendered = raw.replace('\uD83D\uDD12', '').trim();
+  const plain = plainLayerLabel(key, rendered);
+  if (plain === rendered) return;
+
+  textNode.textContent = locked ? `${plain} \uD83D\uDD12` : plain;
+  toggle.setAttribute('data-search-alias', rendered);
+  // `aria-label` on the label/button would otherwise still announce the old
+  // name (DeckGLMap/GlobeMap build the explain button's label from it).
+  const explain = row.querySelector<HTMLElement>('.layer-explain-btn');
+  if (explain) {
+    const explainLabel = `Explain ${plain} layer`;
+    explain.setAttribute('aria-label', explainLabel);
+    if (explain.hasAttribute('title')) explain.setAttribute('title', explainLabel);
+  }
+}
+
 /**
  * Re-house existing `.layer-toggle-row` elements into collapsible group
  * sections. Rows keep their identity (elements are moved, not rebuilt), so
@@ -262,6 +509,7 @@ export function groupLayerToggles(opts: GroupedLayerPanelOptions): GroupedLayerP
     header.className = 'layer-group-header';
     header.setAttribute('role', 'button');
     header.tabIndex = 0;
+    if (group.hint) header.setAttribute('title', group.hint);
 
     const master = document.createElement('input');
     master.type = 'checkbox';
@@ -284,7 +532,10 @@ export function groupLayerToggles(opts: GroupedLayerPanelOptions): GroupedLayerP
 
     const body = document.createElement('div');
     body.className = 'layer-group-body';
-    for (const { row } of rows) body.appendChild(row);
+    for (const { key, row } of rows) {
+      applyPlainRowLabel(key, row);
+      body.appendChild(row);
+    }
 
     section.append(header, body);
     listEl.insertBefore(section, marker);
@@ -381,7 +632,36 @@ export function groupLayerToggles(opts: GroupedLayerPanelOptions): GroupedLayerP
     if (pill && opts.panelLabel) {
       pill.textContent = totalActive > 0 ? `${opts.panelLabel} · ${totalActive}` : opts.panelLabel;
     }
+    // Publish the count for the collapsed hamburger pill (DeckGL/Globe), which
+    // is bound separately in bindLayerPanelCollapse.
+    const panel = listEl.closest<HTMLElement>('.layer-toggles');
+    panel?.setAttribute(ACTIVE_COUNT_ATTR, String(totalActive));
+    refreshCollapsedPanelLabel(listEl);
   }
+
+  // Whole-row click → toggle. The `<label>`/`<button>` already covers most of
+  // the row, but the gap beside it, the row padding and the icon gutter were
+  // dead space, which makes a dense list feel unresponsive. Clicks that land
+  // on the control, its descendants, or the explain button are left alone so
+  // the engines' own handlers fire exactly once.
+  listEl.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    if (target.closest('.layer-toggle') || target.closest('.layer-explain-btn')) return;
+    if (target.closest('.layer-group-header')) return;
+    const row = target.closest<HTMLElement>('.layer-toggle-row');
+    if (!row || !listEl.contains(row)) return;
+    if (isRowLayerHidden(row)) return;
+    const control = rowControl(row);
+    if (!control || control.disabled) return;
+    if (control.tagName === 'INPUT') {
+      const input = control as HTMLInputElement;
+      input.checked = !input.checked;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      control.click();
+    }
+  });
 
   // Per-layer user toggles bubble up as checkbox `change` (DeckGL/Globe) or
   // button clicks (SVG). Refresh after the engine handler has run.

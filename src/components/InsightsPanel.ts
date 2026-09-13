@@ -26,6 +26,10 @@ import { computeISQ, type SignalQuality, type SignalQualityInput } from '@/utils
 import { extractEntitiesFromTitle } from '@/services/entity-extraction';
 import { getEntityIndex } from '@/services/entity-index';
 import { isEverydayReaderMode } from '@/services/reader-mode';
+import { currentBriefingAllowance, noteBriefGenerated } from '@/services/briefing-gate';
+import type { BriefingAllowance } from '@/services/briefing-allowance';
+import { openSettingsTab } from '@/services/settings-bus';
+import { isSupporter } from '@/services/supporter-status';
 
 import type { ClusteredEvent, FocalPoint, MilitaryFlight } from '@/types';
 
@@ -44,6 +48,12 @@ export class InsightsPanel extends Panel {
   private frameworkUnsubscribe: (() => void) | null = null;
   private fwSelector: FrameworkSelector | null = null;
   private updateGeneration = 0;
+  /**
+   * Set only while today's hosted fresh-brief allowance is spent. Drives one
+   * small inline note under the brief; null the rest of the time so the
+   * normal reading experience carries no upsell chrome at all.
+   */
+  private briefAllowance: BriefingAllowance | null = null;
   private static readonly BRIEF_COOLDOWN_MS = 120000; // 2 min cooldown (API has limits)
   private static readonly BRIEF_CACHE_KEY = 'summary:world-brief';
   // #4928: the server synthesis cites up to 12 sources — capping the cached
@@ -84,6 +94,23 @@ export class InsightsPanel extends Panel {
       });
       this.header.appendChild(this.fwSelector.el);
     }
+
+    // Delegated once: the allowance note's CTA is the only interactive
+    // element this panel renders, and setSafeContent replaces the subtree on
+    // every update.
+    this.content.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest('[data-brief-upgrade]')) {
+        e.preventDefault();
+        openSettingsTab('pro');
+        return;
+      }
+      if (target.closest('[data-brief-regen]')) {
+        e.preventDefault();
+        void this.regenerateBrief();
+      }
+    });
 
     // #4890: the World Brief text is the field LCP element in ~1/3 of desktop
     // views but normally paints only after clusters + hydration + sentiment
@@ -357,7 +384,11 @@ export class InsightsPanel extends Panel {
     }
   }
 
-  private async updateFromClient(clusters: ClusteredEvent[], thisGeneration: number): Promise<void> {
+  private async updateFromClient(
+    clusters: ClusteredEvent[],
+    thisGeneration: number,
+    forceFresh = false,
+  ): Promise<void> {
     // Web-only: if no AI providers enabled, show disabled state
     if (!isDesktopRuntime() && !isAnyAiProviderEnabled()) {
       this.setDataBadge('unavailable');
@@ -370,6 +401,7 @@ export class InsightsPanel extends Panel {
     const summarizeOpts: SummarizeOptions = {
       skipCloudProviders: !aiFlow.cloudLlm,
       skipBrowserFallback: !aiFlow.browserModel,
+      forceFresh,
     };
 
     const totalSteps = 4;
@@ -472,7 +504,26 @@ export class InsightsPanel extends Panel {
       let worldBrief = this.cachedBrief;
       const now = Date.now();
 
-      if (!worldBrief || now - this.lastBriefUpdate > InsightsPanel.BRIEF_COOLDOWN_MS) {
+      // A *fresh* synthesis spends real tokens on our account, so it draws
+      // on a daily allowance (services/briefing-allowance.ts). The brief
+      // itself is never withheld: when the allowance is spent we keep
+      // showing the cached / server-synthesized brief and offer Pro inline.
+      // Users on their own provider key are not metered at all.
+      const hasBrief = Boolean(worldBrief);
+      const briefIsStale = !hasBrief || now - this.lastBriefUpdate > InsightsPanel.BRIEF_COOLDOWN_MS;
+      const allowance = currentBriefingAllowance();
+      const allowanceSpent = !allowance.unlimited && allowance.remaining <= 0;
+      // The allowance can only ever pause a *refresh* of a brief the user can
+      // already read. With nothing to show it does not apply at all: a spent
+      // allowance must never turn into an empty briefing slot. Runaway cost is
+      // held by the server-side per-user daily ceiling, not by this counter.
+      const allowanceBlocksRefresh = hasBrief && allowanceSpent;
+      this.briefAllowance = allowanceBlocksRefresh ? allowance : null;
+
+      if (briefIsStale && allowanceBlocksRefresh) {
+        // Deliberately not an error and not an empty state — just a pause.
+        this.setProgress(3, totalSteps, 'Daily fresh-brief limit reached');
+      } else if (briefIsStale) {
         this.setProgress(3, totalSteps, t('components.insights.generatingBrief'));
 
         // Pass focal point context + theater posture to AI for correlation-aware summarization
@@ -504,6 +555,18 @@ export class InsightsPanel extends Panel {
           this.cachedBriefSources = currentBriefSources;
           this.lastBriefUpdate = now;
           void setPersistentCache(InsightsPanel.BRIEF_CACHE_KEY, { summary: worldBrief, sources: currentBriefSources });
+
+          // Count only what actually cost us tokens. A server-cache hit, or
+          // the on-device browser model, spends nothing — charging the
+          // user's allowance for either would be dishonest.
+          const spentOurTokens = !result.cached
+            && !result.byok
+            && result.provider !== 'cache'
+            && result.provider !== 'browser';
+          if (spentOurTokens) {
+            const updated = noteBriefGenerated();
+            this.briefAllowance = !updated.unlimited && updated.remaining <= 0 ? updated : null;
+          }
         }
       } else {
         this.setProgress(3, totalSteps, t('components.insights.usingCachedBrief'));
@@ -529,6 +592,31 @@ export class InsightsPanel extends Panel {
     }
   }
 
+  /**
+   * One inline note, shown only when today's hosted fresh-brief allowance is
+   * spent. Deliberately placed *under* a brief the user can still read: the
+   * limit pauses regeneration, it does not take the briefing away. No modal,
+   * no blur, no "you're missing out" framing.
+   */
+  private renderBriefAllowanceNotice(): string {
+    const allowance = this.briefAllowance;
+    if (!allowance) return '';
+
+    const resetTime = new Date(allowance.resetsAtMs)
+      .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const lead = `You've used today's ${allowance.cap} on-demand briefs. The brief above stays live and keeps updating from the shared synthesis — only regenerating one from scratch is paused. Resets at ${resetTime}.`;
+    // A subscriber who hits the cap gets the BYOK route, not another pitch.
+    const ctaLabel = isSupporter()
+      ? 'Add your own API key for unlimited briefs'
+      : 'See more-briefing options';
+
+    return `
+      <div class="brief-allowance-note" role="status">
+        <p class="brief-allowance-text">${escapeHtml(lead)}</p>
+        <button type="button" class="brief-allowance-cta" data-brief-upgrade>${escapeHtml(ctaLabel)}</button>
+      </div>`;
+  }
+
   private renderInsights(
     items: Array<{ cluster: ClusteredEvent; isq: SignalQuality }>,
     sentiments: Array<{ label: string; score: number }> | null,
@@ -538,9 +626,16 @@ export class InsightsPanel extends Panel {
     const clusters = items.map(({ cluster }) => cluster);
     const breakingHtml = this.renderBreakingStories(items, sentiments);
 
+    const allowanceNoteHtml = this.renderBriefAllowanceNotice();
+
     if (isEverydayReaderMode()) {
       // Hero already owns the world brief — story list only, no duplicate lead.
+      // The allowance note still rides along: everyday mode has no regenerate
+      // button, but the client fallback path can have spent a run getting the
+      // brief the hero is showing, and the user deserves to know why the next
+      // refresh won't re-synthesize.
       this.setSafeContent(unsafeRawHtml(`
+        ${allowanceNoteHtml}
         <div class="insights-section">
           <div class="insights-section-title">Top stories</div>
           ${breakingHtml || `<div class="insights-empty">No multi-source stories yet — check back shortly.</div>`}
@@ -558,6 +653,7 @@ export class InsightsPanel extends Panel {
 
     this.setSafeContent(unsafeRawHtml(`
       ${briefHtml}
+      ${allowanceNoteHtml}
       ${focalPointsHtml}
       ${convergenceHtml}
       ${sentimentOverview}
@@ -754,8 +850,107 @@ export class InsightsPanel extends Panel {
         <div class="insights-brief-text">${escapeHtml(brief)}</div>
         ${everyday ? '' : extrasHtml}
         ${everyday ? '' : renderBriefSourcesFooter(sources, { className: 'insights-brief-sources', maxSources: Math.max(6, sources.length) })}
+        ${everyday ? '' : this.renderRegenerateControl()}
       </div>
     `;
+  }
+
+  /**
+   * Explicit "spend one of my briefs" control.
+   *
+   * The brief on screen is always free and always current. This is the
+   * opt-in extra: re-synthesize it now, from the newest clusters, with the
+   * selected analyst framework. Making it a deliberate click is the honest
+   * way to meter an LLM call — the user decides when to spend, and the
+   * remaining count is on the button rather than hidden in settings.
+   *
+   * Hidden on mobile, where the client-side synthesis pipeline is skipped
+   * entirely (updateInsights bails before updateFromClient), so the button
+   * would promise something it cannot do.
+   */
+  private renderRegenerateControl(): string {
+    if (isMobileDevice()) return '';
+
+    const allowance = currentBriefingAllowance();
+    const remainingLabel = allowance.unlimited
+      ? 'your key'
+      : `${allowance.remaining} left today`;
+    const disabled = !allowance.unlimited && allowance.remaining <= 0;
+
+    return `
+      <div class="insights-brief-regen">
+        <button type="button" class="brief-regen-btn" data-brief-regen
+                ${disabled ? 'disabled' : ''}
+                title="Re-synthesize this brief from the latest clusters">
+          Regenerate brief
+        </button>
+        <span class="brief-regen-count">${escapeHtml(remainingLabel)}</span>
+      </div>`;
+  }
+
+  /**
+   * Surface the allowance note without a full re-render (which would need
+   * the story/sentiment inputs the caller no longer holds). Built with DOM
+   * nodes rather than an HTML string so no user-facing text can be
+   * interpreted as markup.
+   */
+  private showAllowanceNoteInPlace(): void {
+    const allowance = this.briefAllowance;
+    const brief = this.content.querySelector('.insights-brief');
+    if (!allowance || !brief) return;
+
+    const regenBtn = this.content.querySelector<HTMLButtonElement>('[data-brief-regen]');
+    if (regenBtn) regenBtn.disabled = true;
+    const count = this.content.querySelector('.brief-regen-count');
+    if (count) count.textContent = '0 left today';
+
+    const resetTime = new Date(allowance.resetsAtMs)
+      .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+    const note = document.createElement('div');
+    note.className = 'brief-allowance-note';
+    note.setAttribute('role', 'status');
+
+    const text = document.createElement('p');
+    text.className = 'brief-allowance-text';
+    text.textContent = `You've used today's ${allowance.cap} on-demand briefs. The brief above stays live and keeps updating from the shared synthesis — only regenerating one from scratch is paused. Resets at ${resetTime}.`;
+
+    const cta = document.createElement('button');
+    cta.type = 'button';
+    cta.className = 'brief-allowance-cta';
+    cta.dataset.briefUpgrade = '';
+    cta.textContent = isSupporter()
+      ? 'Add your own API key for unlimited briefs'
+      : 'See more-briefing options';
+
+    note.append(text, cta);
+    this.content.querySelector('.brief-allowance-note')?.remove();
+    brief.after(note);
+  }
+
+  /**
+   * Force a fresh synthesis on demand. Checks the allowance BEFORE spending
+   * anything and, when it is exhausted, surfaces the inline note instead of
+   * silently doing nothing. Never clears the existing brief: a failed or
+   * refused regeneration must leave the user with the brief they had.
+   */
+  public async regenerateBrief(): Promise<void> {
+    const allowance = currentBriefingAllowance();
+    if (!allowance.unlimited && allowance.remaining <= 0) {
+      this.briefAllowance = allowance;
+      this.showAllowanceNoteInPlace();
+      return;
+    }
+
+    if (this.lastClusters.length === 0) return;
+
+    // Drop the cooldown/cache guards so updateFromClient actually re-runs the
+    // synthesis; the allowance (not the cooldown) is what limits this path.
+    // `forceFresh` additionally evicts the 2h summary memo — without it this
+    // returns the same memoized text while still counting as a spent run.
+    this.lastBriefUpdate = 0;
+    this.updateGeneration++;
+    await this.updateFromClient(this.lastClusters, this.updateGeneration, true);
   }
 
   private renderBreakingStories(

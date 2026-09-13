@@ -476,11 +476,16 @@ html[data-reader-mode='everyday'] #panelsGrid {
   font-family: var(--reader-sans);
 }
 
+/* Everyday keeps its reading rhythm (the sans face, the softer radius) but the
+ * surface itself is the shared plate from console-2026.css: the flat
+ * translucent card and `box-shadow: none` here predate that material and, being
+ * the higher-specificity rule, would have cancelled the plate's rim floor and
+ * its bleed onto the stage — in the DEFAULT view. Radius still comes from the
+ * token, so the reader is softer than the analyst grid without being a
+ * different material. */
 html[data-reader-mode='everyday'] #panelsGrid .panel {
   font-family: var(--reader-sans);
   border-radius: var(--radius-md, 8px);
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  box-shadow: none;
 }
 
 html[data-reader-mode='everyday'] #panelsGrid .panel[data-panel='insights'],

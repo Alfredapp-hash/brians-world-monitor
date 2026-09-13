@@ -19,6 +19,8 @@ declare const __CLERK_JS_VERSION__: string;
 interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string;
   readonly VITE_WS_API_URL?: string;
+  /** Donation destination for the Support surfaces (see config/support.ts). */
+  readonly VITE_DONATE_URL?: string;
 }
 
 interface ImportMeta {

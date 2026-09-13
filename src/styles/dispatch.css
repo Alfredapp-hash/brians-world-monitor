@@ -1,0 +1,1446 @@
+/**
+ * THE PUBLIC DISPATCH — the house visual system.
+ *
+ * The shell is a leaf of 1787 parchment under museum light: warm irregular
+ * ground with laid-paper tooth and foxed edges, iron-gall ink that is brown
+ * before it is black, engraved Caslon for anything that speaks in the paper's
+ * voice, and a wax-seal red that only ever appears as rubrication — a rule, a
+ * seal, a focus ring. Never a beam.
+ *
+ * ── Cascade position ────────────────────────────────────────────────────────
+ * Imported UNLAYERED by base-layer.css in the slot console-2026.css used to
+ * hold (after chrome.css, before the stage sheets). It therefore supersedes
+ * everything in @layer base plus the amber identity in brians-theme.css /
+ * states.css / chrome.css, while layer-picker.css, reader-mode.css,
+ * godseye-mode.css and support.css keep authority over their own surfaces.
+ *
+ * Those four are already written against tokens, so repointing the token set
+ * here restages them in parchment without touching their compositions. The
+ * God's Eye stage is the deliberate exception: section 14 hands the night
+ * palette back to it, because a globe at 3am is not a document.
+ *
+ * ── How to extend ──────────────────────────────────────────────────────────
+ * Consume the tokens. A new major surface gets the paper recipe by adding
+ * `.wm-plate` (section 6), not a new one-off box. Do not hard-code hexes.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1 · MATERIALS — the whole system is these values
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ---- Parchment. The field is the desk: older, darker, handled. The leaf is
+     a sheet lying on it, so it is always the lighter of the two. ---- */
+  --tpd-field: #ded0b0;
+  --tpd-field-deep: #d2c39d;
+  --tpd-leaf: #f1e9d7;
+  --tpd-leaf-raised: #f7f1e3;
+  --tpd-leaf-inset: #e6dbc2;
+
+  /* ---- Iron-gall ink. Oxidised: brown before it is black. Pure #000 is
+     plastic and reads as a screen, not a nib. ---- */
+  --tpd-ink: #241a12;
+  --tpd-ink-2: #47382a;
+  --tpd-ink-3: #6b5a46;
+  --tpd-ink-4: #8c7c66;
+  --tpd-ink-faint: #a4947b;
+  --tpd-ink-ghost: #c0b193;
+
+  /* ---- Rubrication. Wax, sealing ribbon, the red of a corrected proof.
+     Never a glow, never a status colour. ---- */
+  --tpd-seal: #8d2b1f;
+  --tpd-seal-hot: #b2412f;
+  --tpd-seal-deep: #59150c;
+  --tpd-seal-wash: rgb(141 43 31 / 12%);
+
+  /* ---- Rules. Engraved hairlines, never boxes-with-borders. ---- */
+  --tpd-rule: rgb(36 26 18 / 18%);
+  --tpd-rule-strong: rgb(36 26 18 / 40%);
+  --tpd-rule-heavy: rgb(36 26 18 / 72%);
+  --tpd-rule-solid: #c3b28c;
+  --tpd-emboss: rgb(255 252 242 / 70%);
+
+  /* ---- Earth inks for status. Verdigris, ochre, and the seal. ---- */
+  --tpd-verdigris: #3f6b48;
+  --tpd-ochre: #8a6512;
+  --tpd-indigo: #33506e;
+
+  /* ---- Paper tooth. One rasterised turbulence tile, reused everywhere, so
+     the grain is the same fibre on the desk and on every sheet. ---- */
+  --tpd-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23f)' opacity='0.2'/%3E%3C/svg%3E");
+  --tpd-grain-fine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.05' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23f)' opacity='0.12'/%3E%3C/svg%3E");
+
+  /* Laid-paper chain and laid lines. Real laid paper shows widely spaced
+     vertical chain lines and fine horizontal laid lines where the mould wires
+     thinned the pulp — so both are HIGHLIGHTS, not shadows. */
+  --tpd-laid:
+    repeating-linear-gradient(90deg, transparent 0 26px, rgb(255 250 236 / 26%) 26px 28px),
+    repeating-linear-gradient(0deg, rgb(125 98 60 / 5%) 0 1px, transparent 1px 3px);
+
+  /* ---- Geometry. A sheet of paper has a cut edge, not a 14px radius. ---- */
+  --wm-radius-panel: 3px;
+  --wm-radius-control: 2px;
+  --wm-radius-chip: 2px;
+
+  /* ---- Motion. Paper does not animate; it is picked up and put down. ---- */
+  --wm-dur-1: 110ms;
+  --wm-dur-2: 190ms;
+  --wm-dur-3: 300ms;
+  --wm-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* ---- Type ----
+     Display: an engraved roman for anything speaking in the paper's voice —
+       the masthead, section heads, article titles.
+     Text: the same Caslon at text sizes, for prose that wants to be read.
+     UI: a clean neutral face for data. A dashboard of figures set in Caslon
+       is a costume; the numbers have to be legible at 11px. */
+  --font-display: 'Libre Caslon Display', 'Libre Caslon Text', 'Baskerville',
+    'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  --font-text: 'Libre Caslon Text', 'Iowan Old Style', 'Palatino Linotype',
+    Palatino, Georgia, 'Times New Roman', serif;
+  --font-ui: 'Inter', 'Inter Variable', -apple-system, BlinkMacSystemFont,
+    'Segoe UI Variable Text', 'Segoe UI', system-ui, Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Cascadia Code',
+    'Roboto Mono', 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+
+  /* ---- Radiance dials retired. They are kept (at zero) because
+     layer-picker.css, support.css and a handful of component sheets still read
+     them; a missing var there would fall back to the crimson defaults. ---- */
+  --wm-beam-op: 0;
+  --wm-bleed: 0px;
+  --wm-bleed-op: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2 · TOKEN REPOINT — the 200-odd stylesheets that only speak in var()
+   move onto parchment in one edit
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* console-2026 compatibility surface. Every `var(--wm-*, #ff2f45)` fallback
+     still living in layer-picker.css and friends resolves through here, so the
+     crimson never re-enters through a fallback. */
+  --wm-stage: var(--tpd-field);
+  --wm-stage-sunken: var(--tpd-field-deep);
+  --wm-stage-raised: var(--tpd-leaf-raised);
+  --wm-plate: var(--tpd-leaf);
+  --wm-plate-inset: var(--tpd-leaf-inset);
+  --wm-hairline: var(--tpd-rule);
+  --wm-hairline-strong: var(--tpd-rule-strong);
+  --wm-hairline-solid: var(--tpd-rule-solid);
+  --wm-highlight: var(--tpd-emboss);
+  --wm-red: var(--tpd-seal);
+  --wm-red-hot: var(--tpd-seal-hot);
+  --wm-red-deep: var(--tpd-seal-deep);
+  --wm-red-dim: rgb(141 43 31 / 45%);
+  --wm-ink: var(--tpd-ink);
+  --wm-ink-2: var(--tpd-ink-2);
+  --wm-ink-3: var(--tpd-ink-3);
+  --wm-ink-4: var(--tpd-ink-4);
+  --wm-rim-w: 0px;
+
+  /* --bg in this codebase means "recessed surface inside a panel" (inputs,
+     sub-toolbars, video wells, map controls) — not the stage. On parchment it
+     is a pressed well in the sheet, so it is darker than the leaf but still
+     paper. The field is applied by selector in section 5. */
+  --bg: #e5dabf;
+  --bg-secondary: #dccfb1;
+
+  /* --surface is the raised CONTROL surface. It must stay legible sitting on
+     a leaf, so it is a fresher sheet rather than a darker one. */
+  --surface: #f6efdf;
+  --surface-hover: #ece2cb;
+  --surface-active: #e2d6ba;
+  --panel-bg: var(--tpd-leaf);
+  --input-bg: #faf5e9;
+
+  --border: #c9b894;
+  --border-strong: #a3906c;
+  --border-subtle: #dbceb1;
+  --panel-border: var(--tpd-rule);
+
+  --text: var(--tpd-ink);
+  --text-secondary: var(--tpd-ink-2);
+  --text-dim-safe: var(--tpd-ink-3);
+  --text-dim: var(--tpd-ink-3);
+  --text-muted: var(--tpd-ink-4);
+  --text-faint: var(--tpd-ink-faint);
+  --text-ghost: var(--tpd-ink-ghost);
+  --muted: var(--tpd-ink-3);
+
+  /* Primary actions are struck in ink on paper — a set block of type, not a
+     coloured pill. Red stays sealing wax. */
+  --accent: var(--tpd-ink);
+  --accent-ink: #f7f1e2;
+  --accent-hover: #3a2a1c;
+
+  --overlay-subtle: rgb(36 26 18 / 4%);
+  --overlay-light: rgb(36 26 18 / 6%);
+  --overlay-medium: rgb(36 26 18 / 10%);
+  --overlay-heavy: rgb(36 26 18 / 16%);
+  --shadow-color: rgb(58 40 20 / 22%);
+
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c6b48e;
+  --scrollbar-thumb-hover: #a8946c;
+
+  /* Radii, for the files that only know --radius-*. reader-mode.css reads
+     --radius-md, so its cards get cut edges from here. */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-pill: 999px;
+
+  /* Leaves need margin. A document is mostly air. */
+  --dashboard-grid-gap: 14px;
+
+  /* The basemap is an engraved chart, not a satellite view: cream land, a
+     thinned wash for water, ink coastlines. */
+  --map-bg: #d8cbb0;
+  --map-grid: #c5b48f;
+  --map-country: #f0e7d0;
+  --map-stroke: #8c7b5c;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2b · PIGMENTS — the status scale, ground from earth
+   ═══════════════════════════════════════════════════════════════════════════
+
+   brians-theme.css tuned this scale to sit on #0a0c10, where "readable" means
+   LIGHT. On parchment the same values are both illegible (--status-good was
+   2.4:1 on a leaf) and, worse, neon — a lit green dot on aged paper is the
+   single fastest way to make the whole thing look like a costume.
+
+   The engraver's answer is a pigment box: verdigris, indigo, raw umber, burnt
+   sienna, vermilion, madder. Severity escalates by getting DARKER and redder,
+   which is how a document signals importance — more ink, not more light. All
+   foreground values clear WCAG AA on the leaf (--tpd-leaf).
+
+   Redefining the six base values is enough: brians-theme.css derives
+   --semantic-*, --threat-*, --defcon-* and --red/--green/--yellow from them
+   with var(), so the whole tree re-derives. The derived names are restated
+   anyway because that file ALSO hard-codes a neon light-theme scale, and
+   restating removes any doubt about which block lands last.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --status-good: #35633c;
+  --status-good-bg: rgb(53 99 60 / 10%);
+  --status-info: #2c4c72;
+  --status-info-bg: rgb(44 76 114 / 10%);
+  --status-watch: #7d5c0e;
+  --status-watch-bg: rgb(125 92 14 / 11%);
+  --status-warn: #9c4d15;
+  --status-warn-bg: rgb(156 77 21 / 11%);
+  --status-alert: #9a2b1d;
+  --status-alert-bg: rgb(154 43 29 / 10%);
+  /* Above alert: the darkest, reddest ink in the box. */
+  --sev-critical: #6e1410;
+
+  /* Categorical palette — one meaning per hue, all dark enough to be read as
+     ink rather than seen as light. Mirrors the CATEGORY ordering in
+     src/styles/tokens.ts so charts and map layers stay in step. */
+  --cat-blue: #27527d;
+  --cat-orange: #a8521c;
+  --cat-aqua: #16624f;
+  --cat-gold: #7d5c0e;
+  --cat-magenta: #8d2f56;
+  --cat-green: #3a5f28;
+  --cat-violet: #55407d;
+  --cat-red: #9a2b1d;
+
+  --semantic-critical: var(--sev-critical);
+  --semantic-high: var(--status-warn);
+  --semantic-elevated: var(--status-watch);
+  --semantic-normal: var(--status-good);
+  --semantic-low: var(--status-info);
+  --semantic-info: var(--status-info);
+  --semantic-positive: var(--status-good);
+  --semantic-warning: var(--status-warn);
+  --semantic-ok: var(--status-good);
+
+  --threat-critical: var(--status-alert);
+  --threat-high: var(--status-warn);
+  --threat-medium: var(--status-watch);
+  --threat-low: var(--status-good);
+  --threat-info: var(--status-info);
+
+  --defcon-1: var(--sev-critical);
+  --defcon-2: var(--status-alert);
+  --defcon-3: var(--status-watch);
+  --defcon-4: var(--status-info);
+  --defcon-5: var(--status-good);
+
+  --status-live: var(--status-good);
+  --status-cached: var(--status-watch);
+  --status-unavailable: var(--status-alert);
+
+  --red: var(--status-alert);
+  --green: var(--status-good);
+  --yellow: var(--status-watch);
+  --amber: var(--status-watch);
+  --blue: var(--status-info);
+}
+
+/* Night edition: the same pigments thinned, because by lamplight the paper is
+   the dark thing and the ink has to carry the light. */
+[data-theme='dark'] {
+  --status-good: #7fae7c;
+  --status-good-bg: rgb(127 174 124 / 12%);
+  --status-info: #7d9fc4;
+  --status-info-bg: rgb(125 159 196 / 12%);
+  --status-watch: #d3ab53;
+  --status-watch-bg: rgb(211 171 83 / 12%);
+  --status-warn: #d68a4a;
+  --status-warn-bg: rgb(214 138 74 / 12%);
+  --status-alert: #d9705c;
+  --status-alert-bg: rgb(217 112 92 / 12%);
+  --sev-critical: #ec8a78;
+
+  --cat-blue: #7fa8d8;
+  --cat-orange: #d8925c;
+  --cat-aqua: #63b79c;
+  --cat-gold: #cfa649;
+  --cat-magenta: #d18aa6;
+  --cat-green: #8cb377;
+  --cat-violet: #a495d4;
+  --cat-red: #d9857a;
+}
+
+/* The legend/hotspot dots in brians-theme.css carry a glow box-shadow sized
+   for a dark map. On an engraved chart a glowing dot is a smudge — the dot is
+   the mark, and a hairline ring is what separates it from the land under it. */
+.legend-dot.elevated,
+.legend-dot.high,
+.hotspot-marker.elevated {
+  box-shadow: 0 0 0 1px rgb(255 252 242 / 55%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3 · NIGHT EDITION — the same document read by lamplight
+   The theme toggle must not fall back to the console. Dark is a walnut desk
+   and a candle: the ground goes to burnt umber, the ink inverts to the cream
+   it was written on, and the seal stays exactly as red.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme='dark'] {
+  --tpd-field: #17120c;
+  --tpd-field-deep: #110d08;
+  --tpd-leaf: #211a12;
+  --tpd-leaf-raised: #2a2118;
+  --tpd-leaf-inset: #191309;
+
+  --tpd-ink: #ece1c7;
+  --tpd-ink-2: #cbbc9c;
+  --tpd-ink-3: #a3937a;
+  --tpd-ink-4: #85765f;
+  --tpd-ink-faint: #6d6050;
+  --tpd-ink-ghost: #4d4335;
+
+  --tpd-seal: #c24b37;
+  --tpd-seal-hot: #e0705a;
+  --tpd-seal-deep: #7a2618;
+  --tpd-seal-wash: rgb(194 75 55 / 14%);
+
+  --tpd-rule: rgb(236 225 199 / 13%);
+  --tpd-rule-strong: rgb(236 225 199 / 26%);
+  --tpd-rule-heavy: rgb(236 225 199 / 52%);
+  --tpd-rule-solid: #4a3d2c;
+  --tpd-emboss: rgb(255 244 220 / 7%);
+
+  --tpd-verdigris: #7fae7c;
+  --tpd-ochre: #d3ab53;
+  --tpd-indigo: #7d9fc4;
+
+  /* Literal values from section 2 have to be restated — an unlayered rule here
+     is what supplies them now that main.css's layered [data-theme='light'] and
+     [data-theme='dark'] blocks are outranked. Anything expressed as token
+     indirection resolves itself through the --tpd-* overrides above. */
+  --bg: #1b150e;
+  --bg-secondary: #15100a;
+  --surface: #2a2118;
+  --surface-hover: #342a1f;
+  --surface-active: #3e3326;
+  --input-bg: #1b150e;
+  --border: #463a2a;
+  --border-strong: #61513c;
+  --border-subtle: #33291e;
+  --accent: #ece1c7;
+  --accent-ink: #1b150e;
+  --accent-hover: #fff6e2;
+  --overlay-subtle: rgb(255 244 220 / 4%);
+  --overlay-light: rgb(255 244 220 / 6%);
+  --overlay-medium: rgb(255 244 220 / 10%);
+  --overlay-heavy: rgb(255 244 220 / 17%);
+  --shadow-color: rgb(0 0 0 / 55%);
+  --scrollbar-thumb: #4a3d2c;
+  --scrollbar-thumb-hover: #61513c;
+
+  --map-bg: #14100a;
+  --map-grid: #2a2216;
+  --map-country: #241d13;
+  --map-stroke: #574833;
+}
+
+/* The explicit light choice is the house default, stated rather than implied —
+   main.css ships its own [data-theme='light'] block in @layer base, and this
+   unlayered rule is what keeps it from reintroducing cool greys. */
+[data-theme='light'] {
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+/* ---- happy keeps its own cream/sage identity. happy-theme.css is imported
+   dynamically AFTER this file and wins on its own surfaces, but the tokens
+   above are inherited, so point the paper tokens at its palette and let the
+   recipe go inert rather than stamping parchment leaves over sage. ---- */
+html[data-variant='happy'] {
+  --tpd-leaf: var(--surface);
+  --tpd-leaf-raised: var(--surface);
+  --tpd-field: var(--bg);
+  --tpd-rule: var(--border);
+  --tpd-rule-strong: var(--border-strong, var(--border));
+  --tpd-rule-solid: var(--border);
+  --tpd-grain: none;
+  --tpd-grain-fine: none;
+  --tpd-laid: none;
+  --wm-radius-panel: 14px;
+  --wm-radius-control: 8px;
+  --wm-radius-chip: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4 · TYPOGRAPHY — the paper's voice, and the data's
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-font='system'] {
+  --font-body-base: var(--font-ui);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0;
+}
+
+/* main.css transitions background, colour, border and box-shadow on every
+   element at 200ms. Retune the timing only (not the property list) — zero
+   specificity, so any component declaring its own transition still wins. */
+*,
+*::before,
+*::after {
+  transition-duration: var(--wm-dur-1);
+  transition-timing-function: var(--wm-ease);
+}
+
+/* Figures are set, not rendered: digits must not reflow between refreshes. */
+.panel,
+.header,
+.site-footer,
+.map-legend,
+table {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Section heads. Small engraved caps with real tracking is the one place the
+   paper is allowed to shout, and it is what makes the body copy feel set. */
+.panel-title,
+.modal-title,
+.settings-window-title,
+.mobile-menu-title,
+.country-deep-dive h2,
+.search-section-title {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.modal-title,
+.settings-window-title {
+  font-size: 12.5px;
+}
+
+/* Micro-labels keep the same voice one step quieter. */
+.focus-label,
+.panel-tabs .panel-tab,
+.layer-toggles .layer-group-header,
+.layer-groups-pill,
+.panel-count,
+.panel-live-count {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The dateline. A newspaper clock is a dateline, so it is set in the paper's
+   face rather than a terminal mono. */
+.header-clock {
+  font-family: var(--font-text);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5 · THE GROUND — aged parchment under museum light
+   Warm tonal drift, foxing blooms off-centre, laid tooth, fibre grain, and a
+   vignette that puts the light in the middle of the desk. Six layers of CSS,
+   no asset.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body,
+.main-content {
+  background-color: var(--tpd-field);
+  background-image:
+    /* foxing — rust blooms, off-centre and unequal, never a tiled pattern */
+    radial-gradient(38% 26% at 8% 14%, rgb(138 92 44 / 13%) 0%, transparent 100%),
+    radial-gradient(24% 34% at 92% 76%, rgb(126 80 38 / 11%) 0%, transparent 100%),
+    radial-gradient(16% 12% at 74% 9%, rgb(147 101 52 / 10%) 0%, transparent 100%),
+    radial-gradient(20% 18% at 26% 93%, rgb(131 87 42 / 9%) 0%, transparent 100%),
+    /* museum light: the middle of the sheet is lit, the edges are handled */
+    radial-gradient(125% 105% at 50% 42%, transparent 48%, rgb(88 60 28 / 20%) 100%),
+    /* laid-paper tooth */
+    var(--tpd-laid),
+    /* fibre */
+    var(--tpd-grain),
+    /* the sheet's own tonal drift */
+    linear-gradient(158deg, #e7dabd 0%, #dccdab 34%, #e2d5b6 62%, #d4c49f 100%);
+  background-attachment: fixed;
+  color: var(--text);
+}
+
+[data-theme='dark'] body,
+[data-theme='dark'] .main-content {
+  background-image:
+    radial-gradient(38% 26% at 8% 14%, rgb(120 80 40 / 14%) 0%, transparent 100%),
+    radial-gradient(24% 34% at 92% 76%, rgb(105 66 32 / 12%) 0%, transparent 100%),
+    radial-gradient(125% 105% at 50% 42%, transparent 42%, rgb(0 0 0 / 46%) 100%),
+    var(--tpd-laid),
+    var(--tpd-grain),
+    linear-gradient(158deg, #1c150e 0%, #15100a 45%, #1a140d 100%);
+}
+
+
+.panels-grid {
+  background: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6 · THE LEAF RECIPE — one recipe, reused
+   ═══════════════════════════════════════════════════════════════════════════
+
+   A panel is a leaf of the document lying on the desk. Three cues, no more:
+
+     element background →  paper stock: grain over a faint tonal drift, so two
+                           adjacent leaves are the same stock, not the same
+                           rectangle of flat colour
+     box-shadow         →  a sheet resting on a surface (contact shadow tight,
+                           cast shadow long and weak) plus a 1px emboss along
+                           the top edge where the light catches the cut
+     ::before           →  the plate mark: the faint impressed rectangle an
+                           engraved plate leaves 6px inside the sheet's edge
+
+   No rotating field, no rim light, no RGB. Apply with `.wm-plate`.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.wm-plate,
+.panel,
+.search-modal {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--tpd-leaf);
+  background-image: var(--tpd-grain-fine),
+    linear-gradient(172deg, var(--tpd-leaf-raised) 0%, var(--tpd-leaf) 46%, #ece3cd 100%);
+  border: 1px solid var(--tpd-rule);
+  border-radius: var(--wm-radius-panel);
+  box-shadow:
+    inset 0 1px 0 0 var(--tpd-emboss),
+    0 1px 1px rgb(58 40 20 / 10%),
+    0 10px 22px -16px rgb(58 40 20 / 45%);
+}
+
+[data-theme='dark'] .wm-plate,
+[data-theme='dark'] .panel,
+[data-theme='dark'] .search-modal {
+  background-image: var(--tpd-grain-fine),
+    linear-gradient(172deg, var(--tpd-leaf-raised) 0%, var(--tpd-leaf) 52%, #1c150e 100%);
+  box-shadow:
+    inset 0 1px 0 0 var(--tpd-emboss),
+    0 1px 1px rgb(0 0 0 / 40%),
+    0 12px 26px -18px rgb(0 0 0 / 75%);
+}
+
+/* The plate mark. Negative z-index paints it above the leaf's own background
+   and below in-flow content, which is why the panel isolates above. */
+.wm-plate::before,
+.panel::before,
+.search-modal::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 6px;
+  border: 1px solid rgb(36 26 18 / 6%);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+[data-theme='dark'] .wm-plate::before,
+[data-theme='dark'] .panel::before,
+[data-theme='dark'] .search-modal::before {
+  border-color: rgb(236 225 199 / 6%);
+}
+
+/* console-2026 used ::after for the black plate inset. Retire it explicitly so
+   no surface inherits a leftover fill. */
+.wm-plate::after,
+.panel::after,
+.search-modal::after {
+  content: none;
+}
+
+/* Hover lifts the sheet a hair off the desk — a longer cast shadow, not a
+   light source and not a transform. */
+.wm-plate:hover,
+.wm-plate:focus-within,
+.panel:hover,
+.panel:focus-within {
+  border-color: var(--tpd-rule-strong);
+  box-shadow:
+    inset 0 1px 0 0 var(--tpd-emboss),
+    0 2px 3px rgb(58 40 20 / 12%),
+    0 18px 32px -20px rgb(58 40 20 / 55%);
+}
+
+[data-theme='dark'] .wm-plate:hover,
+[data-theme='dark'] .wm-plate:focus-within,
+[data-theme='dark'] .panel:hover,
+[data-theme='dark'] .panel:focus-within {
+  box-shadow:
+    inset 0 1px 0 0 var(--tpd-emboss),
+    0 2px 3px rgb(0 0 0 / 45%),
+    0 20px 36px -22px rgb(0 0 0 / 80%);
+}
+
+/* Panel chrome: the newspaper double rule — one heavy, one hair, 2px apart. */
+.panel-header {
+  padding: 8px 12px;
+  background: transparent;
+  border-bottom: 1px solid var(--tpd-rule-strong);
+  box-shadow: 0 2px 0 -1px var(--tpd-rule);
+}
+
+.panel-header-error {
+  background: var(--tpd-seal-wash);
+  border-bottom-color: color-mix(in srgb, var(--tpd-seal) 55%, transparent);
+}
+
+.panel-count,
+.panel-live-count {
+  background: var(--overlay-medium);
+  border-radius: var(--wm-radius-chip);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.panel-content {
+  font-family: var(--font-ui);
+}
+
+.panel-header .icon-btn {
+  border-radius: var(--wm-radius-chip);
+}
+
+/* Dense list rows: a hairline reads as spacing, a solid border reads as a
+   ruled ledger. On paper you want the former between items. */
+.item,
+.fires-table td,
+.fires-table th {
+  border-bottom-color: var(--tpd-rule);
+}
+
+.item:hover {
+  background: var(--overlay-subtle);
+}
+
+/* Drag affordances follow the paper, not the accent. */
+.panel.dragging-source {
+  opacity: 0.32;
+}
+
+.panel-drag-ghost {
+  border: 1px solid var(--tpd-rule-strong);
+  border-radius: var(--wm-radius-panel);
+  filter: drop-shadow(0 20px 40px rgb(58 40 20 / 45%));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7 · THE MASTHEAD — a nameplate, not a product bar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.header {
+  background-color: var(--tpd-leaf-raised);
+  background-image: var(--tpd-grain-fine),
+    linear-gradient(180deg, #faf5e9 0%, var(--tpd-leaf-raised) 62%, #efe5cf 100%);
+  /* The nameplate rule: heavy, then a 2px gap, then a hair. */
+  border-bottom: 2px solid var(--tpd-rule-heavy);
+  box-shadow: 0 4px 0 -3px var(--tpd-rule-strong);
+  padding: 8px 16px;
+}
+
+[data-theme='dark'] .header {
+  background-image: var(--tpd-grain-fine),
+    linear-gradient(180deg, #2e2419 0%, var(--tpd-leaf-raised) 62%, #1d1710 100%);
+}
+
+.header .logo,
+.header .logo-mobile {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  line-height: 1;
+  color: var(--tpd-ink);
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.header .logo-mobile {
+  letter-spacing: 0.14em;
+}
+
+/* The seal. Pressed wax: an irregular disc, a raised highlight where the matrix
+   lifted, a shadow where it pooled, and a hairline ring. CSS only — an image
+   would be a logo, and a seal is a material. */
+.header .logo::before,
+.header .logo-mobile::before {
+  content: '';
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  margin-inline-end: 8px;
+  vertical-align: -2px;
+  border-radius: 47% 53% 51% 49% / 50% 48% 52% 50%;
+  background:
+    radial-gradient(circle at 35% 29%, rgb(255 240 232 / 34%) 0 16%, transparent 46%),
+    radial-gradient(circle at 64% 74%, rgb(0 0 0 / 32%) 0 20%, transparent 62%),
+    radial-gradient(circle at 48% 44%, var(--tpd-seal-hot) 0%, var(--tpd-seal) 56%, var(--tpd-seal-deep) 100%);
+  box-shadow:
+    inset 0 0 0 1.5px rgb(255 236 224 / 16%),
+    0 1px 1.5px rgb(58 40 20 / 40%);
+}
+
+.version {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  color: var(--text-faint);
+  opacity: 1;
+  letter-spacing: 0.06em;
+}
+
+/* Struck in ink, not filled with the accent — main.css hard-codes #0a0a0a ink
+   on this badge, which would be black on near-black once --accent became ink. */
+.beta-badge {
+  background: transparent;
+  border: 1px solid var(--tpd-rule-strong);
+  border-radius: 2px;
+  color: var(--text-dim);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+/* "Live" is a press-room status line: verdigris, quiet. */
+.status-indicator {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.status-dot {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 18%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8 · MAJOR SURFACES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.site-footer {
+  background-color: var(--tpd-leaf-raised);
+  border-top: 1px solid var(--tpd-rule-strong);
+  box-shadow: 0 -3px 0 -2px var(--tpd-rule);
+  color: var(--text-dim);
+  font-family: var(--font-ui);
+}
+
+.site-footer-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text);
+}
+
+/* The map is a plate bound into the document: the same stock, a heavier
+   engraved rule, and a debossed edge where the plate met the paper. */
+.map-section {
+  background-color: var(--tpd-leaf);
+  border: 1px solid var(--tpd-rule-strong);
+  border-radius: var(--wm-radius-panel);
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px var(--tpd-emboss),
+    0 1px 1px rgb(58 40 20 / 10%),
+    0 14px 28px -20px rgb(58 40 20 / 50%);
+}
+
+.map-legend,
+.map-controls .map-btn {
+  background: color-mix(in srgb, var(--tpd-leaf-raised) 92%, transparent);
+  border: 1px solid var(--tpd-rule-strong);
+  border-radius: var(--wm-radius-control);
+  color: var(--text);
+  backdrop-filter: blur(3px);
+}
+
+/* Panel/tab navigation reads as a contents rule across the top of the sheet. */
+.panel-nav,
+.tabs {
+  background-color: var(--tpd-leaf-raised);
+  border-bottom: 1px solid var(--tpd-rule-strong);
+}
+
+.panel-tab.active,
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--tpd-seal);
+}
+
+/* The expanded layer picker is a slip of paper pinned over the chart. It is a
+   scroll container, so it takes the stock and the contact shadow but not the
+   plate mark — an inset pseudo in an overflow box drifts with the scroll.
+   layer-picker.css loads after this and keeps its collapsed-pill rules. */
+.deckgl-layer-toggles:not(.layer-panel-collapsed) {
+  background-color: var(--tpd-leaf-raised);
+  background-image: var(--tpd-grain-fine),
+    linear-gradient(172deg, #faf5e9 0%, var(--tpd-leaf-raised) 50%, #ece2cb 100%);
+  border: 1px solid var(--tpd-rule-strong);
+  box-shadow:
+    inset 0 1px 0 0 var(--tpd-emboss),
+    0 2px 4px rgb(42 29 16 / 16%),
+    0 20px 40px -24px rgb(42 29 16 / 55%);
+}
+
+[data-theme='dark'] .deckgl-layer-toggles:not(.layer-panel-collapsed) {
+  background-image: var(--tpd-grain-fine),
+    linear-gradient(172deg, #322718 0%, var(--tpd-leaf-raised) 50%, #1c150e 100%);
+  box-shadow:
+    inset 0 1px 0 0 var(--tpd-emboss),
+    0 2px 4px rgb(0 0 0 / 45%),
+    0 20px 40px -24px rgb(0 0 0 / 75%);
+}
+
+.deckgl-layer-toggles .toggle-header {
+  box-shadow: 0 2px 0 -1px var(--tpd-rule);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9 · CONTROLS — engraved, not extruded
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.search-btn,
+.copy-link-btn,
+.fullscreen-btn,
+.map-btn,
+.layer-groups-pill,
+.cc-local-btn,
+.cc-copy-btn,
+.focus-select,
+select,
+input[type='text'],
+input[type='search'],
+input[type='number'],
+textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--wm-radius-control);
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  transition:
+    background var(--wm-dur-1) var(--wm-ease),
+    border-color var(--wm-dur-1) var(--wm-ease),
+    color var(--wm-dur-1) var(--wm-ease);
+}
+
+.search-btn:hover,
+.copy-link-btn:hover,
+.fullscreen-btn:hover,
+.map-btn:hover,
+.layer-groups-pill:hover,
+.cc-local-btn:hover,
+.cc-copy-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+input[type='text'],
+input[type='search'],
+input[type='number'],
+textarea {
+  background: var(--input-bg);
+  /* A ruled line to write on: the inner shadow is the impression of the rule. */
+  box-shadow: inset 0 1px 2px rgb(58 40 20 / 8%);
+}
+
+.btn {
+  border-radius: var(--wm-radius-control);
+  font-family: var(--font-ui);
+  letter-spacing: 0.01em;
+  transition:
+    background var(--wm-dur-1) var(--wm-ease),
+    border-color var(--wm-dur-1) var(--wm-ease),
+    color var(--wm-dur-1) var(--wm-ease);
+}
+
+/* A 1px hover lift is a 2016 tic and on paper it reads as the sheet flapping. */
+.btn:not(:disabled):hover {
+  opacity: 1;
+  transform: none;
+}
+
+
+/* Primary = struck in ink on paper. */
+.btn-primary,
+.cc-refresh-btn,
+.cc-ai-btn,
+.cw-cta {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--wm-radius-control);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.btn-primary:not(:disabled):hover,
+.cc-refresh-btn:hover,
+.cc-ai-btn:hover,
+.cw-cta:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-secondary,
+.cc-nci-ai-btn {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--wm-radius-control);
+  color: var(--text);
+}
+
+.btn-secondary:not(:disabled):hover,
+.cc-nci-ai-btn:hover {
+  background: var(--overlay-subtle);
+  border-color: var(--text-dim);
+}
+
+.btn-ghost:not(:disabled):hover {
+  background: var(--overlay-subtle);
+  color: var(--text);
+}
+
+/* The only coloured button in the system, and it is sealing wax. */
+.btn-danger {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--tpd-seal) 55%, transparent);
+  color: var(--tpd-seal);
+}
+
+.btn-danger:not(:disabled):hover {
+  background: var(--tpd-seal-wash);
+}
+
+.variant-switcher {
+  background: var(--overlay-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--wm-radius-control);
+}
+
+.layer-toggles .layer-toggle,
+.layer-toggles .layer-explain-btn,
+.deckgl-layer-toggles .layer-explain-btn,
+.layer-toggles .layer-group {
+  border-color: var(--border);
+  border-radius: var(--wm-radius-chip);
+}
+
+.cw-pill {
+  background: color-mix(in srgb, var(--tpd-leaf-raised) 92%, transparent);
+  border: 1px solid var(--tpd-rule-strong);
+  backdrop-filter: blur(4px);
+}
+
+.cw-dot {
+  background: var(--tpd-seal);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   10 · OVERLAYS — command palette, modals, settings
+   A sheet laid over the desk. The scrim is warm, so what shows through still
+   reads as parchment in shadow rather than a grey screen.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.search-overlay,
+.modal-overlay {
+  background: color-mix(in srgb, #2a1d10 62%, transparent);
+  backdrop-filter: blur(5px) saturate(104%);
+}
+
+[data-theme='dark'] .search-overlay,
+[data-theme='dark'] .modal-overlay {
+  background: color-mix(in srgb, #080603 72%, transparent);
+}
+
+.search-modal,
+.modal,
+.unified-settings-modal {
+  background-color: var(--tpd-leaf-raised);
+  background-image: var(--tpd-grain-fine),
+    linear-gradient(172deg, #faf5e9 0%, var(--tpd-leaf-raised) 50%, #ece2cb 100%);
+  border: 1px solid var(--tpd-rule-strong);
+  border-radius: var(--wm-radius-panel);
+  box-shadow:
+    inset 0 1px 0 0 var(--tpd-emboss),
+    0 2px 4px rgb(42 29 16 / 18%),
+    0 40px 80px -34px rgb(42 29 16 / 62%);
+}
+
+[data-theme='dark'] .search-modal,
+[data-theme='dark'] .modal,
+[data-theme='dark'] .unified-settings-modal {
+  background-image: var(--tpd-grain-fine),
+    linear-gradient(172deg, #322718 0%, var(--tpd-leaf-raised) 50%, #1c150e 100%);
+  box-shadow:
+    inset 0 1px 0 0 var(--tpd-emboss),
+    0 2px 4px rgb(0 0 0 / 50%),
+    0 44px 88px -36px rgb(0 0 0 / 85%);
+}
+
+.search-header {
+  background: transparent;
+  border-bottom: 1px solid var(--tpd-rule-strong);
+  box-shadow: 0 2px 0 -1px var(--tpd-rule);
+  padding: 13px 16px;
+}
+
+.search-icon,
+.search-kbd {
+  background: var(--overlay-medium);
+  border-radius: var(--wm-radius-chip);
+  color: var(--text-dim);
+}
+
+.unified-settings-tabs {
+  border-bottom-color: var(--tpd-rule-strong);
+}
+
+.unified-settings-tab.active {
+  border-bottom-color: var(--tpd-seal);
+}
+
+.unified-settings-btn {
+  border: 1px solid var(--border);
+  border-radius: var(--wm-radius-control);
+  background: var(--surface);
+}
+
+.unified-settings-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+
+/* Standalone settings window and the in-app settings shell. */
+.settings-shell,
+.settings-window-shell {
+  background-color: var(--tpd-field);
+}
+
+.settings-titlebar,
+.settings-header,
+.settings-window-header,
+.settings-sidebar,
+.tauri-titlebar {
+  background: var(--tpd-leaf-raised);
+  border-color: var(--tpd-rule-strong);
+}
+
+.settings-nav-item,
+.settings-feat,
+.settings-secret-row,
+.settings-ov-cat {
+  border-radius: var(--wm-radius-control);
+  border-color: var(--border);
+}
+
+.settings-feat,
+.settings-ov-cat {
+  background: var(--tpd-leaf);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   11 · FOCUS — rubrication. A corrector's red, on the one colour that is
+   never a status here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+button:focus-visible,
+[role='button']:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex='-1']):focus-visible {
+  outline: 2px solid var(--tpd-seal);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: color-mix(in srgb, var(--tpd-seal) 55%, transparent);
+}
+
+.panel:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--tpd-seal) 45%, transparent);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--tpd-seal) 22%, transparent);
+  color: var(--text);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   12 · NARROW — a real pass
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  :root {
+    --dashboard-grid-gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 6px 10px;
+  }
+
+  .header .logo,
+  .header .logo-mobile {
+    font-size: 14px;
+  }
+
+  .header .logo::before,
+  .header .logo-mobile::before {
+    width: 13px;
+    height: 13px;
+    margin-inline-end: 6px;
+  }
+
+  .panel-header {
+    padding: 8px 10px;
+  }
+
+  /* The header cluster collapses to icons on narrow, so they have to be real
+     targets rather than 14px glyphs. */
+  .fullscreen-btn,
+  .search-btn,
+  .copy-link-btn {
+    min-height: 32px;
+    min-width: 32px;
+  }
+
+  /* Full-bleed on narrow: a sheet with 3px corners floating in a 10px gutter
+     wastes the only column there is. */
+  .map-section {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  /* background-attachment: fixed is a scroll-perf trap on mobile compositors
+     and iOS renders it at viewport scale. The ground is a fixed field anyway. */
+  body,
+  .main-content {
+    background-attachment: scroll;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   13 · MOTION PREFERENCES
+   Nothing in this system animates by default, so there is no rotation to
+   freeze. The status pulse is the one live element, and it stops.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   14 · GOD'S EYE HANDOFF — what this system deliberately does not own
+   ═══════════════════════════════════════════════════════════════════════════
+
+   The stage is a globe at night. Parchment leaves and a lit desk are actively
+   wrong there, so the ground, the paper recipe and the ink all hand back — the
+   tokens go to the stage's own night values and godseye-mode.css (loaded after
+   this file) keeps authority over everything it composes.
+
+   What the stage DOES take from the paper is its voice: the HUD title is set
+   in the display face rather than the instrument mono, which is enough to read
+   as the same publication without touching a single readout. Cyan stays the
+   instrument hue and the numeric readouts stay mono — that is what makes them
+   legible over a lit globe, and legibility is the stage's whole job.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html[data-stage-mode='godseye'] {
+  --tpd-field: #04070b;
+  --tpd-field-deep: #020406;
+  --tpd-leaf: rgb(10 14 20 / 78%);
+  --tpd-leaf-raised: rgb(14 20 28 / 82%);
+  --tpd-leaf-inset: rgb(4 7 11 / 85%);
+  --tpd-ink: var(--ge-stage-ink, #eaf6fa);
+  --tpd-ink-2: rgb(234 246 250 / 78%);
+  --tpd-ink-3: rgb(234 246 250 / 58%);
+  --tpd-ink-4: rgb(234 246 250 / 42%);
+  --tpd-rule: rgb(127 212 232 / 14%);
+  --tpd-rule-strong: rgb(127 212 232 / 26%);
+  --tpd-rule-heavy: rgb(127 212 232 / 40%);
+  --tpd-rule-solid: #16242e;
+  --tpd-emboss: rgb(127 212 232 / 8%);
+  --tpd-grain: none;
+  --tpd-grain-fine: none;
+  --tpd-laid: none;
+
+  --bg: #06090e;
+  --bg-secondary: #04070b;
+  --surface: rgb(14 20 28 / 88%);
+  --surface-hover: rgb(20 28 38 / 92%);
+  --surface-active: rgb(26 36 48 / 94%);
+  --input-bg: rgb(4 7 11 / 88%);
+  --border: rgb(127 212 232 / 18%);
+  --border-strong: rgb(127 212 232 / 34%);
+  --border-subtle: rgb(127 212 232 / 10%);
+  --accent: var(--ge-hud, #7fd4e8);
+  --accent-ink: #04070b;
+  --accent-hover: #a8e6f5;
+  --overlay-subtle: rgb(127 212 232 / 5%);
+  --overlay-light: rgb(127 212 232 / 8%);
+  --overlay-medium: rgb(127 212 232 / 12%);
+  --overlay-heavy: rgb(127 212 232 / 20%);
+  --shadow-color: rgb(0 0 0 / 65%);
+  --scrollbar-thumb: rgb(127 212 232 / 22%);
+  --scrollbar-thumb-hover: rgb(127 212 232 / 38%);
+
+  /* Readouts over a night globe need the thinned pigments, not the ones mixed
+     to be legible on a lit sheet. Without this the stage inherits parchment's
+     dark greens and reds onto a near-black rail and the status marks vanish. */
+  --status-good: #7fae7c;
+  --status-good-bg: rgb(127 174 124 / 12%);
+  --status-info: #7fd4e8;
+  --status-info-bg: rgb(127 212 232 / 12%);
+  --status-watch: #d3ab53;
+  --status-watch-bg: rgb(211 171 83 / 12%);
+  --status-warn: #d68a4a;
+  --status-warn-bg: rgb(214 138 74 / 12%);
+  --status-alert: #d9705c;
+  --status-alert-bg: rgb(217 112 92 / 12%);
+  --sev-critical: #ec8a78;
+  --cat-blue: #7fa8d8;
+  --cat-orange: #d8925c;
+  --cat-aqua: #63b79c;
+  --cat-gold: #cfa649;
+  --cat-magenta: #d18aa6;
+  --cat-green: #8cb377;
+  --cat-violet: #a495d4;
+  --cat-red: #d9857a;
+}
+
+html[data-stage-mode='godseye'] body,
+html[data-stage-mode='godseye'] .main-content {
+  background-color: #04070b;
+  background-image: radial-gradient(115% 95% at 50% 48%, #0b1724 0%, #04070b 68%);
+  background-attachment: scroll;
+}
+
+/* The rail is a translucent readout over the globe, not a sheet of paper. */
+html[data-stage-mode='godseye'] .panel {
+  background-color: var(--ge-rail-bg, rgb(6 10 16 / 72%));
+  background-image: none;
+  border: 1px solid var(--ge-rail-border, rgb(127 212 232 / 14%));
+  border-radius: var(--wm-radius-panel);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+}
+
+html[data-stage-mode='godseye'] .panel::before,
+html[data-stage-mode='godseye'] .panel:hover,
+html[data-stage-mode='godseye'] .panel:focus-within {
+  content: none;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+}
+
+/* The stage promotes the map to a full-bleed backdrop; a cut edge and a
+   contact shadow would put a sheet of paper where the horizon should be. */
+html[data-stage-mode='godseye'] .map-section {
+  background: #04070b;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  /* The stage hangs HUD corners off this box — do not clip them. */
+  overflow: visible;
+}
+
+html[data-stage-mode='godseye'] .header,
+html[data-stage-mode='godseye'] .site-footer {
+  background-color: rgb(4 7 11 / 82%);
+  background-image: none;
+  border-color: var(--tpd-rule);
+  box-shadow: none;
+}
+
+/* Every paper surface in this file paints its stock with a literal light
+   gradient (the tokens carry the tint; the gradient carries the drift). Those
+   literals are the one thing the token handoff above cannot reach, so the
+   stage has to strike them explicitly or a cream sheet lands over the globe.
+   Overlays go fully opaque here — a translucent modal over a lit globe is
+   unreadable, which is the opposite of what the stage is for. */
+html[data-stage-mode='godseye'] .wm-plate,
+html[data-stage-mode='godseye'] .search-modal,
+html[data-stage-mode='godseye'] .modal,
+html[data-stage-mode='godseye'] .unified-settings-modal,
+html[data-stage-mode='godseye'] .reader-hero,
+html[data-stage-mode='godseye'] .deckgl-layer-toggles:not(.layer-panel-collapsed) {
+  background-image: none;
+  background-color: #0a0e14;
+  border-color: var(--border);
+  box-shadow: 0 24px 56px rgb(0 0 0 / 60%);
+}
+
+html[data-stage-mode='godseye'] .wm-plate::before,
+html[data-stage-mode='godseye'] .search-modal::before {
+  content: none;
+}
+
+/* The paper's voice, carried onto the stage. */
+html[data-stage-mode='godseye'] .godseye-hud__title,
+html[data-stage-mode='godseye'] .header .logo,
+html[data-stage-mode='godseye'] .header .logo-mobile {
+  font-family: var(--font-display);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   15 · READER HANDOFF — the gazette
+   reader-mode.css is fully tokenised, so it restages from section 2 on its
+   own. What it cannot infer is that its display face is now the paper's face
+   and that a reading column on parchment wants a wider measure and a ruled
+   dateline rather than a glowing hero.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html[data-reader-mode='everyday'] {
+  --reader-display: var(--font-display);
+  --reader-sans: var(--font-ui);
+  --reader-text: var(--font-text);
+}
+
+/* The hero is the front page above the fold: nameplate, a rule, the lead.
+   reader-mode.css builds it from --accent washes and a diagonal hatch; on
+   parchment that becomes an ink wash and the laid tooth of the stock. */
+html[data-reader-mode='everyday'] .reader-hero {
+  background-color: var(--tpd-leaf);
+  background-image: var(--tpd-grain-fine), var(--tpd-laid),
+    linear-gradient(172deg, var(--tpd-leaf-raised) 0%, var(--tpd-leaf) 55%, #eae0c8 100%);
+  border-bottom: 2px solid var(--tpd-rule-heavy);
+  box-shadow: 0 4px 0 -3px var(--tpd-rule-strong);
+}
+
+html[data-reader-mode='everyday'][data-theme='dark'] .reader-hero {
+  background-image: var(--tpd-grain-fine), var(--tpd-laid),
+    linear-gradient(172deg, #2e2419 0%, var(--tpd-leaf) 55%, #1a140d 100%);
+}
+
+/* The gradient scrim reader-mode.css lays over the bottom of the hero exists
+   to fade a dark photographic field. Over paper it reads as a smudge. */
+html[data-reader-mode='everyday'] .reader-hero::after {
+  content: none;
+}
+
+html[data-reader-mode='everyday'] .reader-hero__brand {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4.4vw, 3.1rem);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  line-height: 1.02;
+  color: var(--tpd-ink);
+}
+
+/* The dateline rule under the nameplate: thick, thin, then the lead. */
+html[data-reader-mode='everyday'] .reader-hero__brand::after {
+  content: '';
+  display: block;
+  margin-top: 0.6rem;
+  height: 3px;
+  border-top: 1px solid var(--tpd-rule-heavy);
+  border-bottom: 1px solid var(--tpd-rule-strong);
+}
+
+/* Body copy in the reader is prose, so it gets the paper's text face and a
+   measure a person can actually track across. */
+html[data-reader-mode='everyday'] .reader-hero__lead {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.26;
+  letter-spacing: 0;
+}
+
+html[data-reader-mode='everyday'] .reader-hero__why {
+  font-family: var(--font-text);
+  font-size: 1.05rem;
+  line-height: 1.58;
+  max-width: 38rem;
+}
+
+/* The spin line is an editor's marginal note — rubricated, not amber. */
+html[data-reader-mode='everyday'] .reader-hero__spin {
+  color: var(--tpd-seal);
+  font-family: var(--font-text);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Reader CTAs are the front page's own furniture, so they take the ink/paper
+   button family rather than a filled amber pill. */
+html[data-reader-mode='everyday'] .reader-hero__cta {
+  border-radius: var(--wm-radius-control);
+  font-family: var(--font-ui);
+}

@@ -16,6 +16,7 @@ import {
 } from '@/config/panels';
 import type { McpDataPanel } from '@/components/McpDataPanel';
 import { deleteMcpPanel, getMcpPanel, saveMcpPanel } from '@/services/mcp-store';
+import { registerSettingsOpener } from '@/services/settings-bus';
 import type { PanelConfig, MapLayers, MilitaryFlight } from '@/types';
 import type { MapView } from '@/components/MapContainer';
 import type { PositionSample } from '@/services/aviation';
@@ -152,6 +153,10 @@ class LazyUnifiedSettings implements UnifiedSettingsController {
 
   constructor(private readonly config: UnifiedSettingsConfig) {
     this.button = createSettingsButton(() => this.open());
+    // Let deep components (e.g. the briefing-allowance notice in
+    // InsightsPanel) route the user straight to a settings tab without
+    // importing the app layer. See services/settings-bus.ts.
+    registerSettingsOpener((tab) => this.open(tab as UnifiedSettingsTabId | undefined));
   }
 
   getButton(): HTMLButtonElement {
@@ -818,6 +823,17 @@ export class EventHandlerManager implements AppModule {
       const next = getCurrentTheme() === 'dark' ? 'light' : 'dark';
       setTheme(next);
       trackThemeChanged(next);
+    });
+
+    document.getElementById('mobileMenuSupport')?.addEventListener('click', () => {
+      this.closeMobileMenu();
+      this.ctx.unifiedSettings?.open('pro');
+    });
+
+    // Quiet header control. Opens the Pro & Support tab; it never blocks the
+    // session and is the same destination for free users and subscribers.
+    document.getElementById('supportBtn')?.addEventListener('click', () => {
+      this.ctx.unifiedSettings?.open('pro');
     });
 
     const sheetBackdrop = document.getElementById('regionSheetBackdrop');

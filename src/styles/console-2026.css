@@ -1,0 +1,898 @@
+/**
+ * CONSOLE 2026 — WorldMonitor visual system.
+ *
+ * The app shell is a precision instrument on a cool grey bench: a modern grey
+ * stage, true-black plates, and one slow crimson energy field rotating behind
+ * every plate so the light only ever reads at the rim. Nothing here is a HUD
+ * overlay, a neon grid, or a 2016 card shadow.
+ *
+ * ── Cascade position ────────────────────────────────────────────────────────
+ * Imported UNLAYERED by base-layer.css after chrome.css, so it wins over
+ * everything in @layer base (main.css and friends) and over the amber identity
+ * in brians-theme.css / states.css / chrome.css. reader-mode.css,
+ * godseye-mode.css and support.css load AFTER this file and keep authority
+ * over their own surfaces — deliberate: God's Eye owns its cinematic stage and
+ * the reader owns its reading rhythm. Both inherit the tokens below, so they
+ * restage in the new materials without being flattened into grey-and-red cards.
+ *
+ * ── How to extend ──────────────────────────────────────────────────────────
+ * Consume the tokens. Do not hard-code hexes, radii, or durations here or in
+ * component CSS. A new major surface gets the panel recipe by adding
+ * `.wm-plate` (section 4) rather than a new one-off box.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1 · TOKENS — the whole system is these values
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ---- Stage: cool modern grey. Light enough that #000 reads as an object,
+     dark enough to stay nocturnal. ---- */
+  --wm-stage: #1c1f25;
+  --wm-stage-sunken: #171a1f;
+  --wm-stage-raised: #23272f;
+
+  /* ---- Plate: the true-black panel surface ---- */
+  --wm-plate: #000000;
+  --wm-plate-inset: #08090c;
+
+  /* ---- Hairlines. -solid is opaque because it also backs the 1px rim ring,
+     which sits under the rotating beam and must never read as a gap. ---- */
+  --wm-hairline: rgb(255 255 255 / 9%);
+  --wm-hairline-strong: rgb(255 255 255 / 16%);
+  --wm-hairline-solid: #2b3037;
+  --wm-highlight: rgb(255 255 255 / 6%);
+
+  /* ---- Radiant red. The energy field, the rim, the focus ring — never a
+     body-text or status colour (the semantic scale owns those). ---- */
+  --wm-red: #ff2f45;
+  --wm-red-hot: #ff8a96;
+  --wm-red-deep: #8d0f1e;
+  --wm-red-dim: rgb(255 47 69 / 45%);
+
+  /* ---- Ink ---- */
+  --wm-ink: #f2f4f7;
+  --wm-ink-2: #c5cad2;
+  --wm-ink-3: #9aa1ac;
+  --wm-ink-4: #7c838e;
+
+  /* ---- Geometry ---- */
+  --wm-radius-panel: 14px;
+  --wm-radius-control: 8px;
+  --wm-radius-chip: 6px;
+  --wm-rim-w: 1.25px;
+
+  /* ---- Motion ---- */
+  --wm-dur-1: 120ms;
+  --wm-dur-2: 200ms;
+  --wm-dur-3: 320ms;
+  --wm-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --wm-beam-dur: 14s;
+
+  /* ---- Radiance dials. Every glow in the app reads off these three, so
+     intensity is one edit, and God's Eye / happy can zero them out. ---- */
+  --wm-beam-op: 0.85;
+  --wm-bleed: 34px;
+  --wm-bleed-op: 0.13;
+
+  /* ---- Type ---- */
+  --font-ui: 'Inter', 'Inter Variable', -apple-system, BlinkMacSystemFont,
+    'Segoe UI Variable Text', 'Segoe UI', system-ui, Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Cascadia Code',
+    'Roboto Mono', 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+}
+
+/* ---- Legacy token repoint: every existing var() consumer in main.css and the
+   203 service/component stylesheets moves onto the new system at once. ---- */
+:root {
+  /* IMPORTANT: --bg is NOT the stage. In this codebase --bg means "recessed
+     dark surface" — 87 rules use it for inputs, sub-toolbars, video wells and
+     map controls that live INSIDE a panel. Repointing it to grey would put a
+     grey block on every black plate. The stage grey is applied by selector in
+     section 3 instead, to the three elements that actually are the canvas. */
+  --bg: #0c0e12;
+  --bg-secondary: #101318;
+
+  /* --surface is the raised CONTROL surface — buttons, inputs, cards inside a
+     panel. It must stay visible against a #000 plate, so it is not the plate.
+     The plate is --panel-bg / --wm-plate. */
+  --surface: #14181e;
+  --surface-hover: #1c2027;
+  --surface-active: #23272f;
+  --panel-bg: var(--wm-plate);
+  --input-bg: #0c0e12;
+
+  --border: #262a31;
+  --border-strong: #3a4048;
+  --border-subtle: #1b1f25;
+  --panel-border: var(--wm-hairline);
+
+  --text: var(--wm-ink);
+  --text-secondary: var(--wm-ink-2);
+  --text-dim-safe: var(--wm-ink-3);
+  --text-dim: var(--wm-ink-3);
+  --text-muted: var(--wm-ink-4);
+  --text-faint: #5c626c;
+  --text-ghost: #3b4048;
+
+  /* Primary actions are quiet and sharp: near-white plate, near-black ink.
+     Red is material, not a button colour. */
+  --accent: #eef0f3;
+  --accent-ink: #0a0b0d;
+
+  --overlay-subtle: rgb(255 255 255 / 3%);
+  --overlay-light: rgb(255 255 255 / 5%);
+  --overlay-medium: rgb(255 255 255 / 9%);
+  --overlay-heavy: rgb(255 255 255 / 16%);
+  --shadow-color: rgb(0 0 0 / 55%);
+
+  --scrollbar-thumb: #2a2f37;
+  --scrollbar-thumb-hover: #3a4048;
+
+  /* brians-theme aliased "cached" to the (then amber) accent. The accent is
+     now near-white, which would read as a live/neutral state — point it back
+     at the watch tier where it belongs. */
+  --status-cached: var(--status-watch, #d9b64a);
+
+  /* Consistent radii everywhere, including files that only know --radius-*.
+     reader-mode.css reads --radius-md, so its cards restage from here. */
+  --radius-sm: var(--wm-radius-chip);
+  --radius-md: 12px;
+  --radius-lg: var(--wm-radius-panel);
+  --radius-pill: 999px;
+
+  /* Panels are objects now, so they need air around them. */
+  --dashboard-grid-gap: 10px;
+
+  /* Basemap recedes under the plates instead of competing with them. */
+  --map-bg: #0a0c10;
+  --map-grid: #141a23;
+  --map-country: #12171f;
+  --map-stroke: #2b3644;
+}
+
+/* ---- Light theme ("paper on a bench"): white plates, ink hairlines, the same
+   red field at lower intensity. Declared after :root so it wins, mirroring the
+   brians-theme pattern for unlayered overrides. ---- */
+[data-theme='light'] {
+  --wm-stage: #e9ebef;
+  --wm-stage-sunken: #dfe2e7;
+  --wm-stage-raised: #ffffff;
+  --wm-plate: #ffffff;
+  --wm-plate-inset: #f6f7f9;
+  --wm-hairline: rgb(15 20 30 / 10%);
+  --wm-hairline-strong: rgb(15 20 30 / 20%);
+  --wm-hairline-solid: #cfd4dc;
+  --wm-highlight: rgb(255 255 255 / 80%);
+  --wm-ink: #12151a;
+  --wm-ink-2: #3a4048;
+  --wm-ink-3: #5c636d;
+  --wm-ink-4: #767d87;
+  --wm-red: #d81030;
+  --wm-red-hot: #ff5468;
+  --wm-red-deep: #6d0716;
+  --wm-beam-op: 0.6;
+  --wm-bleed-op: 0.1;
+
+  /* The literal dark values in :root above must be restated here — unlayered
+     rules beat main.css's layered [data-theme='light'] block, so it can no
+     longer supply them. Token indirection (--text, --border-*, etc.) resolves
+     itself through the --wm-* overrides above. */
+  --bg: #f2f4f7;
+  --bg-secondary: #e9ecf1;
+  --surface: #ffffff;
+  --surface-hover: #f2f4f7;
+  --surface-active: #e8ebf0;
+  --input-bg: #ffffff;
+  --border: #d3d7de;
+  --border-strong: #b2b8c1;
+  --border-subtle: #e6e9ee;
+  --text-faint: #9aa1ac;
+  --text-ghost: #c2c7cf;
+  --accent: #12151a;
+  --accent-ink: #ffffff;
+  --overlay-subtle: rgb(15 20 30 / 3%);
+  --overlay-light: rgb(15 20 30 / 5%);
+  --overlay-medium: rgb(15 20 30 / 8%);
+  --overlay-heavy: rgb(15 20 30 / 14%);
+  --shadow-color: rgb(15 20 30 / 14%);
+  --scrollbar-thumb: #c8cdd5;
+  --scrollbar-thumb-hover: #a8afb9;
+  --map-bg: #eef1f5;
+  --map-grid: #cfd8e2;
+  --map-country: #f4f0e6;
+  --map-stroke: #c3ccd6;
+}
+
+/* ---- happy variant keeps its cream/sage identity. Zeroing the radiance
+   dials and pointing the plate at its own surface makes the shared recipe
+   inert there instead of stamping black plates over a warm palette. ---- */
+html[data-variant='happy'] {
+  --wm-beam-op: 0;
+  --wm-bleed-op: 0;
+  --wm-bleed: 0px;
+  --wm-plate: var(--surface);
+  --wm-hairline-solid: var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2 · TYPOGRAPHY — contemporary tech, hierarchy you feel in 3 seconds
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* The body font preference still drives this (mono stays one select away);
+   the sans stack is now what the "system" choice resolves to. */
+[data-font='system'] {
+  --font-body-base: var(--font-ui);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.006em;
+}
+
+/* main.css gives every element a 200ms ease transition on background, colour,
+   border and box-shadow. That is the difference between "sharp" and "mushy" on
+   hover, so the timing (not the property list) is retuned here. Zero
+   specificity, so any component that declares its own transition still wins. */
+*,
+*::before,
+*::after {
+  transition-duration: var(--wm-dur-1);
+  transition-timing-function: var(--wm-ease);
+}
+
+/* Telemetry reads as telemetry: digits never reflow between refreshes. */
+.panel,
+.header,
+.site-footer,
+.map-legend,
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Titles: sentence/title case at a real size. The uppercase-everything
+   dashboard voice is demoted to eyebrows only (below). */
+.panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  text-transform: none;
+  color: var(--text);
+}
+
+/* Eyebrows / micro-labels — the one place small caps still earn their keep,
+   and the contrast that makes the titles feel large. */
+.focus-label,
+.panel-tabs .panel-tab,
+.layer-toggles .layer-group-header,
+.layer-groups-pill,
+.header-clock {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.header-clock {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.logo,
+.logo-mobile,
+.site-footer-name,
+.mobile-menu-title {
+  color: var(--text);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3 · STAGE — the grey bench
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body,
+.main-content {
+  background: var(--wm-stage);
+}
+
+.panels-grid {
+  background: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4 · THE PANEL RECIPE — one recipe, reused
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Three stacked layers inside a single element, no extra DOM:
+
+     element background  →  --wm-hairline-solid   (the rim's floor: the edge is
+                                                   never a gap when the beam is
+                                                   dark at that angle)
+     ::before  z-index -2 →  rotating crimson conic field, oversized + centred,
+                             animated with `rotate` only (composited, 60fps)
+     ::after   z-index -1 →  the true-black plate, inset by --wm-rim-w, so the
+                             plate occludes the field and you only ever see the
+                             light at the rim
+     content              →  in-flow children paint above both pseudos
+
+   The soft bleed onto the grey canvas is a box-shadow on the element itself,
+   which paint containment does NOT clip (it clips descendants only).
+
+   Apply with `.wm-plate` on any new major surface.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.wm-plate,
+.panel,
+.search-modal {
+  position: relative;
+  background: var(--wm-hairline-solid);
+  border: none;
+  border-radius: var(--wm-radius-panel);
+  isolation: isolate;
+  box-shadow:
+    0 10px 30px -18px rgb(0 0 0 / 85%),
+    0 0 var(--wm-bleed) calc(var(--wm-bleed) * -0.4) rgb(255 47 69 / var(--wm-bleed-op));
+}
+
+.wm-plate::before,
+.panel::before,
+.search-modal::before {
+  content: '';
+  position: absolute;
+  z-index: -2;
+  top: 50%;
+  left: 50%;
+  width: 240%;
+  aspect-ratio: 1 / 1;
+  min-height: 240%;
+  translate: -50% -50%;
+  rotate: 0deg;
+  pointer-events: none;
+  opacity: var(--wm-beam-op);
+  transition: opacity var(--wm-dur-3) var(--wm-ease);
+  animation: wm-beam-spin var(--wm-beam-dur) linear infinite;
+  /* Two lobes — a bright leading sweep and a faint trailing one — so the rim
+     is continuously alive without ever strobing. */
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    rgb(255 47 69 / 0) 0deg,
+    rgb(255 47 69 / 0) 58deg,
+    rgb(141 15 30 / 55%) 82deg,
+    rgb(255 47 69 / 92%) 100deg,
+    var(--wm-red-hot) 106deg,
+    rgb(255 47 69 / 92%) 112deg,
+    rgb(141 15 30 / 50%) 136deg,
+    rgb(255 47 69 / 0) 170deg,
+    rgb(255 47 69 / 0) 238deg,
+    rgb(196 24 42 / 34%) 268deg,
+    rgb(255 47 69 / 0) 300deg,
+    rgb(255 47 69 / 0) 360deg
+  );
+}
+
+.wm-plate::after,
+.panel::after,
+.search-modal::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: var(--wm-rim-w);
+  /* inherit keeps the plate concentric with whatever radius the surface ends
+     up with — 14px here, 12px in reader mode, 10px on the God's Eye rail. */
+  border-radius: inherit;
+  background: var(--wm-plate);
+  /* 1px inner highlight along the top edge: the only material cue. */
+  box-shadow: inset 0 1px 0 0 var(--wm-highlight);
+  pointer-events: none;
+}
+
+/* Hover/focus: the light comes up, the geometry never moves. */
+.wm-plate:hover,
+.wm-plate:focus-within,
+.panel:hover,
+.panel:focus-within,
+.search-modal {
+  --wm-beam-op: 1;
+  --wm-bleed-op: 0.22;
+}
+
+@keyframes wm-beam-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* Not-yet-mounted panel shells stay static: a scrolling rail of deferred
+   shells should not each own an animating compositing surface. */
+.panel[data-deferred-panel]::before,
+.panel.panel-deferred-shell::before {
+  animation: none;
+  rotate: 34deg;
+  opacity: calc(var(--wm-beam-op) * 0.5);
+}
+
+/* Panel chrome on the plate: no amber wash, no drop-shadow soup, just a
+   hairline and generous-but-tight spacing. NB `.panel-content` padding stays
+   8px on purpose — tab strips and toolbars bleed to the edge with -8px
+   margins, and changing it would leave every one of them 4px inset. */
+.panel-header {
+  padding: 7px 11px;
+  background: transparent;
+  border-bottom: 1px solid var(--wm-hairline);
+}
+
+.panel-header-error {
+  background: color-mix(in srgb, var(--semantic-critical) 12%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--semantic-critical) 45%, transparent);
+}
+
+.panel-count,
+.panel-live-count {
+  background: var(--overlay-medium);
+  border-radius: var(--wm-radius-chip);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.panel-header .icon-btn {
+  border-radius: var(--wm-radius-chip);
+}
+
+/* Drag affordances follow the system rather than flashing the accent. */
+.panel.dragging-source {
+  opacity: 0.35;
+}
+
+.panel-drag-ghost {
+  border: 1px solid var(--wm-hairline-strong);
+  border-radius: var(--wm-radius-panel);
+  filter: drop-shadow(0 18px 48px rgb(0 0 0 / 55%));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5 · MAJOR SURFACES — same material family, no rotating beam
+   The beam is reserved for panels and overlays; a 40px header bar with a
+   spinning field in it would be noise.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.header {
+  background: var(--wm-plate);
+  border-bottom: 1px solid var(--wm-hairline);
+  box-shadow:
+    inset 0 1px 0 0 var(--wm-highlight),
+    0 1px 0 0 rgb(255 47 69 / 8%);
+  padding: 8px 14px;
+}
+
+.site-footer {
+  background: var(--wm-plate);
+  border-top: 1px solid var(--wm-hairline);
+  color: var(--text-dim);
+}
+
+/* The map is the hero surface: black plate, hairline, a static red rim glow.
+   No rotating field here — the globe is already the moving thing on screen, and
+   a second rotation around its frame competes with it. */
+.map-section {
+  background: var(--wm-plate);
+  border: 1px solid var(--wm-hairline);
+  border-radius: var(--wm-radius-panel);
+  /* Clips the renderer canvas to the plate's corners. Everything the section
+     owns (controls, legend, layer panel, the bottom-anchored resize handle)
+     is positioned inside its box, so nothing is lost. */
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 0 var(--wm-highlight),
+    0 0 var(--wm-bleed) calc(var(--wm-bleed) * -0.45) rgb(255 47 69 / var(--wm-bleed-op));
+}
+
+.map-legend {
+  background: color-mix(in srgb, var(--wm-plate) 82%, transparent);
+  border: 1px solid var(--wm-hairline);
+  border-radius: var(--wm-radius-control);
+  backdrop-filter: blur(8px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6 · CONTROLS — one family. Primary quiet and sharp, secondary ghost,
+   destructive rare. No glow on small controls.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.search-btn,
+.copy-link-btn,
+.fullscreen-btn,
+.map-btn,
+.layer-groups-pill,
+.cc-local-btn,
+.cc-copy-btn,
+.focus-select,
+select,
+input[type='text'],
+input[type='search'],
+input[type='number'],
+textarea {
+  background: var(--surface);
+  border: 1px solid var(--wm-hairline);
+  border-radius: var(--wm-radius-control);
+  color: var(--text-secondary);
+  font-family: inherit;
+  transition:
+    background var(--wm-dur-1) var(--wm-ease),
+    border-color var(--wm-dur-1) var(--wm-ease),
+    color var(--wm-dur-1) var(--wm-ease);
+}
+
+.search-btn:hover,
+.copy-link-btn:hover,
+.fullscreen-btn:hover,
+.map-btn:hover,
+.layer-groups-pill:hover,
+.cc-local-btn:hover,
+.cc-copy-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--wm-hairline-strong);
+  color: var(--text);
+}
+
+/* The existing .btn family is the button system — align it rather than invent
+   a second one. Primary = near-white plate + near-black ink; secondary = ghost
+   with a hairline; destructive stays rare and is the only coloured button. */
+.btn {
+  border-radius: var(--wm-radius-control);
+  letter-spacing: -0.006em;
+  transition:
+    background var(--wm-dur-1) var(--wm-ease),
+    border-color var(--wm-dur-1) var(--wm-ease),
+    color var(--wm-dur-1) var(--wm-ease);
+}
+
+/* Buttons that lift 1px on hover are a 2016 tic — and on a plate with a live
+   rim it reads as jitter. Hover is a material change, not a movement. */
+.btn:not(:disabled):hover {
+  opacity: 1;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: #ffffff;
+}
+
+.btn-secondary {
+  background: var(--surface);
+  border: 1px solid var(--wm-hairline);
+  color: var(--text);
+}
+
+.btn-secondary:not(:disabled):hover {
+  background: var(--surface-hover);
+  border-color: var(--wm-hairline-strong);
+}
+
+.btn-ghost:not(:disabled):hover {
+  background: var(--overlay-subtle);
+  color: var(--text);
+}
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--semantic-critical) 45%, transparent);
+  color: var(--semantic-critical);
+}
+
+.btn-danger:not(:disabled):hover {
+  background: color-mix(in srgb, var(--semantic-critical) 14%, transparent);
+}
+
+/* Primary: near-white plate, near-black ink. */
+.cc-refresh-btn,
+.cc-ai-btn,
+.cw-cta {
+  background: var(--accent);
+  border: 1px solid transparent;
+  border-radius: var(--wm-radius-control);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.cc-refresh-btn:hover,
+.cc-ai-btn:hover,
+.cw-cta:hover {
+  background: #ffffff;
+}
+
+.cc-nci-ai-btn {
+  background: var(--surface);
+  border: 1px solid var(--wm-hairline-strong);
+  border-radius: var(--wm-radius-control);
+  color: var(--text);
+}
+
+.variant-switcher {
+  background: var(--overlay-subtle);
+  border: 1px solid var(--wm-hairline);
+  border-radius: var(--wm-radius-control);
+}
+
+.layer-toggles .layer-toggle,
+.layer-toggles .layer-explain-btn,
+.deckgl-layer-toggles .layer-explain-btn,
+.layer-toggles .layer-group {
+  border-color: var(--wm-hairline);
+  border-radius: var(--wm-radius-chip);
+}
+
+.panel-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--wm-red);
+}
+
+.cw-pill {
+  background: color-mix(in srgb, var(--wm-plate) 88%, transparent);
+  border: 1px solid var(--wm-hairline);
+  backdrop-filter: blur(10px);
+}
+
+.cw-dot {
+  background: var(--wm-red);
+}
+
+/* Dense list rows are the most-seen content chrome in the app. On a #000 plate
+   an opaque --border divider reads as a ruled table; a hairline reads as
+   spacing. Same 1px, much quieter. */
+.item,
+.fires-table td,
+.fires-table th {
+  border-bottom-color: var(--wm-hairline);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6b · OVERLAYS — command palette, modals, settings
+   The palette gets the full recipe (it clips its own overflow, so the
+   oversized beam layer is safe there). Modals and the settings shells are
+   scroll containers, so they take the plate and a static rim instead — an
+   absolutely-positioned 240% pseudo inside `overflow-y: auto` would become
+   scrollable overflow.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Both overlays shipped as a FULLY OPAQUE var(--bg) fill, which used to read as
+   "dark" and now reads as a flat grey sheet over the app. Scrim + blur instead,
+   so the stage stays visible underneath. */
+.search-overlay,
+.modal-overlay {
+  background: color-mix(in srgb, #04060a 76%, transparent);
+  backdrop-filter: blur(10px) saturate(115%);
+}
+
+.search-modal {
+  box-shadow:
+    0 40px 90px -30px rgb(0 0 0 / 85%),
+    0 0 70px -26px rgb(255 47 69 / 32%);
+}
+
+.search-header {
+  background: transparent;
+  border-bottom: 1px solid var(--wm-hairline);
+  padding: 13px 16px;
+}
+
+.search-icon,
+.search-kbd {
+  background: var(--overlay-medium);
+  border-radius: var(--wm-radius-chip);
+  color: var(--text-dim);
+}
+
+.modal,
+.unified-settings-modal {
+  background: var(--wm-plate);
+  border: 1px solid var(--wm-hairline);
+  border-radius: var(--wm-radius-panel);
+  box-shadow:
+    inset 0 1px 0 0 var(--wm-highlight),
+    0 40px 90px -30px rgb(0 0 0 / 85%),
+    0 0 70px -28px rgb(255 47 69 / 26%);
+}
+
+.modal-title,
+.settings-window-title {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.unified-settings-tabs {
+  border-bottom-color: var(--wm-hairline);
+}
+
+.unified-settings-tab.active {
+  border-bottom-color: var(--wm-red);
+}
+
+.unified-settings-btn {
+  border: 1px solid var(--wm-hairline);
+  border-radius: var(--wm-radius-control);
+  background: var(--surface);
+}
+
+.unified-settings-btn:hover {
+  border-color: var(--wm-hairline-strong);
+  color: var(--text);
+}
+
+/* Standalone settings window (settings.html) and the in-app settings shell:
+   grey stage, black rails, plate cards. */
+.settings-shell,
+.settings-window-shell {
+  background: var(--wm-stage);
+}
+
+.settings-titlebar,
+.settings-header,
+.settings-window-header,
+.settings-sidebar,
+.tauri-titlebar {
+  background: var(--wm-plate);
+  border-color: var(--wm-hairline);
+}
+
+.settings-nav-item,
+.settings-feat,
+.settings-secret-row,
+.settings-ov-cat {
+  border-radius: var(--wm-radius-control);
+  border-color: var(--wm-hairline);
+}
+
+.settings-feat,
+.settings-ov-cat {
+  background: var(--wm-plate);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7 · FOCUS — a ring that belongs to this system, on the one colour that is
+   never a status: red.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+button:focus-visible,
+[role='button']:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex='-1']):focus-visible {
+  /* Outline follows each control's own radius, so nothing changes shape on
+     focus — the radii are set by section 6, not here. */
+  outline: 2px solid var(--wm-red-dim);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: color-mix(in srgb, var(--wm-red) 45%, transparent);
+}
+
+/* A focused panel gets the plate treatment, not an outline around a 400px box. */
+.panel:focus-visible {
+  outline: none;
+  --wm-beam-op: 1;
+  --wm-bleed-op: 0.26;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--wm-red-dim);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8 · NARROW — a real pass, not an afterthought
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  :root {
+    --wm-radius-panel: 12px;
+    --wm-bleed: 24px;
+    --dashboard-grid-gap: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    /* One column means fewer, bigger plates — the light reads at lower
+       intensity or it turns into a wash behind every card. */
+    --wm-beam-op: 0.7;
+    --wm-bleed-op: 0.1;
+  }
+
+  .header {
+    padding: 6px 10px;
+  }
+
+  .panel-header {
+    padding: 8px 10px;
+  }
+
+  /* Touch targets: the header cluster shrinks to icons on narrow, so the
+     icons have to be real targets. */
+  .fullscreen-btn,
+  .search-btn,
+  .copy-link-btn {
+    min-height: 32px;
+    min-width: 32px;
+  }
+
+  .map-section {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9 · MOTION PREFERENCES — freeze the rotation, keep a static red rim
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  /* The rim stays red and lit — only the rotation stops. */
+  .wm-plate::before,
+  .panel::before,
+  .search-modal::before {
+    animation: none;
+    rotate: 38deg;
+    transition: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   10 · STAGE HANDOFFS — what this system deliberately does not own
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* God's Eye keeps its cinematic HUD. It restages the panel grid into a
+   translucent cyan rail over a full-bleed globe, so the black plates and the
+   crimson field are actively wrong there — the pseudo layers come off and the
+   radiance dials go to zero. Everything else (tokens, type, radii) is inherited
+   harmlessly. */
+html[data-stage-mode='godseye'] {
+  --wm-beam-op: 0;
+  --wm-bleed-op: 0;
+  --wm-bleed: 0px;
+}
+
+html[data-stage-mode='godseye'] .panel::before,
+html[data-stage-mode='godseye'] .panel::after {
+  content: none;
+}
+
+html[data-stage-mode='godseye'] .panel {
+  background: var(--ge-rail-bg);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+}
+
+/* The stage promotes the map to a full-bleed backdrop; a 14px radius and a rim
+   glow would put a floating card where the horizon should be. */
+html[data-stage-mode='godseye'] .map-section {
+  background: #04070b;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  /* The stage hangs HUD corners off this box — do not clip them. */
+  overflow: visible;
+}
+
+html[data-stage-mode='godseye'] .header,
+html[data-stage-mode='godseye'] .site-footer {
+  box-shadow: none;
+}

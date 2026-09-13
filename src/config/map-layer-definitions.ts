@@ -464,8 +464,42 @@ export const LAYER_SYNONYMS: Record<string, Array<keyof MapLayers>> = {
   night: ['dayNight'],
   sun: ['dayNight'],
   webcam: ['webcams'],
-  camera: ['webcams'],
+  camera: ['webcams', 'alprCameras'],
+  cameras: ['webcams', 'alprCameras'],
   livecam: ['webcams'],
+  cctv: ['webcams'],
+  street: ['webcams'],
+  traffic: ['webcams', 'flights'],
+  // Disease had no aliases at all, so a reader typing the words they actually
+  // use ("outbreak", "epidemic", "covid") found nothing — the layer existed and
+  // was unreachable by search.
+  disease: ['diseaseOutbreaks'],
+  outbreak: ['diseaseOutbreaks'],
+  outbreaks: ['diseaseOutbreaks'],
+  epidemic: ['diseaseOutbreaks'],
+  pandemic: ['diseaseOutbreaks'],
+  health: ['diseaseOutbreaks'],
+  illness: ['diseaseOutbreaks'],
+  virus: ['diseaseOutbreaks'],
+  infection: ['diseaseOutbreaks'],
+  cholera: ['diseaseOutbreaks'],
+  measles: ['diseaseOutbreaks'],
+  ebola: ['diseaseOutbreaks'],
+  polio: ['diseaseOutbreaks'],
+  covid: ['diseaseOutbreaks'],
+  flu: ['diseaseOutbreaks'],
+  who: ['diseaseOutbreaks'],
+  quake: ['natural'],
+  fire: ['fires'],
+  weather: ['weather', 'natural'],
+  rain: ['weather'],
+  snow: ['weather'],
+  refugees: ['displacement'],
+  protest: ['protests'],
+  tanker: ['liveTankers', 'ais'],
+  risk: ['ciiChoropleth', 'resilienceScore'],
+  instability: ['ciiChoropleth'],
+  resilience: ['resilienceScore'],
 };
 
 export function resolveLayerLabel(def: LayerDefinition, tFn?: (key: string) => string): string {
@@ -520,7 +554,18 @@ export function bindLayerSearch(container: HTMLElement): void {
       if (!q) { displayTarget.style.display = ''; return; }
       const key = label.getAttribute('data-layer') || '';
       const text = label.textContent?.toLowerCase() || '';
-      const match = text.includes(q) || key.toLowerCase().includes(q) || synonymHits.has(key);
+      // The picker renames rows to plain language and parks the original
+      // analyst name on `data-search-alias`, so "Ship Traffic" still finds the
+      // row now labelled "Ships". Group names are matched too, so typing
+      // "cameras" or "health" surfaces the whole shelf.
+      const alias = label.getAttribute('data-search-alias')?.toLowerCase() || '';
+      const group = (row?.closest('.layer-group')
+        ?.querySelector('.layer-group-name')?.textContent || '').toLowerCase();
+      const match = text.includes(q)
+        || alias.includes(q)
+        || group.includes(q)
+        || key.toLowerCase().includes(q)
+        || synonymHits.has(key);
       displayTarget.style.display = match ? '' : 'none';
     });
   });

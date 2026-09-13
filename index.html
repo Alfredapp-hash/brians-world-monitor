@@ -6,16 +6,19 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
     <!-- Primary Meta Tags -->
-    <title>JSA's Monitor — Today's world brief</title>
-    <meta name="title" content="JSA's Monitor — Today's world brief" />
+    <title>The Public Dispatch — a public record of the world</title>
+    <meta name="title" content="The Public Dispatch — a public record of the world" />
     <meta name="description" content="A clear daily brief on the stories that matter — who covered them, who stayed quiet, and how outlets frame the news. Deeper analysis when you want it." />
     <meta name="keywords" content="world news brief, daily briefing, outlet framing, geopolitics, financial markets, science discoveries, archaeology news, real-time monitoring, OSINT, local AI, Ollama" />
     <meta name="author" content="Elie Habib" />
-    <meta name="theme-color" content="#0a0c10" />
+    <meta name="theme-color" content="#e0d2b4" />
     <meta name="robots" content="index, follow" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,700&family=Outfit:wght@400;500;600&display=swap" />
+    <!-- Libre Caslon is the paper's voice: Display for the masthead and section
+         heads, Text for prose in the reader. Fraunces/Outfit stay loaded because
+         the happy variant and a handful of panels still name them. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Fraunces:opsz,wght@9..144,560;9..144,700&family=Outfit:wght@400;500;600&display=swap" />
     <link rel="canonical" href="https://brians-world-monitor.vercel.app/dashboard" />
     <link rel="alternate" hreflang="x-default" href="https://brians-world-monitor.vercel.app/dashboard" />
     <link rel="alternate" hreflang="en" href="https://brians-world-monitor.vercel.app/dashboard" />
@@ -45,7 +48,7 @@
     <link rel="alternate" hreflang="zh" href="https://brians-world-monitor.vercel.app/dashboard?lang=zh" />
 
     <!-- Additional Search Discovery -->
-    <meta name="application-name" content="JSA's Monitor" />
+    <meta name="application-name" content="The Public Dispatch" />
     <meta name="subject" content="Daily world brief, outlet framing, geopolitics, finance, science" />
     <meta name="classification" content="News Briefing, OSINT Tool, News Aggregator" />
     <meta name="coverage" content="Worldwide" />
@@ -55,19 +58,19 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://brians-world-monitor.vercel.app/dashboard" />
-    <meta property="og:title" content="JSA's Monitor — Today's world brief" />
+    <meta property="og:title" content="The Public Dispatch — a public record of the world" />
     <meta property="og:description" content="A clear daily brief on the stories that matter — who covered them, who stayed quiet, and how outlets frame the news." />
     <meta property="og:image" content="https://brians-world-monitor.vercel.app/favico/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="JSA's Monitor — today's world brief with live outlet framing and a 3D globe when you want the map" />
-    <meta property="og:site_name" content="JSA's Monitor" />
+    <meta property="og:image:alt" content="The Public Dispatch — a public record of the world, with live outlet framing and a 3D globe when you want the map" />
+    <meta property="og:site_name" content="The Public Dispatch" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://brians-world-monitor.vercel.app/dashboard" />
-    <meta name="twitter:title" content="JSA's Monitor — Today's world brief" />
+    <meta name="twitter:title" content="The Public Dispatch — a public record of the world" />
     <meta name="twitter:description" content="A clear daily brief on the stories that matter — who covered them, who stayed quiet, and how outlets frame the news." />
     <meta name="twitter:image" content="https://brians-world-monitor.vercel.app/favico/og-image.png" />
     <meta name="twitter:site" content="@JSAsmonitor" />
@@ -78,8 +81,8 @@
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      "name": "JSA's Monitor",
-      "alternateName": ["JSAM", "JSA's Monitor App"],
+      "name": "The Public Dispatch",
+      "alternateName": ["TPD", "The Public Dispatch"],
       "url": "https://brians-world-monitor.vercel.app/dashboard",
       "description": "Open-source real-time global intelligence dashboard aggregating conflicts, military movements, markets, infrastructure, and geopolitical data.",
       "applicationCategory": "SecurityApplication",
@@ -124,8 +127,8 @@
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "JSA's Monitor",
-      "alternateName": "JSAM",
+      "name": "The Public Dispatch",
+      "alternateName": "TPD",
       "url": "https://brians-world-monitor.vercel.app/",
       "logo": "https://brians-world-monitor.vercel.app/favico/apple-touch-icon.png",
       "description": "Open-source real-time global intelligence platform aggregating conflicts, military movements, markets, infrastructure, and geopolitical data.",
@@ -152,13 +155,13 @@
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "JSA's Monitor",
-      "alternateName": "JSAM",
+      "name": "The Public Dispatch",
+      "alternateName": "TPD",
       "url": "https://brians-world-monitor.vercel.app/",
       "description": "Real-time global intelligence dashboard — live news, markets, military tracking, infrastructure monitoring, and geopolitical data.",
       "publisher": {
         "@type": "Organization",
-        "name": "JSA's Monitor",
+        "name": "The Public Dispatch",
         "url": "https://brians-world-monitor.vercel.app/"
       },
       "potentialAction": {
@@ -200,16 +203,20 @@
 
     <!-- Critical CSS: inline skeleton visible before JS boots -->
     <style>
-      :root{--wm-pro-banner-slot-height:40px;--dashboard-panel-row-min:200px;--dashboard-panel-row-max:380px;--dashboard-grid-gap:4px;--dashboard-first-grid-reservation:calc(var(--dashboard-panel-row-min) + var(--dashboard-panel-row-min) + var(--dashboard-grid-gap))}
-      html,body{margin:0;height:100%;width:100%;overflow:hidden;background:#0a0a0a}
-      html.wm-pro-banner-reserved #app::before{content:'';display:block;height:var(--wm-pro-banner-slot-height);flex:0 0 var(--wm-pro-banner-slot-height);background:#141414;border-bottom:1px solid #2a2a2a;box-sizing:border-box}
+      /* --dashboard-grid-gap must match dispatch.css :root — leaves need more
+         air than the old console plates did, and a skeleton/app mismatch here
+         shifts every row on hydration. */
+      :root{--wm-pro-banner-slot-height:40px;--dashboard-panel-row-min:200px;--dashboard-panel-row-max:380px;--dashboard-grid-gap:14px;--dashboard-first-grid-reservation:calc(var(--dashboard-panel-row-min) + var(--dashboard-panel-row-min) + var(--dashboard-grid-gap))}
+      @media (max-width:900px){:root{--dashboard-grid-gap:10px}}
+      html,body{margin:0;height:100%;width:100%;overflow:hidden;background:#ded0b0}
+      html.wm-pro-banner-reserved #app::before{content:'';display:block;height:var(--wm-pro-banner-slot-height);flex:0 0 var(--wm-pro-banner-slot-height);background:#f7f1e3;border-bottom:1px solid rgba(36,26,18,.4);box-sizing:border-box}
       html.wm-pro-banner-reserved.wm-layout-hydrated #app::before{content:none;display:none}
       .pro-banner-slot{flex:0 0 auto;min-height:0;box-sizing:border-box}
       html.wm-pro-banner-reserved .pro-banner-slot{min-height:var(--wm-pro-banner-slot-height)}
       .pro-banner-slot .pro-banner{box-sizing:border-box;min-height:var(--wm-pro-banner-slot-height);width:100%}
       #country-deep-dive-panel.country-deep-dive[aria-hidden="true"]{position:fixed;top:0;right:0;width:430px;height:100vh;visibility:hidden;z-index:5000;box-sizing:border-box;transform:translateX(calc(100% + 30px));contain:layout paint}
       @media (max-width:767px){#country-deep-dive-panel.country-deep-dive[aria-hidden="true"]{width:100vw;transform:translateX(100%)}}
-      [data-theme="light"].wm-pro-banner-reserved #app::before{background:#fff;border-bottom-color:#d4d4d4}
+      [data-theme="dark"].wm-pro-banner-reserved #app::before{background:#2a2118;border-bottom-color:rgba(236,225,199,.26)}
       [data-variant="happy"].wm-pro-banner-reserved #app::before{background:#fff;border-bottom-color:#DDD9CF}
       [data-variant="happy"][data-theme="dark"].wm-pro-banner-reserved #app::before{background:#222E3E;border-bottom-color:#344050}
       html:not(.js),html:not(.js) body{height:auto;min-height:100%;overflow:auto}
@@ -217,77 +224,78 @@
       html:not(.js) #app .skeleton-shell{display:none}
       .app-heading{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 
-      /* ---------- skeleton shell (dark default) ---------- */
-      .skeleton-shell{display:flex;flex-direction:column;height:100vh;background:#0a0a0a;font-family:'SF Mono','Monaco','Cascadia Code','Fira Code','DejaVu Sans Mono','Liberation Mono',monospace;overflow:hidden}
+      /* ---------- skeleton shell (The Public Dispatch — parchment default) ----------
+         The first frame has to already be the paper. These values are the
+         literal resolutions of the dispatch.css tokens (--tpd-field, --tpd-leaf,
+         --tpd-ink, --tpd-rule, --tpd-seal), so hydration is a content swap, not
+         a change of material. Keep them in step if the tokens move. */
+      .skeleton-shell{display:flex;flex-direction:column;height:100vh;color:#241a12;background-color:#ded0b0;background-image:radial-gradient(38% 26% at 8% 14%,rgba(138,92,44,.13) 0,transparent 100%),radial-gradient(24% 34% at 92% 76%,rgba(126,80,38,.11) 0,transparent 100%),radial-gradient(125% 105% at 50% 42%,transparent 48%,rgba(88,60,28,.2) 100%),repeating-linear-gradient(90deg,transparent 0 26px,rgba(255,250,236,.26) 26px 28px),repeating-linear-gradient(0deg,rgba(125,98,60,.05) 0 1px,transparent 1px 3px),linear-gradient(158deg,#e7dabd 0%,#dccdab 34%,#e2d5b6 62%,#d4c49f 100%);font-family:'Inter','Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',Arial,sans-serif;overflow:hidden}
       .skeleton-shell *{box-sizing:border-box}
       html.wm-pro-banner-reserved .skeleton-shell{height:calc(100vh - var(--wm-pro-banner-slot-height))}
-      .skeleton-header{display:flex;align-items:center;justify-content:space-between;height:40px;padding:8px 16px;background:#141414;border-bottom:1px solid #2a2a2a;flex-shrink:0}
+      /* Nameplate: leaf stock, heavy rule, hairline 2px under it. */
+      .skeleton-header{display:flex;align-items:center;justify-content:space-between;height:40px;padding:8px 16px;background:linear-gradient(180deg,#faf5e9 0%,#f7f1e3 62%,#efe5cf 100%);border-bottom:2px solid rgba(36,26,18,.72);box-shadow:0 4px 0 -3px rgba(36,26,18,.4);flex-shrink:0}
       .skeleton-header-left{display:flex;align-items:center;gap:12px}
       .skeleton-header-right{display:flex;align-items:center;gap:12px}
-      .skeleton-brand{display:flex;align-items:center;gap:8px;margin:0;color:#f5f5f5;font-size:14px;line-height:1;font-weight:800}
-      .skeleton-brand-mark{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid #2f8f68;border-radius:50%;color:#4ade80;font-size:12px;line-height:1}
-      .skeleton-kicker{color:#9ca3af;font-size:11px;line-height:1;white-space:nowrap}
-      .skeleton-chip{display:inline-flex;align-items:center;min-height:22px;padding:0 8px;border:1px solid #2a2a2a;border-radius:4px;color:#d1d5db;background:#181818;font-size:11px;line-height:1;white-space:nowrap}
-      .skeleton-chip.live{color:#86efac;border-color:#14532d;background:#062317}
-      .skeleton-pill{height:24px;border-radius:4px;background:#1e1e1e}
-      .skeleton-dot{width:8px;height:8px;border-radius:50%;background:#0f5040}
-      .skeleton-tabs{height:36px;background:#141414;border-bottom:1px solid #2a2a2a;flex-shrink:0}
-      .skeleton-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0a0a0a}
-      .skeleton-map{height:50vh;min-height:350px;border:1px solid #2a2a2a;background:#020a08;display:flex;flex-direction:column;flex-shrink:0}
-      .skeleton-map-bar{height:32px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 12px;background:#141414;border-bottom:1px solid #2a2a2a}
-      .skeleton-section-label{color:#f5f5f5;font-size:12px;line-height:1;font-weight:700;white-space:nowrap}
-      .skeleton-section-note{color:#9ca3af;font-size:11px;line-height:1;white-space:nowrap}
+      .skeleton-brand{display:flex;align-items:center;gap:8px;margin:0;color:#241a12;font-family:'Libre Caslon Display','Libre Caslon Text',Baskerville,'Iowan Old Style','Palatino Linotype',Georgia,serif;font-size:15px;line-height:1;font-weight:700;letter-spacing:.015em}
+      /* The seal: pressed wax, not a letter in a ring. */
+      .skeleton-brand-mark{display:inline-block;width:15px;height:15px;font-size:0;color:transparent;border-radius:47% 53% 51% 49%/50% 48% 52% 50%;background:radial-gradient(circle at 35% 29%,rgba(255,240,232,.34) 0 16%,transparent 46%),radial-gradient(circle at 64% 74%,rgba(0,0,0,.32) 0 20%,transparent 62%),radial-gradient(circle at 48% 44%,#b2412f 0%,#8d2b1f 56%,#59150c 100%);box-shadow:inset 0 0 0 1.5px rgba(255,236,224,.16),0 1px 1.5px rgba(58,40,20,.4)}
+      .skeleton-kicker{color:#6b5a46;font-size:11px;line-height:1;white-space:nowrap}
+      .skeleton-chip{display:inline-flex;align-items:center;min-height:22px;padding:0 8px;border:1px solid #c9b894;border-radius:2px;color:#47382a;background:#f6efdf;font-size:11px;line-height:1;white-space:nowrap}
+      .skeleton-chip.live{color:#3f6b48;border-color:rgba(63,107,72,.45);background:rgba(63,107,72,.08)}
+      .skeleton-pill{height:24px;border-radius:2px;background:#f6efdf}
+      .skeleton-dot{width:8px;height:8px;border-radius:50%;background:#3f6b48}
+      .skeleton-tabs{height:36px;background:#f7f1e3;border-bottom:1px solid rgba(36,26,18,.4);flex-shrink:0}
+      .skeleton-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:transparent}
+      /* The map is a plate bound into the document. */
+      .skeleton-map{height:50vh;min-height:350px;border:1px solid rgba(36,26,18,.4);border-radius:3px;background:#f1e9d7;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,252,242,.7),0 1px 1px rgba(58,40,20,.1),0 14px 28px -20px rgba(58,40,20,.5)}
+      .skeleton-map-bar{height:32px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 12px;background:transparent;border-bottom:1px solid rgba(36,26,18,.4);box-shadow:0 2px 0 -1px rgba(36,26,18,.18)}
+      .skeleton-section-label{color:#241a12;font-family:'Libre Caslon Display','Libre Caslon Text',Georgia,serif;font-size:11.5px;line-height:1;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+      .skeleton-section-note{color:#6b5a46;font-size:11px;line-height:1;white-space:nowrap}
       .skeleton-map-body{flex:1;position:relative;overflow:hidden}
-      .skeleton-map-body::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 50%,#0a2a20 0%,#020a08 100%);opacity:.5}
-      .skeleton-map-content{position:relative;z-index:1;display:flex;flex-direction:column;gap:10px;max-width:560px;margin:32px;padding:22px;border:1px solid rgba(74,222,128,.24);background:rgba(5,12,10,.78);box-shadow:0 18px 60px rgba(0,0,0,.24)}
-      .skeleton-map-eyebrow{margin:0;color:#86efac;font-size:12px;line-height:1.2;font-weight:700}
-      .skeleton-map-title{margin:0;color:#f8fafc;font-size:28px;line-height:1.12;font-weight:800}
-      .skeleton-map-copy{margin:0;max-width:52ch;color:#d1d5db;font-size:14px;line-height:1.5}
+      .skeleton-map-body::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 62% 54% at 50% 50%,#f0e7d0 0%,#d8cbb0 100%);opacity:.6}
+      .skeleton-map-content{position:relative;z-index:1;display:flex;flex-direction:column;gap:10px;max-width:560px;margin:32px;padding:22px;border:1px solid rgba(36,26,18,.4);border-radius:3px;background:rgba(247,241,227,.92);box-shadow:0 1px 1px rgba(58,40,20,.1),0 14px 30px -20px rgba(58,40,20,.5)}
+      .skeleton-map-eyebrow{margin:0;color:#241a12;font-family:'Libre Caslon Display','Libre Caslon Text',Georgia,serif;font-size:13px;line-height:1.2;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+      .skeleton-map-title{margin:0;color:#241a12;font-family:'Libre Caslon Display','Libre Caslon Text',Georgia,serif;font-size:28px;line-height:1.14;font-weight:400}
+      .skeleton-map-copy{margin:0;max-width:52ch;color:#47382a;font-size:14px;line-height:1.5}
       .skeleton-map-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
       .skeleton-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));grid-auto-flow:row dense;grid-auto-rows:minmax(var(--dashboard-panel-row-min),var(--dashboard-panel-row-max));gap:var(--dashboard-grid-gap);padding:var(--dashboard-grid-gap);align-content:start}
-      .skeleton-panel{height:100%;min-height:var(--dashboard-panel-row-min);background:#141414;border:1px solid #2a2a2a;border-radius:0;display:flex;flex-direction:column}
+      /* Leaves of the document, resting on the desk. */
+      .skeleton-panel{height:100%;min-height:var(--dashboard-panel-row-min);background:linear-gradient(172deg,#f7f1e3 0%,#f1e9d7 46%,#ece3cd 100%);border:1px solid rgba(36,26,18,.18);border-radius:3px;display:flex;flex-direction:column;box-shadow:inset 0 1px 0 0 rgba(255,252,242,.7),0 1px 1px rgba(58,40,20,.1),0 10px 22px -16px rgba(58,40,20,.45)}
       .skeleton-panel:first-child{grid-column:span 2;grid-row:span 2;min-height:var(--dashboard-first-grid-reservation)}
-      .skeleton-panel-header{height:36px;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #1a1a1a}
-      .skeleton-panel-title{margin:0;color:#f5f5f5;font-size:12px;line-height:1;font-weight:700}
+      .skeleton-panel-header{height:36px;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid rgba(36,26,18,.4);box-shadow:0 2px 0 -1px rgba(36,26,18,.18)}
+      .skeleton-panel-title{margin:0;color:#241a12;font-family:'Libre Caslon Display','Libre Caslon Text',Georgia,serif;font-size:11.5px;line-height:1;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
       .skeleton-panel-body{flex:1;padding:12px;display:flex;flex-direction:column;gap:10px}
-      .skeleton-panel-kicker{margin:0;color:#86efac;font-size:11px;line-height:1.3;font-weight:700}
-      .skeleton-panel-copy{margin:0;color:#d1d5db;font-size:13px;line-height:1.45}
-      .skeleton-panel-metric{display:flex;align-items:baseline;gap:8px;margin-top:auto;color:#f8fafc}
-      .skeleton-panel-metric strong{font-size:26px;line-height:1;font-weight:800}
-      .skeleton-panel-metric span{color:#9ca3af;font-size:11px;line-height:1.2}
-      .skeleton-line{height:14px;border-radius:4px;background:linear-gradient(90deg,rgba(255,255,255,.05) 25%,rgba(255,255,255,.1) 50%,rgba(255,255,255,.05) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
+      .skeleton-panel-kicker{margin:0;color:#8d2b1f;font-size:11px;line-height:1.3;font-weight:700;letter-spacing:.04em}
+      .skeleton-panel-copy{margin:0;color:#47382a;font-size:13px;line-height:1.45}
+      .skeleton-panel-metric{display:flex;align-items:baseline;gap:8px;margin-top:auto;color:#241a12;font-variant-numeric:tabular-nums}
+      .skeleton-panel-metric strong{font-size:26px;line-height:1;font-weight:650}
+      .skeleton-panel-metric span{color:#6b5a46;font-size:11px;line-height:1.2}
+      /* Setting still wet: a line of type coming up on the stone. */
+      .skeleton-line{height:14px;border-radius:1px;background:linear-gradient(90deg,rgba(36,26,18,.05) 25%,rgba(36,26,18,.11) 50%,rgba(36,26,18,.05) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
       .skeleton-line.w75{width:75%}.skeleton-line.w60{width:60%}.skeleton-line.w50{width:50%}.skeleton-line.w85{width:85%}.skeleton-line.w40{width:40%}
 
       @keyframes skel-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-      /* ---------- skeleton shell (light theme) ---------- */
-      [data-theme="light"] .skeleton-shell{background:#f8f9fa}
-      [data-theme="light"] .skeleton-header{background:#fff;border-bottom-color:#d4d4d4}
-      [data-theme="light"] .skeleton-brand{color:#111827}
-      [data-theme="light"] .skeleton-kicker{color:#4b5563}
-      [data-theme="light"] .skeleton-chip{color:#374151;background:#f7f7f7;border-color:#d4d4d4}
-      [data-theme="light"] .skeleton-chip.live{color:#166534;background:#dcfce7;border-color:#86efac}
-      [data-theme="light"] .skeleton-pill{background:#f0f0f0}
-      [data-theme="light"] .skeleton-dot{background:#16a34a}
-      [data-theme="light"] .skeleton-tabs{background:#fff;border-bottom-color:#d4d4d4}
-      [data-theme="light"] .skeleton-main{background:#f8f9fa}
-      [data-theme="light"] .skeleton-map{border-color:#d4d4d4;background:#e8f0f8}
-      [data-theme="light"] .skeleton-map-bar{background:#fff;border-bottom-color:#d4d4d4}
-      [data-theme="light"] .skeleton-section-label{color:#111827}
-      [data-theme="light"] .skeleton-section-note{color:#4b5563}
-      [data-theme="light"] .skeleton-map-body::after{background:radial-gradient(ellipse 60% 50% at 50% 50%,#b0c8d8 0%,#e8f0f8 100%)}
-      [data-theme="light"] .skeleton-map-content{border-color:rgba(22,101,52,.2);background:rgba(255,255,255,.86);box-shadow:0 18px 60px rgba(15,23,42,.12)}
-      [data-theme="light"] .skeleton-map-eyebrow{color:#166534}
-      [data-theme="light"] .skeleton-map-title{color:#111827}
-      [data-theme="light"] .skeleton-map-copy{color:#374151}
-      [data-theme="light"] .skeleton-panel{background:#fff;border-color:#d4d4d4}
-      [data-theme="light"] .skeleton-panel-header{border-bottom-color:#e8e8e8}
-      [data-theme="light"] .skeleton-panel-title{color:#111827}
-      [data-theme="light"] .skeleton-panel-kicker{color:#166534}
-      [data-theme="light"] .skeleton-panel-copy{color:#374151}
-      [data-theme="light"] .skeleton-panel-metric{color:#111827}
-      [data-theme="light"] .skeleton-panel-metric span{color:#4b5563}
-      [data-theme="light"] .skeleton-line{background:linear-gradient(90deg,rgba(0,0,0,.04) 25%,rgba(0,0,0,.08) 50%,rgba(0,0,0,.04) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
+      /* ---------- skeleton shell (night edition) ----------
+         Mirrors dispatch.css section 3: the same document by lamplight, never
+         the old console. Only the values that actually invert are restated. */
+      [data-theme="dark"] .skeleton-shell{color:#ece1c7;background-color:#17120c;background-image:radial-gradient(38% 26% at 8% 14%,rgba(120,80,40,.14) 0,transparent 100%),radial-gradient(24% 34% at 92% 76%,rgba(105,66,32,.12) 0,transparent 100%),radial-gradient(125% 105% at 50% 42%,transparent 42%,rgba(0,0,0,.46) 100%),repeating-linear-gradient(90deg,transparent 0 26px,rgba(255,250,236,.05) 26px 28px),linear-gradient(158deg,#1c150e 0%,#15100a 45%,#1a140d 100%)}
+      [data-theme="dark"] .skeleton-header{background:linear-gradient(180deg,#2e2419 0%,#2a2118 62%,#1d1710 100%);border-bottom-color:rgba(236,225,199,.52);box-shadow:0 4px 0 -3px rgba(236,225,199,.26)}
+      [data-theme="dark"] .skeleton-brand,[data-theme="dark"] .skeleton-section-label,[data-theme="dark"] .skeleton-map-eyebrow,[data-theme="dark"] .skeleton-map-title,[data-theme="dark"] .skeleton-panel-title,[data-theme="dark"] .skeleton-panel-metric{color:#ece1c7}
+      [data-theme="dark"] .skeleton-kicker,[data-theme="dark"] .skeleton-section-note,[data-theme="dark"] .skeleton-panel-metric span{color:#a3937a}
+      [data-theme="dark"] .skeleton-map-copy,[data-theme="dark"] .skeleton-panel-copy{color:#cbbc9c}
+      [data-theme="dark"] .skeleton-chip{color:#cbbc9c;background:#2a2118;border-color:#463a2a}
+      [data-theme="dark"] .skeleton-chip.live{color:#7fae7c;background:rgba(127,174,124,.1);border-color:rgba(127,174,124,.4)}
+      [data-theme="dark"] .skeleton-pill{background:#2a2118}
+      [data-theme="dark"] .skeleton-dot{background:#7fae7c}
+      [data-theme="dark"] .skeleton-tabs{background:#2a2118;border-bottom-color:rgba(236,225,199,.26)}
+      [data-theme="dark"] .skeleton-map{background:#211a12;border-color:rgba(236,225,199,.26);box-shadow:inset 0 0 0 1px rgba(255,244,220,.07),0 1px 1px rgba(0,0,0,.4),0 14px 28px -20px rgba(0,0,0,.75)}
+      [data-theme="dark"] .skeleton-map-bar,[data-theme="dark"] .skeleton-panel-header{border-bottom-color:rgba(236,225,199,.26);box-shadow:0 2px 0 -1px rgba(236,225,199,.13)}
+      [data-theme="dark"] .skeleton-map-body::after{background:radial-gradient(ellipse 62% 54% at 50% 50%,#241d13 0%,#14100a 100%)}
+      [data-theme="dark"] .skeleton-map-content{border-color:rgba(236,225,199,.26);background:rgba(42,33,24,.92);box-shadow:0 1px 1px rgba(0,0,0,.5),0 14px 30px -20px rgba(0,0,0,.8)}
+      [data-theme="dark"] .skeleton-panel-kicker{color:#c24b37}
+      [data-theme="dark"] .skeleton-panel{background:linear-gradient(172deg,#2a2118 0%,#211a12 52%,#1c150e 100%);border-color:rgba(236,225,199,.13);box-shadow:inset 0 1px 0 0 rgba(255,244,220,.07),0 1px 1px rgba(0,0,0,.4),0 12px 26px -18px rgba(0,0,0,.75)}
+      [data-theme="dark"] .skeleton-line{background:linear-gradient(90deg,rgba(236,225,199,.05) 25%,rgba(236,225,199,.11) 50%,rgba(236,225,199,.05) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
 
       /* ---------- skeleton shell (happy variant — light) ---------- */
       [data-variant="happy"] .skeleton-shell{background:#FAFAF5;font-family:'Nunito',system-ui,sans-serif}
@@ -348,36 +356,30 @@
       [data-variant="happy"][data-theme="dark"] .skeleton-panel-metric span{color:#B9C4B0}
       [data-variant="happy"][data-theme="dark"] .skeleton-line{background:linear-gradient(90deg,rgba(139,175,122,.05) 25%,rgba(139,175,122,.10) 50%,rgba(139,175,122,.05) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
 
-      /* ---------- Everyday reader boot skeleton (charcoal + amber) ---------- */
-      html[data-reader-mode="everyday"] .skeleton-shell{background:#0a0c10;font-family:'Outfit','Avenir Next','Segoe UI',sans-serif}
-      html[data-reader-mode="everyday"] .skeleton-header{background:rgba(10,12,16,.88);border-bottom-color:#1c2230;height:44px}
-      html[data-reader-mode="everyday"] .skeleton-brand{color:#f3efe6;font-family:Georgia,'Iowan Old Style',serif;font-weight:700;letter-spacing:-.02em}
-      html[data-reader-mode="everyday"] .skeleton-brand-mark{border-color:#f0a832;color:#f0a832}
-      html[data-reader-mode="everyday"] .skeleton-kicker{color:#9aa3b2}
-      html[data-reader-mode="everyday"] .skeleton-chip{color:#d7dde8;background:#12161e;border-color:#2a3140}
-      html[data-reader-mode="everyday"] .skeleton-chip.live{color:#f0a832;background:rgba(240,168,50,.1);border-color:rgba(240,168,50,.35)}
-      html[data-reader-mode="everyday"] .skeleton-dot{background:#f0a832}
+      /* ---------- Everyday reader boot skeleton (the front page) ----------
+         Above the fold this is a gazette: nameplate, dateline rule, the lead.
+         No hero card, no glow — the hero IS the sheet. */
+      html[data-reader-mode="everyday"] .skeleton-header{height:44px}
       html[data-reader-mode="everyday"] .skeleton-tabs{display:none}
-      html[data-reader-mode="everyday"] .skeleton-main{background:#0a0c10}
-      html[data-reader-mode="everyday"] .skeleton-map{height:auto;min-height:0;border:0;border-bottom:1px solid #1c2230;background:radial-gradient(120% 80% at 12% 0%,rgba(240,168,50,.16),transparent 55%),linear-gradient(165deg,#0c1018 0%,#121824 42%,#0a0c10 100%)}
+      html[data-reader-mode="everyday"] .skeleton-map{height:auto;min-height:0;border:0;border-radius:0;border-bottom:2px solid rgba(36,26,18,.72);box-shadow:0 4px 0 -3px rgba(36,26,18,.4);background:linear-gradient(172deg,#f7f1e3 0%,#f1e9d7 55%,#eae0c8 100%)}
       html[data-reader-mode="everyday"] .skeleton-map-bar{display:none}
       html[data-reader-mode="everyday"] .skeleton-map-body{min-height:clamp(11rem,28vh,16rem);padding:clamp(1.25rem,3vw,2.25rem) clamp(1.1rem,3vw,2.5rem)}
       html[data-reader-mode="everyday"] .skeleton-map-body::after{display:none}
       html[data-reader-mode="everyday"] .skeleton-map-content{max-width:40rem;margin:0;padding:0;border:0;background:transparent;box-shadow:none;gap:12px}
-      html[data-reader-mode="everyday"] .skeleton-map-eyebrow{color:#f0a832;font-family:Georgia,'Iowan Old Style',serif;font-size:clamp(1.45rem,3.2vw,2.2rem);font-weight:700;letter-spacing:-.02em}
-      html[data-reader-mode="everyday"] .skeleton-map-title{color:#f3efe6;font-family:Georgia,'Iowan Old Style',serif;font-size:clamp(1.15rem,2.4vw,1.65rem);font-weight:560;min-height:2.4em}
-      html[data-reader-mode="everyday"] .skeleton-map-copy{color:#9aa3b2;font-size:1rem;max-width:36ch}
+      /* The nameplate, then the thick/thin dateline rule under it. */
+      html[data-reader-mode="everyday"] .skeleton-map-eyebrow{color:#241a12;font-size:clamp(1.9rem,4.4vw,3.1rem);font-weight:700;letter-spacing:.005em;line-height:1.02;text-transform:none;padding-bottom:.6rem;border-bottom:3px double rgba(36,26,18,.6)}
+      html[data-reader-mode="everyday"] .skeleton-map-title{color:#241a12;font-size:clamp(1.2rem,2.5vw,1.75rem);font-weight:400;line-height:1.26;min-height:2.4em}
+      html[data-reader-mode="everyday"] .skeleton-map-copy{color:#47382a;font-family:'Libre Caslon Text','Iowan Old Style',Georgia,serif;font-size:1.05rem;line-height:1.58;max-width:38rem}
       html[data-reader-mode="everyday"] .skeleton-map-badges{gap:8px}
-      html[data-reader-mode="everyday"] .skeleton-map-badges .skeleton-chip{min-height:2.1rem;border-radius:8px}
+      html[data-reader-mode="everyday"] .skeleton-map-badges .skeleton-chip{min-height:2.1rem;border-radius:2px}
       html[data-reader-mode="everyday"] .skeleton-grid{grid-template-columns:1fr;padding:16px;gap:12px}
-      html[data-reader-mode="everyday"] .skeleton-panel{background:#12161e;border-color:#1c2230;border-radius:8px;min-height:140px}
+      html[data-reader-mode="everyday"] .skeleton-panel{min-height:140px}
       html[data-reader-mode="everyday"] .skeleton-panel:first-child{grid-column:span 1;grid-row:span 1;min-height:180px}
       html[data-reader-mode="everyday"] .skeleton-panel:nth-child(n+3){display:none}
-      html[data-reader-mode="everyday"] .skeleton-panel-header{border-bottom-color:#1a2029}
-      html[data-reader-mode="everyday"] .skeleton-panel-title{color:#f3efe6;font-family:Georgia,'Iowan Old Style',serif}
-      html[data-reader-mode="everyday"] .skeleton-panel-kicker{color:#f0a832}
-      html[data-reader-mode="everyday"] .skeleton-panel-copy{color:#9aa3b2}
-      html[data-reader-mode="everyday"] .skeleton-line{background:linear-gradient(90deg,rgba(240,168,50,.06) 25%,rgba(240,168,50,.14) 50%,rgba(240,168,50,.06) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
+      html[data-theme="dark"][data-reader-mode="everyday"] .skeleton-map{background:linear-gradient(172deg,#2e2419 0%,#211a12 55%,#1a140d 100%);border-bottom-color:rgba(236,225,199,.52);box-shadow:0 4px 0 -3px rgba(236,225,199,.26)}
+      html[data-theme="dark"][data-reader-mode="everyday"] .skeleton-map-eyebrow,html[data-theme="dark"][data-reader-mode="everyday"] .skeleton-map-title{color:#ece1c7}
+      html[data-theme="dark"][data-reader-mode="everyday"] .skeleton-map-eyebrow{border-bottom-color:rgba(236,225,199,.45)}
+      html[data-theme="dark"][data-reader-mode="everyday"] .skeleton-map-copy{color:#cbbc9c}
       /* Collapsed-map FOUC: Everyday peek strip under hero, not a blank bar */
       html[data-reader-mode="everyday"].wm-map-collapsed .skeleton-map{height:auto;min-height:0}
       html[data-reader-mode="everyday"].wm-map-collapsed .skeleton-map-body{display:block;min-height:clamp(11rem,28vh,16rem)}
@@ -485,7 +487,7 @@
     <!-- Variant/locale fonts are narrowed and loaded after the dashboard paints. -->
   </head>
   <body>
-    <h1 class="app-heading">JSA's Monitor — Today's world brief</h1>
+    <h1 class="app-heading">The Public Dispatch — a public record of the world</h1>
     <!--
       Canonical English crawler content. The SPA is multilingual (25 locales) but
       this prerender block is the indexable surface — language-specific content
@@ -499,7 +501,7 @@
       links until this switch.
     -->
     <div id="seo-prerender" lang="en">
-      <h2>JSA's Monitor — Real-Time Global Intelligence Dashboard</h2>
+      <h2>The Public Dispatch — Real-Time Global Intelligence Dashboard</h2>
       <p>Free, open-source intelligence platform aggregating live news, markets, military movements, conflicts, and infrastructure into one real-time dashboard — with a spin filter: Coverage Compare, talking-point detection, and NCI Engineered Reality scoring.</p>
 
       <h2>What it tracks</h2>
@@ -507,7 +509,7 @@
 
       <h2>Learn more</h2>
       <ul>
-        <li><a href="/about.html">About JSA's Monitor</a></li>
+        <li><a href="/about.html">About The Public Dispatch</a></li>
         <li><a href="/methodology.html">NCI methodology — how Engineered Reality scoring works</a></li>
         <li><a href="https://github.com/Alfredapp-hash/brians-world-monitor">Open source on GitHub (AGPL-3.0)</a></li>
         <li><a href="https://x.com/JSAsmonitor">@JSAsmonitor on X</a></li>
@@ -526,10 +528,10 @@
     <script>(function(){try{var s=document.getElementById('seo-prerender');if(s){s.setAttribute('aria-hidden','true');s.setAttribute('inert','')}}catch(e){}})()</script>
     <div id="app">
       <!-- Pre-render skeleton: visible instantly, replaced when JS calls renderLayout() -->
-      <div class="skeleton-shell" aria-busy="true" aria-label="JSA's Monitor loading">
+      <div class="skeleton-shell" aria-busy="true" aria-label="The Public Dispatch loading">
         <div class="skeleton-header">
           <div class="skeleton-header-left">
-            <div class="skeleton-brand"><span class="skeleton-brand-mark" aria-hidden="true">J</span><span>JSA's Monitor</span></div>
+            <div class="skeleton-brand"><span class="skeleton-brand-mark" aria-hidden="true"></span><span>The Public Dispatch</span></div>
             <span class="skeleton-kicker shell-copy--everyday">Today’s brief loading</span>
             <span class="skeleton-kicker shell-copy--analyst">Dashboard loading</span>
             <span class="skeleton-dot" aria-hidden="true"></span>
@@ -549,7 +551,7 @@
             </div>
             <div class="skeleton-map-body">
               <div class="skeleton-map-content">
-                <p class="skeleton-map-eyebrow skeleton-lcp-copy" data-shell-lcp>JSA's Monitor</p>
+                <p class="skeleton-map-eyebrow skeleton-lcp-copy" data-shell-lcp>The Public Dispatch</p>
                 <h2 class="skeleton-map-title shell-copy--everyday">Loading the top story…</h2>
                 <h2 class="skeleton-map-title shell-copy--analyst">Loading live dashboard…</h2>
                 <p class="skeleton-map-copy shell-copy--everyday">A plain-language look at what matters right now — deeper analysis stays one click away.</p>
@@ -588,14 +590,14 @@
       </div>
     </aside>
     <noscript>
-      <div style="max-width:800px;margin:0 auto;padding:40px 20px;font-family:system-ui,sans-serif;color:#e5e5e5;background:#0a0a0a;">
-        <h2>JSA's Monitor — Real-Time Global Intelligence Dashboard</h2>
+      <div style="max-width:800px;margin:0 auto;padding:40px 20px;font-family:Georgia,'Iowan Old Style',serif;color:#241a12;background:#ded0b0;">
+        <h2>The Public Dispatch — Real-Time Global Intelligence Dashboard</h2>
         <p>AI-powered real-time global intelligence dashboard with live news, markets, military tracking, infrastructure monitoring, and geopolitical data — plus Coverage Compare, talking-point detection, and NCI Engineered Reality scoring.</p>
 
-        <p>The platform combines real-time conflict events from <a href="https://acleddata.com/" style="color:#4ade80;" rel="noopener noreferrer">ACLED</a> and <a href="https://ucdp.uu.se/" style="color:#4ade80;" rel="noopener noreferrer">UCDP</a>, satellite fire detection from <a href="https://firms.modaps.eosdis.nasa.gov/" style="color:#4ade80;" rel="noopener noreferrer">NASA FIRMS</a>, earthquakes from <a href="https://earthquake.usgs.gov/" style="color:#4ade80;" rel="noopener noreferrer">USGS</a>, aircraft tracking from <a href="https://opensky-network.org/" style="color:#4ade80;" rel="noopener noreferrer">OpenSky</a>, ship AIS from <a href="https://aisstream.io/" style="color:#4ade80;" rel="noopener noreferrer">AISStream</a>, and macro data from <a href="https://fred.stlouisfed.org/" style="color:#4ade80;" rel="noopener noreferrer">FRED</a>, <a href="https://www.imf.org/en/Data" style="color:#4ade80;" rel="noopener noreferrer">IMF</a>, and <a href="https://www.bis.org/" style="color:#4ade80;" rel="noopener noreferrer">BIS</a>.</p>
+        <p>The platform combines real-time conflict events from <a href="https://acleddata.com/" style="color:#8d2b1f;" rel="noopener noreferrer">ACLED</a> and <a href="https://ucdp.uu.se/" style="color:#8d2b1f;" rel="noopener noreferrer">UCDP</a>, satellite fire detection from <a href="https://firms.modaps.eosdis.nasa.gov/" style="color:#8d2b1f;" rel="noopener noreferrer">NASA FIRMS</a>, earthquakes from <a href="https://earthquake.usgs.gov/" style="color:#8d2b1f;" rel="noopener noreferrer">USGS</a>, aircraft tracking from <a href="https://opensky-network.org/" style="color:#8d2b1f;" rel="noopener noreferrer">OpenSky</a>, ship AIS from <a href="https://aisstream.io/" style="color:#8d2b1f;" rel="noopener noreferrer">AISStream</a>, and macro data from <a href="https://fred.stlouisfed.org/" style="color:#8d2b1f;" rel="noopener noreferrer">FRED</a>, <a href="https://www.imf.org/en/Data" style="color:#8d2b1f;" rel="noopener noreferrer">IMF</a>, and <a href="https://www.bis.org/" style="color:#8d2b1f;" rel="noopener noreferrer">BIS</a>.</p>
 
         <h3>Read more</h3>
-        <p>Learn how the NCI Engineered Reality score works on the <a href="/methodology.html" style="color:#4ade80;">methodology page</a>, or read <a href="/about.html" style="color:#4ade80;">about JSA's Monitor</a>. Full source on <a href="https://github.com/Alfredapp-hash/brians-world-monitor" style="color:#4ade80;" rel="noopener noreferrer">GitHub (AGPL-3.0)</a>. Join the community on <a href="https://discord.gg/BCHZDq8Xt" style="color:#4ade80;" rel="noopener noreferrer">Discord</a> or follow <a href="https://x.com/JSAsmonitor" style="color:#4ade80;" rel="noopener noreferrer">@JSAsmonitor</a>.</p>
+        <p>Learn how the NCI Engineered Reality score works on the <a href="/methodology.html" style="color:#8d2b1f;">methodology page</a>, or read <a href="/about.html" style="color:#8d2b1f;">about The Public Dispatch</a>. Full source on <a href="https://github.com/Alfredapp-hash/brians-world-monitor" style="color:#8d2b1f;" rel="noopener noreferrer">GitHub (AGPL-3.0)</a>. Join the community on <a href="https://discord.gg/BCHZDq8Xt" style="color:#8d2b1f;" rel="noopener noreferrer">Discord</a> or follow <a href="https://x.com/JSAsmonitor" style="color:#8d2b1f;" rel="noopener noreferrer">@JSAsmonitor</a>.</p>
       </div>
     </noscript>
     <!-- Force-clear stale service worker if module scripts 404 (post-deploy cache mismatch) -->

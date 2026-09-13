@@ -1,0 +1,391 @@
+/**
+ * LAYER PICKER — "what's on the map", for people who are not analysts.
+ *
+ * The picker markup is built by the three map engines (DeckGLMap, GlobeMap,
+ * Map) and re-housed into plain-language groups by
+ * `src/components/map/layer-groups.ts`. This file restages that existing DOM;
+ * it adds no new structure of its own.
+ *
+ * Three problems it fixes, in order of how much they cost a first-time reader:
+ *
+ *   1. The panel boots collapsed to a bare ☰ beside the legend, which reads as
+ *      "some menu". It now reads "☰ Layers 7" — it says what it opens and how
+ *      much is already on.
+ *   2. A 10px UPPERCASE row with 0.5px tracking is a spec sheet, not a list of
+ *      choices. Rows become sentence-case at a readable size with a real
+ *      touch-height hit area.
+ *   3. "On" was a 16px green tick in a column of grey ticks. On the Console
+ *      2026 plate an active row now carries the crimson rim the rest of the
+ *      system uses for live material, so the answer to "what am I looking at?"
+ *      is legible from across the room.
+ *
+ * Cascade: imported UNLAYERED after console-2026.css, so it supersedes
+ * main.css / chrome.css / brians-theme.css row styling and inherits the
+ * `--wm-*` tokens. God's Eye keeps its cyan HUD identity via the
+ * `[data-stage-mode='godseye']` block at the end — the crimson plate is wrong
+ * over a full-bleed globe.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1 · THE COLLAPSED CONTROL — the map's answer to "how do I change this?"
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.deckgl-layer-toggles .toggle-collapse.layer-panel-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid var(--wm-hairline);
+  border-radius: var(--wm-radius-control, 8px);
+  background: color-mix(in srgb, var(--wm-plate, #000) 88%, transparent);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.004em;
+  cursor: pointer;
+}
+
+.deckgl-layer-toggles .toggle-collapse.layer-panel-toggle:hover,
+.deckgl-layer-toggles .toggle-collapse.layer-panel-toggle:focus-visible {
+  background: var(--surface-hover);
+  border-color: color-mix(in srgb, var(--wm-red, #ff2f45) 45%, transparent);
+  color: var(--text);
+}
+
+/* Expanded, the button is just a close affordance again — the panel header
+   carries the title, so a second "Layers" word would be noise. */
+.deckgl-layer-toggles:not(.layer-panel-collapsed) .toggle-collapse.layer-panel-toggle {
+  min-height: 0;
+  padding: 3px 6px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 12px;
+}
+
+.layer-panel-toggle-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill, 999px);
+  background: color-mix(in srgb, var(--wm-red, #ff2f45) 22%, transparent);
+  color: var(--wm-red-hot, #ff8a96);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Collapsed, the panel is a single pill — no plate, no border, no padding
+   frame around one button. */
+.deckgl-layer-toggles.layer-panel-collapsed {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2 · PANEL SHELL + HEADER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.deckgl-layer-toggles {
+  min-width: 224px;
+  max-width: 268px;
+  border-radius: var(--wm-radius-panel, 14px);
+}
+
+.deckgl-layer-toggles .toggle-header {
+  gap: 6px;
+  border-bottom: 1px solid var(--wm-hairline);
+}
+
+.deckgl-layer-toggles .toggle-header > span:first-child {
+  flex: 1 1 auto;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: -0.008em;
+  text-transform: none;
+  color: var(--text);
+}
+
+.deckgl-layer-toggles .layer-search {
+  font-size: 12px;
+  padding: 6px 9px;
+  min-height: 30px;
+  border-radius: var(--wm-radius-control, 8px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3 · GROUPS — plain-language shelves, open at a glance
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.layer-toggles .layer-group {
+  background: var(--wm-plate-inset, #08090c);
+  border: 1px solid var(--wm-hairline);
+}
+
+.layer-toggles .layer-group-header {
+  min-height: 30px;
+  padding: 4px 7px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.layer-toggles .layer-group-name {
+  /* Not an eyebrow: this is the word the reader is scanning for. Console 2026
+     styles `.layer-group-header` as a 10px tracked micro-label, which is
+     exactly the voice that made the old picker unreadable. */
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.004em;
+  text-transform: none;
+  color: var(--text-secondary);
+}
+
+.layer-toggles .layer-group-count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* A group with something on says so without being read. */
+.layer-toggles .layer-group:has(.layer-toggle input:checked) .layer-group-name,
+.layer-toggles .layer-group:has(.layer-toggle.active) .layer-group-name {
+  color: var(--text);
+}
+
+.layer-toggles .layer-group:has(.layer-toggle input:checked) .layer-group-count,
+.layer-toggles .layer-group:has(.layer-toggle.active) .layer-group-count {
+  color: var(--wm-red-hot, #ff8a96);
+}
+
+.layer-toggles .layer-group:has(.layer-toggle input:checked),
+.layer-toggles .layer-group:has(.layer-toggle.active) {
+  border-color: color-mix(in srgb, var(--wm-red, #ff2f45) 28%, transparent);
+}
+
+.layer-toggles .layer-group-body {
+  gap: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4 · ROWS — one click anywhere on the row, and an obvious "on"
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.layer-toggles .layer-toggle-row {
+  border-radius: var(--wm-radius-chip, 6px);
+  cursor: pointer;
+}
+
+.layer-toggles .layer-toggle-row:hover {
+  background: var(--overlay-subtle);
+}
+
+.deckgl-layer-toggles .layer-toggle {
+  min-height: 28px;
+  padding: 3px 7px;
+  cursor: pointer;
+}
+
+.deckgl-layer-toggles .toggle-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.004em;
+  text-transform: none;
+  color: var(--text-secondary);
+}
+
+/* ON. The crimson rim is the system's "live material" cue — same language as
+   the panel plates, so an active layer reads as switched on rather than as a
+   row that happens to be a different grey. */
+.deckgl-layer-toggles .layer-toggle:has(input:checked) {
+  background: color-mix(in srgb, var(--wm-red, #ff2f45) 11%, transparent);
+  border-color: color-mix(in srgb, var(--wm-red, #ff2f45) 48%, transparent);
+}
+
+.deckgl-layer-toggles .layer-toggle:has(input:checked) .toggle-label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.deckgl-layer-toggles .layer-toggle input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+}
+
+.deckgl-layer-toggles .layer-toggle input[type='checkbox']:checked {
+  background: var(--wm-red, #ff2f45);
+  border-color: var(--wm-red, #ff2f45);
+}
+
+.deckgl-layer-toggles .layer-toggle input[type='checkbox']:checked::after {
+  color: #fff;
+}
+
+/* `has-data` used to be the only strong signal in the list and it fought the
+   checked state for the same pixels. Demote it to the icon. */
+.deckgl-layer-toggles .layer-toggle.has-data {
+  border-color: var(--wm-hairline);
+}
+
+.deckgl-layer-toggles .layer-toggle.has-data .toggle-label {
+  color: inherit;
+}
+
+/* Group master toggle joins the same colour family as the rows it drives. */
+.layer-toggles .layer-group-master:checked {
+  background: var(--wm-red, #ff2f45);
+  border-color: var(--wm-red, #ff2f45);
+}
+
+.layer-toggles .layer-group-master:checked::after {
+  color: #fff;
+}
+
+.layer-toggles .layer-group-master:indeterminate {
+  background: color-mix(in srgb, var(--wm-red, #ff2f45) 24%, transparent);
+  border-color: color-mix(in srgb, var(--wm-red, #ff2f45) 55%, transparent);
+}
+
+.layer-toggles .layer-group-master:indeterminate::after {
+  background: var(--wm-red-hot, #ff8a96);
+}
+
+/* The explain affordance is secondary to choosing a layer — it should not be
+   the brightest thing in the row. */
+.deckgl-layer-toggles .layer-explain-btn.has-layer-explanation {
+  color: var(--text-dim);
+  border-color: var(--wm-hairline);
+}
+
+.deckgl-layer-toggles .layer-explain-btn:hover,
+.deckgl-layer-toggles .layer-explain-btn:focus-visible,
+.deckgl-layer-toggles .layer-explain-btn.active {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--wm-red, #ff2f45) 45%, transparent);
+  background: var(--overlay-subtle);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5 · SVG / MOBILE FALLBACK — same vocabulary, chip geometry
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.layer-toggles:not(.deckgl-layer-toggles) .layer-toggle {
+  min-height: 28px;
+  font-size: 11px;
+  letter-spacing: -0.004em;
+  text-transform: none;
+  border-radius: var(--wm-radius-chip, 6px);
+}
+
+.layer-toggles:not(.deckgl-layer-toggles) .layer-toggle.active {
+  background: color-mix(in srgb, var(--wm-red, #ff2f45) 12%, transparent);
+  border-color: color-mix(in srgb, var(--wm-red, #ff2f45) 48%, transparent);
+  color: var(--text);
+}
+
+.layer-groups-pill {
+  min-height: 30px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.004em;
+  text-transform: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6 · GOD'S EYE — the stage keeps its cyan HUD
+   The picker stays a compact HUD control over the globe: translucent rail
+   material, cyan "on" state, no crimson. Geometry (hit areas, sentence case,
+   group shelves) is inherited from above — only the colour family changes.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html[data-stage-mode='godseye'] .deckgl-layer-toggles {
+  background: var(--ge-rail-bg, rgb(6 10 16 / 72%));
+  border: 1px solid var(--ge-rail-border, rgb(127 212 232 / 14%));
+  backdrop-filter: blur(10px) saturate(115%);
+}
+
+html[data-stage-mode='godseye'] .deckgl-layer-toggles.layer-panel-collapsed {
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+}
+
+html[data-stage-mode='godseye'] .deckgl-layer-toggles .toggle-collapse.layer-panel-toggle {
+  background: var(--ge-rail-bg, rgb(6 10 16 / 72%));
+  border-color: var(--ge-rail-border, rgb(127 212 232 / 14%));
+  color: var(--ge-stage-ink, #eaf6fa);
+  font-family: var(--ge-mono, monospace);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+}
+
+html[data-stage-mode='godseye'] .deckgl-layer-toggles .toggle-collapse.layer-panel-toggle:hover,
+html[data-stage-mode='godseye'] .deckgl-layer-toggles .toggle-collapse.layer-panel-toggle:focus-visible {
+  border-color: var(--ge-hud-dim, rgb(127 212 232 / 55%));
+  color: var(--ge-hud, #7fd4e8);
+}
+
+html[data-stage-mode='godseye'] .layer-panel-toggle-count {
+  background: var(--ge-hud-faint, rgb(127 212 232 / 18%));
+  color: var(--ge-hud, #7fd4e8);
+}
+
+html[data-stage-mode='godseye'] .layer-toggles .layer-group {
+  background: rgb(6 10 16 / 45%);
+  border-color: var(--ge-rail-border, rgb(127 212 232 / 14%));
+}
+
+html[data-stage-mode='godseye'] .layer-toggles .layer-group:has(.layer-toggle input:checked) {
+  border-color: var(--ge-hud-faint, rgb(127 212 232 / 18%));
+}
+
+html[data-stage-mode='godseye'] .layer-toggles .layer-group:has(.layer-toggle input:checked) .layer-group-count {
+  color: var(--ge-hud, #7fd4e8);
+}
+
+html[data-stage-mode='godseye'] .deckgl-layer-toggles .layer-toggle:has(input:checked) {
+  background: var(--ge-hud-faint, rgb(127 212 232 / 18%));
+  border-color: var(--ge-hud-dim, rgb(127 212 232 / 55%));
+}
+
+html[data-stage-mode='godseye'] .deckgl-layer-toggles .layer-toggle input[type='checkbox']:checked {
+  background: var(--ge-hud, #7fd4e8);
+  border-color: var(--ge-hud, #7fd4e8);
+}
+
+html[data-stage-mode='godseye'] .deckgl-layer-toggles .layer-toggle input[type='checkbox']:checked::after {
+  color: #04070b;
+}
+
+html[data-stage-mode='godseye'] .layer-toggles .layer-group-master:checked,
+html[data-stage-mode='godseye'] .layer-toggles .layer-group-master:indeterminate {
+  background: var(--ge-hud, #7fd4e8);
+  border-color: var(--ge-hud, #7fd4e8);
+}
+
+html[data-stage-mode='godseye'] .layer-toggles .layer-group-master:checked::after {
+  color: #04070b;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7 · NARROW — the picker must never own the map
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .deckgl-layer-toggles {
+    min-width: 0;
+    max-width: min(76vw, 260px);
+  }
+
+  .deckgl-layer-toggles .layer-toggle,
+  .layer-toggles .layer-group-header {
+    min-height: 34px;
+  }
+}

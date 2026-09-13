@@ -27,6 +27,7 @@ import {
   suppressServerSummarizationFor,
 } from '@/services/summarize-gate';
 import { hasPremiumAccess } from '@/services/panel-gating';
+import { tryByokSummary } from '@/services/byok-summarize';
 
 export type SummarizationProvider = 'ollama' | 'groq' | 'openrouter' | 'browser' | 'cache';
 
@@ -35,6 +36,12 @@ export interface SummarizationResult {
   provider: SummarizationProvider;
   model: string;
   cached: boolean;
+  /**
+   * True when the synthesis ran on the user's own provider key, straight from
+   * the browser. Callers that meter our LLM spend (InsightsPanel's briefing
+   * allowance) must not count these — the user paid for them.
+   */
+  byok?: boolean;
 }
 
 export type ProgressCallback = (step: number, total: number, message: string) => void;
@@ -49,6 +56,20 @@ export interface SummarizeOptions {
    * headline-only behavior (R6). Bodies are pre-sanitised server-side.
    */
   bodies?: string[];
+  /**
+   * The user explicitly asked for a new synthesis (the "Regenerate brief"
+   * control). Drops this call's entry from `summaryResultBreaker`, whose
+   * result cache is otherwise a 2h persisted memo keyed on the headlines.
+   *
+   * Without this, a repeat regeneration returns the memoized
+   * `SummarizationResult` — which still carries `cached: false` — so the
+   * caller's metering would spend a briefing allowance on a brief that is
+   * byte-identical and cost nothing to produce. The server-side cache lookup
+   * inside `generateSummaryInternal` is deliberately left in place: if the
+   * shared synthesis is already current, the user gets it without being
+   * charged, which is the honest outcome.
+   */
+  forceFresh?: boolean;
 }
 
 // ── Sebuf client (replaces direct fetch to /api/{provider}-summarize) ──
@@ -266,6 +287,13 @@ export async function generateSummary(
     : '';
   const cacheKey = buildSummaryCacheKey(headlines, 'brief', geoContext, SITE_VARIANT, lang, undefined, bodies) + optionsSuffix;
 
+  // See SummarizeOptions.forceFresh: the memo would otherwise hand back a
+  // 2h-old result marked `cached: false`, which the briefing allowance would
+  // then charge for.
+  if (options?.forceFresh) {
+    summaryResultBreaker.clearCache(cacheKey);
+  }
+
   return summaryResultBreaker.execute(
     async () => {
       lastAttemptedProvider = 'none';
@@ -305,6 +333,24 @@ async function generateSummaryInternal(
         return { summary: cached.summary, provider: 'cache', model: cached.model || '', cached: true };
       }
     } catch { /* cache lookup failed — proceed to provider chain */ }
+  }
+
+  // Bring-your-own-key runs AHEAD of the hosted chain so a user who supplied
+  // a key genuinely spends their own credit — that is what the "unlimited
+  // briefs" promise in settings rests on. No key stored → returns null with
+  // no network call, so this costs nothing for everyone else.
+  if (!options?.skipCloudProviders) {
+    const byok = await tryByokSummary(headlines, geoContext, lang);
+    if (byok) {
+      lastAttemptedProvider = byok.provider;
+      return {
+        summary: byok.summary,
+        provider: byok.provider,
+        model: byok.model,
+        cached: false,
+        byok: true,
+      };
+    }
   }
 
   if (BETA_MODE) {

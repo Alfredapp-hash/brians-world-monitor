@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import type { OutputBundle } from 'rollup';
 import { resolve, dirname, extname } from 'path';
+import { existsSync } from 'fs';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { brotliCompress } from 'zlib';
 import { promisify } from 'util';
@@ -854,6 +855,64 @@ function gpsjamDevPlugin(): Plugin {
   };
 }
 
+/**
+ * Vite dev has no file-based routing for the flat Vercel Edge endpoints in
+ * `api/*.js`, so a request for one of them used to fall through to Vite's
+ * transform middleware — which happily resolved `/api/bootstrap` to
+ * `api/bootstrap.js` and served it as an ES module. The client then ran
+ * `JSON.parse()` over server source, threw, and retried: a single dashboard
+ * boot spent ~1.7 MB and a dozen `/api/bootstrap` round-trips on that loop
+ * before settling, and `/api/health` alone shipped 561 KB of transpiled
+ * server code to the browser.
+ *
+ * Answering with an explicit JSON 503 keeps those endpoints "unavailable in
+ * dev" (they need Redis and upstream credentials anyway) while letting the
+ * data loaders take their normal domain-unavailable path so the circuit
+ * breakers open instead of hot-looping.
+ *
+ * Registered after the specific `/api/*` plugins above — anything they handle
+ * never reaches here, because they respond instead of calling `next()`.
+ */
+function devEdgeApiGuardPlugin(): Plugin {
+  return {
+    name: 'wm-dev-edge-api-guard',
+    apply: 'serve',
+    configureServer(server) {
+      // Vite's proxy is an *internal* middleware, so it runs after this one.
+      // Read the prefixes off the resolved config rather than hand-listing
+      // them, so this skip set can never drift from the proxy table below.
+      const proxiedPrefixes = Object.keys(server.config.server.proxy ?? {});
+      const publicDir = resolve(__dirname, 'public');
+
+      server.middlewares.use((req, res, next) => {
+        const rawUrl = req.url;
+        if (!rawUrl?.startsWith('/api/')) return next();
+
+        const pathname = rawUrl.split('?')[0];
+        if (pathname.includes('..')) return next();
+
+        if (proxiedPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+          return next();
+        }
+
+        // Real static assets under public/ still win (e.g. /api/llms.txt).
+        if (existsSync(resolve(publicDir, `.${pathname}`))) return next();
+
+        res.statusCode = 503;
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-store');
+        res.end(
+          JSON.stringify({
+            error: 'Edge endpoint not available in vite dev',
+            path: pathname,
+            hint: 'Flat api/*.js endpoints run on Vercel, not in the dev server. Use `vercel dev` or a deployed origin if you need live data here.',
+          }),
+        );
+      });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   // Inject environment variables from .env files into process.env.
@@ -918,6 +977,7 @@ export default defineConfig(({ mode }) => {
       youtubeLivePlugin(),
       gpsjamDevPlugin(),
       sebufApiPlugin(),
+      devEdgeApiGuardPlugin(),
       brotliPrecompressPlugin(),
       VitePWA({
         registerType: 'autoUpdate',

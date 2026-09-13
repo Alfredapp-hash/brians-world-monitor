@@ -5,6 +5,7 @@ import { ensureHydrated } from '@/services/bootstrap';
 import { CATEGORY, NEUTRAL } from '@/styles/tokens';
 import type { WebcamEntry, WebcamCluster, ListWebcamsResponse, GetWebcamImageResponse } from '@/generated/client/worldmonitor/webcam/v1/service_client';
 import { WebcamServiceClient } from '@/services/generated-rpc-clients';
+import { classifyWebcamStreamUrl, type WebcamStream } from '@/services/webcams/stream-player';
 
 const client = new WebcamServiceClient(getRpcBaseUrl(), {
   fetch: (...args) => globalThis.fetch(...args),
@@ -129,6 +130,27 @@ export function getWebcamSourceUrl(webcamId: string, response?: { windyUrl?: str
   return `https://www.windy.com/webcams/${encodeURIComponent(webcamId)}`;
 }
 
+/**
+ * The playable stream for a camera, or null when there isn't one.
+ *
+ * Two gates, both needed. The id must be a public-agency camera, because
+ * `playerUrl` means different things per provider: the agencies put a media file
+ * there, Windy puts an embeddable timelapse *page* there (and their cameras are
+ * periodic stills, so there is no live feed to play in the first place). The URL
+ * must then name a container a media element can decode — see
+ * `classifyWebcamStreamUrl`.
+ *
+ * NYC DOT publishes stills only, so its cameras fall out here on the second
+ * gate and keep the still-only popup they already had.
+ */
+export function getWebcamStream(
+  webcamId: string,
+  response: { playerUrl?: string } | null | undefined,
+): WebcamStream | null {
+  if (!isPublicCameraId(webcamId)) return null;
+  return classifyWebcamStreamUrl(response?.playerUrl);
+}
+
 export async function fetchWebcamImage(webcamId: string): Promise<GetWebcamImageResponse> {
   // Check client cache
   const cached = imageCacheMap.get(webcamId);
@@ -180,3 +202,5 @@ export function getCategoryStyle(category: string) {
 }
 
 export type { WebcamEntry, WebcamCluster, GetWebcamImageResponse };
+export { createWebcamPlayer, classifyWebcamStreamUrl } from '@/services/webcams/stream-player';
+export type { WebcamStream, WebcamPlayerHandle, WebcamPlaybackFailure } from '@/services/webcams/stream-player';

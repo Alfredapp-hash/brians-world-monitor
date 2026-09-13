@@ -209,6 +209,10 @@ export class MapComponent {
   private lastRenderTime = 0;
   private readonly MIN_RENDER_INTERVAL_MS = 100;
   private healthCheckLoop: SmartPollLoopHandle | null = null;
+  // Live webcam playback inside the current webcam tooltip, plus the hook that
+  // cancels that tooltip's auto-dismiss once frames are moving.
+  private webcamPlayer: { destroy(): void } | null = null;
+  private cancelWebcamTooltipDismiss: (() => void) | null = null;
   // First render paints the base map (countries) synchronously for LCP, then defers the
   // heavy dynamic-overlay pass off the first-paint critical path (#4429). Mobile uses this
   // SVG renderer and its synchronous overlay build was the #1 boot-scripting cost (~1.3s).
@@ -384,6 +388,9 @@ export class MapComponent {
       this.healthCheckLoop.stop();
       this.healthCheckLoop = null;
     }
+    this.webcamPlayer?.destroy();
+    this.webcamPlayer = null;
+    this.cancelWebcamTooltipDismiss = null;
   }
 
   private createControls(): HTMLElement {
@@ -3228,8 +3235,21 @@ export class MapComponent {
     });
   }
 
+  /**
+   * Dismiss the webcam tooltip, tearing down any live playback first. Every
+   * dismissal path routes through here: an HLS instance that outlives its popup
+   * keeps pulling segments, and on Caltrans' media server that stray traffic is
+   * what earns the whole browser a 403.
+   */
+  private closeWebcamTooltip(tooltip: HTMLElement): void {
+    this.webcamPlayer?.destroy();
+    this.webcamPlayer = null;
+    tooltip.remove();
+  }
+
   private makeWebcamTooltipShell(): { tooltip: HTMLDivElement; closeBtn: HTMLButtonElement } {
-    this.container.querySelector('.webcam-tooltip')?.remove();
+    const existing = this.container.querySelector<HTMLElement>('.webcam-tooltip');
+    if (existing) this.closeWebcamTooltip(existing);
     const tooltip = document.createElement('div');
     tooltip.className = 'webcam-tooltip';
     tooltip.style.cssText = [
@@ -3250,7 +3270,7 @@ export class MapComponent {
     closeBtn.style.cssText = 'position:absolute;top:4px;right:4px;background:none;border:none;color:#888;cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;';
     closeBtn.setAttribute('aria-label', 'Close');
     closeBtn.textContent = '×';
-    closeBtn.addEventListener('click', () => tooltip.remove());
+    closeBtn.addEventListener('click', () => this.closeWebcamTooltip(tooltip));
     tooltip.appendChild(closeBtn);
     return { tooltip, closeBtn };
   }
@@ -3262,9 +3282,17 @@ export class MapComponent {
     const y = Math.max(clientY - rect.top - 20, 4);
     tooltip.style.left = `${x}px`;
     tooltip.style.top = `${y}px`;
-    let hideTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => tooltip.remove(), 8000);
+    let hideTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => this.closeWebcamTooltip(tooltip), 8000);
+    // A stream that reached playback pins the popup open: neither the initial
+    // auto-dismiss nor a mouseleave should yank a feed the user is watching.
+    // `wmLivePlayback` is set by the player's onPlaying callback.
+    const playbackLive = () => tooltip.dataset.wmLivePlayback === '1';
+    this.cancelWebcamTooltipDismiss = () => { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } };
     tooltip.addEventListener('mouseenter', () => { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } });
-    tooltip.addEventListener('mouseleave', () => { hideTimer = setTimeout(() => tooltip.remove(), 2000); });
+    tooltip.addEventListener('mouseleave', () => {
+      if (playbackLive()) return;
+      hideTimer = setTimeout(() => this.closeWebcamTooltip(tooltip), 2000);
+    });
   }
 
   private showWebcamTooltip(cam: WebcamEntry, clientX: number, clientY: number): void {
@@ -3305,7 +3333,7 @@ export class MapComponent {
     this.placeWebcamTooltip(tooltip, clientX, clientY);
 
     if (cam.webcamId) {
-      import('@/services/webcams').then(({ fetchWebcamImage, getWebcamSource, getWebcamSourceUrl }) => {
+      import('@/services/webcams').then(({ fetchWebcamImage, getWebcamSource, getWebcamSourceUrl, getWebcamStream, createWebcamPlayer }) => {
         // Resolved from the id: the layer mixes Windy with openly published
         // agency cameras, which credit and link elsewhere.
         const source = getWebcamSource(cam.webcamId);
@@ -3319,26 +3347,57 @@ export class MapComponent {
           if (resolvedHref) link.href = resolvedHref;
           else link.remove();
           previewDiv.replaceChildren();
-          if (img.thumbnailUrl) {
-            const imgEl = document.createElement('img');
-            imgEl.src = img.thumbnailUrl;
-            imgEl.style.cssText = 'width:200px;border-radius:4px;margin-bottom:4px;';
-            imgEl.loading = 'lazy';
-            // Operator still lists the camera but stopped serving it — degrade
-            // to a broken-camera line rather than a torn image icon.
-            imgEl.addEventListener('error', () => {
-              if (!imgEl.isConnected) return;
-              const broken = document.createElement('span');
-              broken.style.cssText = 'opacity:0.5;font-size:10px;';
-              broken.textContent = '\u{1F4F7}\u200A\u2715 Camera offline';
-              imgEl.replaceWith(broken);
+
+          const renderStill = (): void => {
+            if (img.thumbnailUrl) {
+              const imgEl = document.createElement('img');
+              imgEl.src = img.thumbnailUrl;
+              imgEl.style.cssText = 'width:200px;border-radius:4px;margin-bottom:4px;';
+              imgEl.loading = 'lazy';
+              // Operator still lists the camera but stopped serving it — degrade
+              // to a broken-camera line rather than a torn image icon.
+              imgEl.addEventListener('error', () => {
+                if (!imgEl.isConnected) return;
+                const broken = document.createElement('span');
+                broken.style.cssText = 'opacity:0.5;font-size:10px;';
+                broken.textContent = '\u{1F4F7}\u200A\u2715 Camera offline';
+                imgEl.replaceWith(broken);
+              });
+              previewDiv.appendChild(imgEl);
+            } else {
+              const span = document.createElement('span');
+              span.style.cssText = 'opacity:0.5;font-size:10px;';
+              span.textContent = 'Preview unavailable';
+              previewDiv.appendChild(span);
+            }
+          };
+
+          // Caltrans and TfL publish a real stream next to the still. Play it,
+          // with the still as poster so the frame is never blank, and fall back
+          // to the plain still on any failure — most Caltrans cameras are not
+          // publishing at any given moment, so that path is routine.
+          const stream = getWebcamStream(cam.webcamId, img);
+          if (stream) {
+            const player = createWebcamPlayer({
+              stream,
+              posterUrl: img.thumbnailUrl,
+              width: 200,
+              onPlaying: () => {
+                tooltip.dataset.wmLivePlayback = '1';
+                this.cancelWebcamTooltipDismiss?.();
+              },
+              onUnavailable: () => {
+                this.webcamPlayer = null;
+                if (!previewDiv.isConnected) return;
+                previewDiv.replaceChildren();
+                renderStill();
+              },
             });
-            previewDiv.appendChild(imgEl);
+            this.webcamPlayer?.destroy();
+            this.webcamPlayer = player;
+            previewDiv.appendChild(player.element);
           } else {
-            const span = document.createElement('span');
-            span.style.cssText = 'opacity:0.5;font-size:10px;';
-            span.textContent = 'Preview unavailable';
-            previewDiv.appendChild(span);
+            renderStill();
           }
 
           const pinBtn = document.createElement('button');

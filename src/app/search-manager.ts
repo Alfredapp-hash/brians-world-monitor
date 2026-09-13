@@ -10,6 +10,7 @@ import { getAllowedLayerKeys, isLayerExecutable } from '@/config/map-layer-defin
 import type { MapRenderer } from '@/config/map-layer-definitions';
 import type { MapVariant } from '@/config/map-layer-definitions';
 import { LAYER_PRESETS, LAYER_KEY_MAP } from '@/config/commands';
+import { getDonateUrl } from '@/config/support';
 import { TIER1_COUNTRIES } from '@/services/country-instability';
 import { getCachedCountryScores } from '@/services/cached-risk-scores';
 import { CURATED_COUNTRIES } from '@/config/countries';
@@ -566,6 +567,12 @@ export class SearchManager implements AppModule {
           }
         } else if (action === 'settings') {
           this.ctx.unifiedSettings?.open();
+        } else if (action === 'support') {
+          this.ctx.unifiedSettings?.open('pro');
+        } else if (action === 'donate') {
+          // Straight to the donation page — a donor should not have to walk
+          // through a settings modal to give money.
+          window.open(getDonateUrl(), '_blank', 'noopener,noreferrer');
         } else if (action === 'refresh') {
           window.location.reload();
         } else if (action === 'resilience') {

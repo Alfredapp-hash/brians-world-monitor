@@ -24,11 +24,28 @@
 @import url('./map-context-menu.css') layer(base);
 @import url('./supply-chain-panel.css') layer(base);
 
-/* JSA's Monitor identity theme — imported UNLAYERED (no layer(base)) so it
+/* Legacy identity theme — imported UNLAYERED (no layer(base)) so it
  * wins the cascade over everything above, and rides the same deferred
  * dashboard stylesheet rather than adding a second render-blocking link. */
 @import url('./brians-theme.css');
 @import url('./states.css');
 @import url('./chrome.css');
+/* THE PUBLIC DISPATCH visual system — parchment ground, iron-gall ink,
+ * engraved Caslon, wax-seal rubrication. Imported after chrome.css so it
+ * supersedes the amber identity, and before the stage stylesheets so God's Eye
+ * and the reader keep authority over their own compositions while inheriting
+ * the tokens.
+ *
+ * This slot previously held console-2026.css (grey stage, true-black plates,
+ * rotating crimson rim). That file is superseded and no longer imported; it is
+ * left on disk rather than deleted so the recipe stays recoverable. Nothing
+ * should import both — they define the same token names to opposite values. */
+@import url('./dispatch.css');
+/* Map layer picker — restages the engines' existing toggle DOM into a
+ * plain-language, one-click control. After dispatch.css so it inherits the
+ * tokens and supersedes the analyst-voice row styling in main.css/chrome.css;
+ * it carries its own God's Eye block, so it stays before the stage sheets. */
+@import url('./layer-picker.css');
 @import url('./reader-mode.css');
 @import url('./godseye-mode.css');
+@import url('./support.css');

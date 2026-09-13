@@ -23,8 +23,7 @@ import { renderPreferences } from '@/services/preferences-content';
 import { renderNotificationsSettings, type NotificationsSettingsResult } from '@/services/notifications-settings';
 import { getAuthState } from '@/services/auth-state';
 import { track } from '@/services/analytics';
-import { isEntitled, hasFeature, onEntitlementChange, getEntitlementState } from '@/services/entitlements';
-import { hasPremiumAccess } from '@/services/panel-gating';
+import { hasFeature, onEntitlementChange, getEntitlementState } from '@/services/entitlements';
 import { getSubscription, openBillingPortal, prereserveBillingPortalTab } from '@/services/billing';
 import { createApiKey, listApiKeys, revokeApiKey, type ApiKeyInfo } from '@/services/api-keys';
 import { listMcpClients, revokeMcpClient, fetchMcpQuota, type McpClientInfo, type McpQuota } from '@/services/mcp-clients';
@@ -35,6 +34,21 @@ import {
 } from '@/services/api-plan-limit-notices';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { STATUS, withAlpha } from '@/styles/tokens';
+import {
+  BYOK_PROVIDERS,
+  FREE_INCLUDES,
+  PRO_ADDS,
+  getDonateUrl,
+  type ByokProviderId,
+} from '@/config/support';
+import {
+  clearByokKey,
+  getByokKeyStates,
+  saveByokKey,
+  verifyByokKey,
+} from '@/services/byok-keys';
+import { isSupporter, getSupporterPlanName, onSupporterChange } from '@/services/supporter-status';
+import { currentBriefingAllowance } from '@/services/briefing-gate';
 
 
 function showToast(msg: string): void {
@@ -92,6 +106,11 @@ export class UnifiedSettings {
   /** setInterval handle for quota auto-refresh; cleared on close()/destroy()/tab-switch. */
   private mcpQuotaTimer: ReturnType<typeof setInterval> | null = null;
   private unsubscribeEntitlement: (() => void) | null = null;
+  // Separate from the entitlement listener because `isSupporter()` also reads
+  // the Dodo subscription, which lands on its own channel. Without this, a
+  // user who subscribes (or whose snapshot arrives late) keeps reading
+  // "You're on the free plan" on an open Pro tab.
+  private unsubscribeSupporter: (() => void) | null = null;
   // Bounded "entitlement snapshot might still arrive" window. Starts false
   // on open() when currentState is null, flips true on first snapshot OR
   // after a fallback timeout so signed-in free users aren't stranded on an
@@ -100,6 +119,10 @@ export class UnifiedSettings {
   // src/services/entitlements.ts:41,47,58,78).
   private entitlementReady = false;
   private entitlementReadyTimer: ReturnType<typeof setTimeout> | null = null;
+  // ---- Pro & Support tab ----
+  // Per-provider status line for the BYOK rows. Holds only rendered prose —
+  // never key material, so it is safe to keep in component state.
+  private byokStatus: Partial<Record<ByokProviderId, { ok: boolean; message: string }>> = {};
 
   constructor(config: UnifiedSettingsConfig) {
     this.config = config;
@@ -131,6 +154,14 @@ export class UnifiedSettings {
 
       if (target.closest('.upgrade-pro-cta')) {
         this.handleUpgradeClick();
+        return;
+      }
+
+      // Signpost on the general settings tab — moves the user to the place
+      // that explains Pro rather than starting a checkout from here.
+      if (target.closest('.upgrade-pro-see-plans')) {
+        this.switchTab('pro');
+        this.overlay.querySelector<HTMLElement>('#us-tab-pro')?.focus();
         return;
       }
 
@@ -180,6 +211,24 @@ export class UnifiedSettings {
       const planNoticeCta = target.closest<HTMLElement>('[data-plan-limit-cta]');
       if (planNoticeCta?.dataset.planLimitCta) {
         this.handlePlanLimitNoticeCta(planNoticeCta.dataset.planLimitCta);
+        return;
+      }
+
+      const byokSave = target.closest<HTMLElement>('[data-byok-save]');
+      if (byokSave?.dataset.byokSave) {
+        this.handleByokSave(byokSave.dataset.byokSave as ByokProviderId);
+        return;
+      }
+
+      const byokTest = target.closest<HTMLElement>('[data-byok-test]');
+      if (byokTest?.dataset.byokTest) {
+        void this.handleByokTest(byokTest.dataset.byokTest as ByokProviderId);
+        return;
+      }
+
+      const byokClear = target.closest<HTMLElement>('[data-byok-clear]');
+      if (byokClear?.dataset.byokClear) {
+        this.handleByokClear(byokClear.dataset.byokClear as ByokProviderId);
         return;
       }
 
@@ -352,6 +401,18 @@ export class UnifiedSettings {
       }
       this.replaceUpgradeSection();
     });
+
+    // Same cold-load race, Pro & Support tab: the status card and the brief
+    // allowance are both derived from `isSupporter()`, so a late snapshot
+    // would otherwise leave a paying user looking at an upgrade pitch. Only
+    // fires when the answer actually flips, so it can't clobber a key the
+    // user is mid-way through typing.
+    this.unsubscribeSupporter?.();
+    this.unsubscribeSupporter = onSupporterChange(() => {
+      this.renderProSupportPanel();
+      this.replaceUpgradeSection();
+    });
+
     // Bounded fallback: the entitlement listener can legitimately never
     // fire (no VITE_CONVEX_URL, Convex API fails to load, waitForConvexAuth
     // times out at 10s, or init throws — see entitlements.ts:41,47,58,78).
@@ -409,6 +470,8 @@ export class UnifiedSettings {
     this.pendingNotifs = null;
     this.unsubscribeEntitlement?.();
     this.unsubscribeEntitlement = null;
+    this.unsubscribeSupporter?.();
+    this.unsubscribeSupporter = null;
     if (this.entitlementReadyTimer) {
       clearTimeout(this.entitlementReadyTimer);
       this.entitlementReadyTimer = null;
@@ -437,6 +500,8 @@ export class UnifiedSettings {
     this.pendingNotifs = null;
     this.unsubscribeEntitlement?.();
     this.unsubscribeEntitlement = null;
+    this.unsubscribeSupporter?.();
+    this.unsubscribeSupporter = null;
     // Mirror close() — without this, a destroy() during the 12s fallback
     // window leaves the timer live; it fires after teardown and calls
     // replaceUpgradeSection() against a detached overlay (no-op via the
@@ -483,6 +548,7 @@ export class UnifiedSettings {
           ${showNotificationsTab ? `<button class="${tabClass('notifications')}" data-tab="notifications" role="tab" aria-selected="${this.activeTab === 'notifications'}" id="us-tab-notifications" aria-controls="us-tab-panel-notifications">${t('header.tabNotifications')}</button>` : ''}
           <button class="${tabClass('api-keys')}" data-tab="api-keys" role="tab" aria-selected="${this.activeTab === 'api-keys'}" id="us-tab-api-keys" aria-controls="us-tab-panel-api-keys">API Keys <span class="panel-pro-badge">PRO</span></button>
           ${hasFeature('mcpAccess') ? `<button class="${tabClass('mcp-clients')}" data-tab="mcp-clients" role="tab" aria-selected="${this.activeTab === 'mcp-clients'}" id="us-tab-mcp-clients" aria-controls="us-tab-panel-mcp-clients">MCP Clients <span class="panel-pro-badge">PRO</span></button>` : ''}
+          <button class="${tabClass('pro')}" data-tab="pro" role="tab" aria-selected="${this.activeTab === 'pro'}" id="us-tab-pro" aria-controls="us-tab-panel-pro">Pro &amp; Support</button>
         </div>
         <div class="unified-settings-tab-panel${this.activeTab === 'settings' ? ' active' : ''}" data-panel-id="settings" id="us-tab-panel-settings" role="tabpanel" aria-labelledby="us-tab-settings">
           ${prefs.html}
@@ -529,6 +595,9 @@ export class UnifiedSettings {
           ${this.renderMcpClientsContent()}
         </div>
         ` : ''}
+        <div class="unified-settings-tab-panel${this.activeTab === 'pro' ? ' active' : ''}" data-panel-id="pro" id="us-tab-panel-pro" role="tabpanel" aria-labelledby="us-tab-pro">
+          ${this.renderProSupportContent()}
+        </div>
       </div>
     `, "legacy direct innerHTML migration"));
 
@@ -558,6 +627,7 @@ export class UnifiedSettings {
     this.updateSourcesCounter();
 
     this.attachApiKeysHandlers();
+    this.attachByokHandlers();
     if (this.activeTab === 'api-keys' || this.activeTab === 'mcp-clients') {
       void this.loadPlanLimitNotices();
     }
@@ -601,6 +671,12 @@ export class UnifiedSettings {
     if (tab === 'notifications') {
       this.attachNotificationsTab();
     }
+
+    // Re-render on entry so the brief allowance and stored-key states are
+    // current — both can change while the modal sits open.
+    if (tab === 'pro') {
+      this.renderProSupportPanel();
+    }
   }
 
   private attachNotificationsTab(): void {
@@ -611,15 +687,216 @@ export class UnifiedSettings {
     }
   }
 
-  private renderUpgradeSection(): string {
-    // Non-Dodo premium (API key / tester key / Clerk pro role without a
-    // Convex subscription): neither "Upgrade" nor "Manage Billing" is
-    // actionable. Checked FIRST so these users don't get stuck on the
-    // loading placeholder below — their Convex entitlement snapshot may
-    // never arrive at all.
-    if (!isEntitled() && hasPremiumAccess()) {
-      return '<div class="upgrade-pro-section upgrade-pro-hidden" hidden></div>';
+  // ───────────────────────── Pro & Support tab ─────────────────────────
+  //
+  // Three jobs, in this order of importance to the user:
+  //   1. Tell them plainly that the dashboard they are already using is the
+  //      whole product and costs nothing.
+  //   2. Show what Pro genuinely adds, and where their free AI allowance
+  //      stands today.
+  //   3. Let them bring their own provider key, or donate, without either
+  //      one being a prerequisite for the other.
+  //
+  // No lock icons, no blurred previews, no countdown pressure.
+
+  private renderProSupportContent(): string {
+    const supporter = isSupporter();
+    const allowance = currentBriefingAllowance();
+    const donateUrl = getDonateUrl();
+
+    const freeList = FREE_INCLUDES
+      .map((item) => `<li>${escapeHtml(item)}</li>`)
+      .join('');
+    const proList = PRO_ADDS
+      .map((item) => `<li>${escapeHtml(item)}</li>`)
+      .join('');
+
+    const allowanceLine = allowance.unlimited
+      ? 'Unlimited — you\u2019re running briefs on your own provider key.'
+      : `${allowance.used} of ${allowance.cap} used today \u00b7 resets at ${escapeHtml(
+          new Date(allowance.resetsAtMs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+        )}`;
+    const allowancePct = allowance.unlimited
+      ? 100
+      : Math.min(100, Math.round((allowance.used / Math.max(1, allowance.cap)) * 100));
+
+    // The status card is deliberately a thank-you for subscribers and a plain
+    // offer for everyone else. `isSupporter()` — not the fork's always-true
+    // `isEntitled()` — decides which, so free users see a real offer and
+    // paying users are never re-pitched a checkout they already completed.
+    const statusCard = supporter
+      ? `
+        <div class="wm-support-status wm-support-status--active">
+          <div class="wm-support-status-head">
+            <span class="wm-support-dot" aria-hidden="true"></span>
+            <strong>${escapeHtml(getSupporterPlanName())}</strong>
+          </div>
+          <p class="wm-support-status-desc">Thank you \u2014 your subscription is what pays for the AI budget and the data feeds everyone else uses for free.</p>
+          <button class="btn manage-billing-btn">Manage billing</button>
+        </div>`
+      : `
+        <div class="wm-support-status">
+          <div class="wm-support-status-head"><strong>You\u2019re on the free plan</strong></div>
+          <p class="wm-support-status-desc">Which is a complete plan. Pro exists for people who want more AI on tap \u2014 not to unlock what you already have.</p>
+          <div class="wm-support-status-actions">
+            <button class="btn btn-primary upgrade-pro-cta">Upgrade to Pro</button>
+            <a class="wm-support-link" href="/pro" target="_blank" rel="noopener">Compare plans and pricing \u2192</a>
+          </div>
+        </div>`;
+
+    // Resolved once: each lookup deobfuscates and re-validates a stored key,
+    // so calling it per row would decrypt every key N times per render.
+    const keyStates = getByokKeyStates();
+    const byokRows = BYOK_PROVIDERS.map((def) => {
+      const state = keyStates.find((s) => s.provider === def.id);
+      const status = this.byokStatus[def.id];
+      const inputId = `us-byok-${def.id}`;
+      const statusText = state?.present
+        ? `Saved \u00b7 ${escapeHtml(state.masked)}`
+        : 'Not set';
+      return `
+        <div class="wm-byok-row" data-byok-row="${def.id}">
+          <div class="wm-byok-row-head">
+            <label class="wm-byok-label" for="${inputId}">${escapeHtml(def.label)}</label>
+            <span class="wm-byok-state${state?.present ? ' wm-byok-state--set' : ''}">${statusText}</span>
+          </div>
+          <div class="wm-byok-controls">
+            <input type="password" id="${inputId}" class="wm-byok-input" data-byok-input="${def.id}"
+                   autocomplete="off" spellcheck="false"
+                   placeholder="${escapeHtml(state?.present ? 'Replace stored key' : `${def.keyPrefix}\u2026`)}"
+                   aria-describedby="${inputId}-hint" />
+            <button class="btn btn-primary wm-byok-btn" data-byok-save="${def.id}">Save</button>
+            <button class="btn wm-byok-btn" data-byok-test="${def.id}">Test</button>
+            ${state?.present ? `<button class="btn wm-byok-btn wm-byok-btn--quiet" data-byok-clear="${def.id}">Remove</button>` : ''}
+          </div>
+          <p class="wm-byok-hint" id="${inputId}-hint">
+            ${escapeHtml(def.hint)}
+            <a href="${escapeHtml(def.signupUrl)}" target="_blank" rel="noopener">Get a key \u2192</a>
+          </p>
+          <p class="wm-byok-status${status ? (status.ok ? ' wm-byok-status--ok' : ' wm-byok-status--warn') : ''}"
+             data-byok-status="${def.id}" role="status" aria-live="polite">${status ? escapeHtml(status.message) : ''}</p>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="wm-support-tab">
+        <section class="wm-support-intro">
+          <h3 class="wm-support-h">The dashboard is free. All of it.</h3>
+          <p>Every layer, the globe, God\u2019s Eye, reader mode, the public cameras, every panel and all the live feeds. No watermark, no locked map, no trial clock. Pro and donations are how the bill gets paid \u2014 they are not how you get access.</p>
+        </section>
+
+        ${statusCard}
+
+        <section class="wm-support-compare">
+          <div class="wm-support-col">
+            <h4 class="wm-support-col-h">In the free app</h4>
+            <ul class="wm-support-list wm-support-list--free">${freeList}</ul>
+          </div>
+          <div class="wm-support-col">
+            <h4 class="wm-support-col-h">Pro adds</h4>
+            <ul class="wm-support-list wm-support-list--pro">${proList}</ul>
+          </div>
+        </section>
+
+        <section class="wm-support-section">
+          <h4 class="wm-support-section-h">Today\u2019s AI brief allowance</h4>
+          <p class="wm-support-section-desc">The world brief is always there for everyone. This counts only the times you ask us to regenerate one from scratch, which spends real tokens on our account.</p>
+          <div class="wm-allowance">
+            <div class="wm-allowance-bar" role="progressbar" aria-label="Fresh briefs used today"
+                 aria-valuemin="0" aria-valuemax="${allowance.unlimited ? 100 : allowance.cap}"
+                 aria-valuenow="${allowance.unlimited ? 0 : allowance.used}">
+              <span class="wm-allowance-fill${allowance.unlimited ? ' wm-allowance-fill--unlimited' : ''}" style="width:${allowancePct}%"></span>
+            </div>
+            <p class="wm-allowance-line">${allowanceLine}</p>
+          </div>
+        </section>
+
+        <section class="wm-support-section">
+          <h4 class="wm-support-section-h">Bring your own AI key</h4>
+          <p class="wm-support-section-desc">Point the briefing engine at your own provider account and it stops counting against any allowance \u2014 free plan included. Keys are stored in this browser only: they are never sent to our servers, never written to logs, and never leave the page except to the provider you chose.</p>
+          ${byokRows}
+        </section>
+
+        <section class="wm-support-section wm-support-donate">
+          <h4 class="wm-support-section-h">Support the project</h4>
+          <p class="wm-support-section-desc">If the dashboard is useful to you and a subscription isn\u2019t what you want, a one-off contribution covers data bills just as well. Entirely optional, and nothing in the app changes either way.</p>
+          <a class="btn wm-donate-btn" href="${escapeHtml(donateUrl)}" target="_blank" rel="noopener">Make a donation</a>
+        </section>
+      </div>`;
+  }
+
+  /** Re-render just the Pro tab body (after a BYOK save/test/clear). */
+  private renderProSupportPanel(): void {
+    const panel = this.overlay.querySelector<HTMLElement>('#us-tab-panel-pro');
+    if (!panel) return;
+    setTrustedHtml(panel, trustedHtml(this.renderProSupportContent(), 'settings pro tab re-render'));
+    this.attachByokHandlers();
+  }
+
+  private attachByokHandlers(): void {
+    // Enter submits the row the caret is in.
+    this.overlay.querySelectorAll<HTMLInputElement>('[data-byok-input]').forEach((input) => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const provider = input.dataset.byokInput as ByokProviderId | undefined;
+        if (provider) this.handleByokSave(provider);
+      });
+    });
+  }
+
+  private readByokInput(provider: ByokProviderId): string {
+    const input = this.overlay.querySelector<HTMLInputElement>(`[data-byok-input="${provider}"]`);
+    return input?.value ?? '';
+  }
+
+  private setByokStatus(provider: ByokProviderId, ok: boolean, message: string): void {
+    this.byokStatus[provider] = { ok, message };
+    // Update in place when possible so the user's caret/scroll survives.
+    const el = this.overlay.querySelector<HTMLElement>(`[data-byok-status="${provider}"]`);
+    if (el) {
+      el.textContent = message;
+      el.classList.toggle('wm-byok-status--ok', ok);
+      el.classList.toggle('wm-byok-status--warn', !ok);
     }
+  }
+
+  private handleByokSave(provider: ByokProviderId): void {
+    const raw = this.readByokInput(provider);
+    const result = saveByokKey(provider, raw);
+    if (!result.valid) {
+      // Validation failures are the common case (empty paste, wrong prefix).
+      // Report them in the row, leave the field alone, save nothing.
+      this.setByokStatus(provider, false, result.hint ?? 'That key could not be saved.');
+      return;
+    }
+    this.byokStatus[provider] = { ok: true, message: 'Key saved in this browser. Briefs will use it from now on.' };
+    this.renderProSupportPanel();
+  }
+
+  private async handleByokTest(provider: ByokProviderId): Promise<void> {
+    // Test whatever is in the box; fall back to the stored key so "Test"
+    // works on its own after a reload.
+    const typed = this.readByokInput(provider).trim();
+    const stored = getByokKeyStates().find((s) => s.provider === provider)?.present ?? false;
+    if (!typed && !stored) {
+      this.setByokStatus(provider, false, 'Paste a key first, or save one.');
+      return;
+    }
+    this.setByokStatus(provider, true, 'Checking with the provider\u2026');
+    const { getByokKey } = await import('@/services/byok-keys');
+    const candidate = typed || getByokKey(provider) || '';
+    const result = await verifyByokKey(provider, candidate);
+    this.setByokStatus(provider, result.ok, result.message);
+  }
+
+  private handleByokClear(provider: ByokProviderId): void {
+    clearByokKey(provider);
+    this.byokStatus[provider] = { ok: true, message: 'Key removed from this browser.' };
+    this.renderProSupportPanel();
+  }
+
+  private renderUpgradeSection(): string {
     // Signed-in user whose Convex entitlement snapshot has not arrived yet
     // AND whose bounded-wait window has not expired. Rendering "Upgrade to
     // Pro" in this window is how paying users click through to
@@ -640,7 +917,14 @@ export class UnifiedSettings {
       // open().
       return '<div class="upgrade-pro-section upgrade-pro-loading" hidden aria-hidden="true"></div>';
     }
-    if (isEntitled()) {
+    // `isSupporter()`, not `isEntitled()`. In this fork `isEntitled()` is
+    // hard-wired true (every panel is unlocked for everyone by design), so
+    // keying the billing card off it showed an anonymous first-time visitor
+    // an active "Pro — Manage Billing" card and sent them to a Dodo portal
+    // that had never heard of them. `isSupporter()` reads the actual
+    // subscription/role facts, so this card now only appears for people who
+    // really are paying.
+    if (isSupporter()) {
       const sub = getSubscription();
       const planName = sub?.displayName ?? 'Pro';
       const statusBase = sub?.status === 'active' ? STATUS.good : sub?.status === 'on_hold' ? STATUS.watch : STATUS.alert;
@@ -689,18 +973,23 @@ export class UnifiedSettings {
     if (getAuthState().user && getEntitlementState() === null) {
       return `
         <div class="upgrade-pro-section upgrade-pro-fallback">
-          <div class="upgrade-pro-title">Upgrade to Pro</div>
-          <div class="upgrade-pro-desc">Unlock all panels, AI analysis, and priority data refresh.</div>
-          <a class="upgrade-pro-cta-link" href="/pro" target="_blank" rel="noopener">View plans →</a>
+          <div class="upgrade-pro-title">You\u2019re on the free plan</div>
+          <div class="upgrade-pro-desc">Every panel, layer and map mode is already unlocked. Pro adds more AI briefing and developer access.</div>
+          <a class="upgrade-pro-cta-link" href="/pro" target="_blank" rel="noopener">Compare plans \u2192</a>
         </div>
       `;
     }
 
+    // Free plan, snapshot settled. Deliberately NOT a second checkout
+    // button: the full story and the one upgrade action live on the
+    // Pro & Support tab, so this is a signpost, not a pitch. The old copy
+    // here ("Unlock all panels, AI analysis...") described a paywall this
+    // fork does not have and made the free app sound broken.
     return `
-      <div class="upgrade-pro-section">
-        <div class="upgrade-pro-title">Upgrade to Pro</div>
-        <div class="upgrade-pro-desc">Unlock all panels, AI analysis, and priority data refresh.</div>
-        <button class="upgrade-pro-cta">Upgrade to Pro</button>
+      <div class="upgrade-pro-section upgrade-pro-free">
+        <div class="upgrade-pro-title">You\u2019re on the free plan</div>
+        <div class="upgrade-pro-desc">Everything on this dashboard is unlocked. Pro adds more AI briefing, your own provider keys, and developer access.</div>
+        <button class="upgrade-pro-see-plans">See what Pro adds</button>
       </div>
     `;
   }
@@ -709,12 +998,16 @@ export class UnifiedSettings {
     // Defense in depth: the upgrade CTA can only be clicked when either (a)
     // the user is genuinely free-tier, or (b) the 12s fallback timer fired
     // before the Convex snapshot arrived. In (b), the snapshot might land
-    // AFTER the timer but BEFORE the click — re-check isEntitled() here so
-    // a late-arriving "you're a paying user" state routes to the billing
+    // AFTER the timer but BEFORE the click — re-check here so a
+    // late-arriving "you're a paying user" state routes to the billing
     // portal instead of triggering /api/create-checkout against an active
     // subscription (which would 409 and re-enter the duplicate_subscription
-    // → getCustomerPortalUrl cascade this PR is trying to eliminate).
-    if (isEntitled()) {
+    // → getCustomerPortalUrl cascade).
+    //
+    // Must be isSupporter(), not isEntitled(): the latter is always true in
+    // this fork, which would send every free user who clicks "Upgrade" to a
+    // customer portal that has no record of them instead of to checkout.
+    if (isSupporter()) {
       this.close();
       const reservedWin = prereserveBillingPortalTab();
       void openBillingPortal(reservedWin).then((result) => {
@@ -1099,7 +1392,10 @@ export class UnifiedSettings {
       // double-charge. Route entitled users to the billing portal instead (same
       // precedent as handleUpgradeClick); its no-customer outcome surfaces the
       // support path for a subscription managed outside Dodo.
-      if (isEntitled()) {
+      //
+      // isSupporter() rather than the fork's always-true isEntitled(), so a
+      // genuinely unsubscribed user still reaches checkout from this notice.
+      if (isSupporter()) {
         const reservedWin = prereserveBillingPortalTab();
         void openBillingPortal(reservedWin).then((result) => {
           if (result.outcome === 'no-customer') {

@@ -628,6 +628,10 @@ export class GlobeMap {
   private layerGroupsHandle: GroupedLayerPanelHandle | null = null;
   private tooltipEl: HTMLElement | null = null;
   private tooltipHideTimer: ReturnType<typeof setTimeout> | null = null;
+  // Live webcam playback inside the current tooltip. Held here because
+  // hideTooltip() is the one place every dismissal path converges on, and an
+  // undestroyed HLS instance keeps pulling segments after the popup is gone.
+  private webcamPlayer: { destroy(): void } | null = null;
   private satHoverStyle: HTMLStyleElement | null = null;
   private readonly chrome: boolean;
 
@@ -1809,7 +1813,7 @@ export class GlobeMap {
       attribution.style.cssText = 'opacity:.4;font-size:9px;margin-top:4px;';
       wrapper.appendChild(attribution);
 
-      import('@/services/webcams').then(({ fetchWebcamImage, getWebcamSource, getWebcamSourceUrl }) => {
+      import('@/services/webcams').then(({ fetchWebcamImage, getWebcamSource, getWebcamSourceUrl, getWebcamStream, createWebcamPlayer }) => {
         // Provider chrome is resolved from the id rather than hardcoded: the
         // layer mixes Windy with openly published agency cameras.
         const source = getWebcamSource(d.webcamId);
@@ -1823,28 +1827,62 @@ export class GlobeMap {
           if (resolvedHref) link.href = resolvedHref;
           else link.remove();
           previewDiv.replaceChildren();
-          if (img.thumbnailUrl) {
-            const imgEl = document.createElement('img');
-            imgEl.src = img.thumbnailUrl;
-            imgEl.style.cssText = 'width:200px;border-radius:4px;margin-bottom:4px;';
-            imgEl.loading = 'lazy';
-            // A camera the operator still lists but is no longer serving is the
-            // normal failure here, not an exception. Swap in a broken-camera
-            // line rather than leaving a torn image icon in the popup.
-            imgEl.addEventListener('error', () => {
-              if (!imgEl.isConnected) return;
-              const broken = document.createElement('span');
-              broken.style.cssText = 'opacity:.5;font-size:11px;';
-              broken.textContent = '\u{1F4F7}\u200A\u2715 Camera offline';
-              imgEl.replaceWith(broken);
+
+          const renderStill = (): void => {
+            if (img.thumbnailUrl) {
+              const imgEl = document.createElement('img');
+              imgEl.src = img.thumbnailUrl;
+              imgEl.style.cssText = 'width:200px;border-radius:4px;margin-bottom:4px;';
+              imgEl.loading = 'lazy';
+              // A camera the operator still lists but is no longer serving is the
+              // normal failure here, not an exception. Swap in a broken-camera
+              // line rather than leaving a torn image icon in the popup.
+              imgEl.addEventListener('error', () => {
+                if (!imgEl.isConnected) return;
+                const broken = document.createElement('span');
+                broken.style.cssText = 'opacity:.5;font-size:11px;';
+                broken.textContent = '\u{1F4F7}\u200A\u2715 Camera offline';
+                imgEl.replaceWith(broken);
+              });
+              previewDiv.appendChild(imgEl);
+            } else {
+              const span = document.createElement('span');
+              span.style.cssText = 'opacity:.5;font-size:11px;';
+              span.textContent = 'Preview unavailable';
+              previewDiv.appendChild(span);
+            }
+          };
+
+          // Caltrans and TfL publish a real stream next to the still. Play it,
+          // with the still as the poster so the frame is never blank, and put
+          // the plain still back on any failure — most Caltrans cameras are not
+          // publishing at any given moment, so that path is routine.
+          const stream = getWebcamStream(d.webcamId, img);
+          if (stream) {
+            const player = createWebcamPlayer({
+              stream,
+              posterUrl: img.thumbnailUrl,
+              width: 200,
+              onPlaying: () => {
+                // A feed the user is actually watching must not be yanked by
+                // the popup's auto-dismiss, nor by the mouse leaving it.
+                el.dataset.wmLivePlayback = '1';
+                if (this.tooltipHideTimer) { clearTimeout(this.tooltipHideTimer); this.tooltipHideTimer = null; }
+              },
+              onUnavailable: () => {
+                this.webcamPlayer = null;
+                if (!previewDiv.isConnected) return;
+                previewDiv.replaceChildren();
+                renderStill();
+              },
             });
-            previewDiv.appendChild(imgEl);
+            this.webcamPlayer?.destroy();
+            this.webcamPlayer = player;
+            previewDiv.appendChild(player.element);
           } else {
-            const span = document.createElement('span');
-            span.style.cssText = 'opacity:.5;font-size:11px;';
-            span.textContent = 'Preview unavailable';
-            previewDiv.appendChild(span);
+            renderStill();
           }
+
           const pinBtn = document.createElement('button');
           pinBtn.className = 'webcam-pin-btn';
           pinBtn.style.cssText = 'display:block;margin-top:4px;';
@@ -1888,6 +1926,10 @@ export class GlobeMap {
       if (this.tooltipHideTimer) { clearTimeout(this.tooltipHideTimer); this.tooltipHideTimer = null; }
     });
     el.addEventListener('mouseleave', () => {
+      // A live webcam that reached playback holds the popup open until the user
+      // closes it. Re-arming here would kill the stream the moment the cursor
+      // slid off, which is not how a video player is expected to behave.
+      if (el.dataset.wmLivePlayback === '1') return;
       this.tooltipHideTimer = setTimeout(() => this.hideTooltip(), 2000);
     });
 
@@ -1987,6 +2029,8 @@ export class GlobeMap {
 
   private hideTooltip(): void {
     if (this.tooltipHideTimer) { clearTimeout(this.tooltipHideTimer); this.tooltipHideTimer = null; }
+    this.webcamPlayer?.destroy();
+    this.webcamPlayer = null;
     this.tooltipEl?.remove();
     this.tooltipEl = null;
     this.popup?.hide();
