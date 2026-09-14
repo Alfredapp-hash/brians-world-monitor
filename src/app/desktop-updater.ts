@@ -4,6 +4,7 @@ import { trackUpdateShown, trackUpdateClicked, trackUpdateDismissed } from '@/se
 import { escapeHtml } from '@/utils/sanitize';
 import { getDismissed, setDismissed } from '@/utils/cross-domain-storage';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
+import { getRemoteApiBaseUrl } from '@/services/runtime';
 
 
 interface DesktopRuntimeInfo {
@@ -70,7 +71,8 @@ export class DesktopUpdater implements AppModule {
 
   private async checkForUpdate(): Promise<void> {
     try {
-      const res = await fetch('https://brians-world-monitor.vercel.app/api/version', {
+      const apiBase = getRemoteApiBaseUrl();
+      const res = await fetch(apiBase ? `${apiBase}/api/version` : '/api/version', {
         signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) {
@@ -153,7 +155,9 @@ export class DesktopUpdater implements AppModule {
       const platform = this.mapDesktopDownloadPlatform(runtimeInfo.os, runtimeInfo.arch);
       if (platform) {
         const variant = this.getDesktopBuildVariant();
-        return `https://brians-world-monitor.vercel.app/api/download?platform=${platform}&variant=${variant}`;
+        const remote = getRemoteApiBaseUrl();
+        const path = `/api/download?platform=${platform}&variant=${variant}`;
+        return remote ? `${remote}${path}` : path;
       }
     } catch {
       // Silent fallback to release page when desktop runtime info is unavailable.

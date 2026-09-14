@@ -27,6 +27,7 @@ import {
   type RuntimeSecretKey,
 } from '@/services/runtime-config';
 import { getApiBaseUrl, isDesktopRuntime, resolveLocalApiPort, startSmartPollLoop, type SmartPollLoopHandle } from '@/services/runtime';
+import { PUBLIC_PRO_URL } from '@/config/brand';
 import { tryInvokeTauri, invokeTauri } from '@/services/tauri-bridge';
 import { escapeHtml } from '@/utils/sanitize';
 import { initI18n, t } from '@/services/i18n';
@@ -266,7 +267,7 @@ function initOverviewListeners(area: HTMLElement): void {
   });
 
   area.querySelector('[data-wm-open-pro]')?.addEventListener('click', () => {
-    const url = 'https://brians-world-monitor.vercel.app/pro';
+    const url = PUBLIC_PRO_URL;
     void invokeTauri<void>('open_url', { url }).catch(() => window.open(url, '_blank', 'noopener,noreferrer'));
   });
 

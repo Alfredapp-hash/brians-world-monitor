@@ -1,3 +1,5 @@
+import { PUBLIC_ORIGIN } from '@/config/brand';
+
 export const roundMs = (n: number | undefined): number | undefined =>
   typeof n === 'number' && Number.isFinite(n) ? Math.round(n) : undefined;
 
@@ -62,7 +64,7 @@ export function getWebVitalsFormFactor(): WebVitalsFormFactor {
 export function sanitizeWebVitalUrl(raw: string | undefined): string {
   if (!raw) return '';
   try {
-    const url = new URL(raw, typeof window !== 'undefined' ? window.location.href : 'https://brians-world-monitor.vercel.app/');
+    const url = new URL(raw, typeof window !== 'undefined' ? window.location.href : `${PUBLIC_ORIGIN}/`);
     const query = url.search ? '?[redacted]' : '';
     return `${url.origin}${url.pathname}${query}`;
   } catch {

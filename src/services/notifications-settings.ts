@@ -22,6 +22,7 @@ import { getCurrentClerkUser } from '@/services/clerk';
 import { hasTier } from '@/services/entitlements';
 import { getMarketWatchlistEntries } from '@/services/market-watchlist';
 import { SITE_VARIANT } from '@/config/variant';
+import { PUBLIC_ORIGIN, PUBLIC_PRO_URL, PUBLIC_WWW_ORIGIN } from '@/config/brand';
 import { mountCountryChipPicker, loadFollowedCountriesSafe, type CountryChipPickerHandle } from '@/utils/country-chip-picker';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 
@@ -112,12 +113,12 @@ export function renderNotificationsSettings(host: NotificationsSettingsHost): No
           upgradeBtn.addEventListener('click', () => {
             if (!host.isSignedIn) {
               import('@/services/clerk').then(m => m.openSignIn()).catch(() => {
-                window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer');
+                window.open(PUBLIC_PRO_URL, '_blank', 'noopener,noreferrer');
               });
               return;
             }
             import('@/services/checkout').then(m => import('@/config/products').then(p => m.startCheckout(p.DEFAULT_UPGRADE_PRODUCT))).catch(() => {
-              window.open('https://brians-world-monitor.vercel.app/pro', '_blank', 'noopener,noreferrer');
+              window.open(PUBLIC_PRO_URL, '_blank', 'noopener,noreferrer');
             });
           }, { signal });
         }
@@ -1061,8 +1062,9 @@ export function renderNotificationsSettings(host: NotificationsSettingsHost): No
         // Fork: this app only ever runs on the Vercel project domain (no
         // custom domain / subdomains yet) — never trust the upstream
         // worldmonitor.app domain, which this fork does not own or control.
-        const trustedOrigin = e.origin === window.location.origin ||
-          e.origin === 'https://brians-world-monitor.vercel.app';
+        const trustedOrigin = e.origin === window.location.origin
+          || e.origin === PUBLIC_ORIGIN
+          || e.origin === PUBLIC_WWW_ORIGIN;
         const fromSlack = slackOAuthPopup !== null && e.source === slackOAuthPopup;
         const fromDiscord = discordOAuthPopup !== null && e.source === discordOAuthPopup;
         if (!trustedOrigin || (!fromSlack && !fromDiscord)) return;

@@ -126,7 +126,7 @@ describe('CSP violation filter (shouldSuppressCspViolation)', () => {
     });
 
     it('does NOT suppress http default-src block to our own host (real mixed-content regression)', () => {
-      assert.ok(!suppress('enforce', 'default-src', 'http://brians-world-monitor.vercel.app/asset.json', '', false));
+      assert.ok(!suppress('enforce', 'default-src', 'http://thepublicdispatch.com/asset.json', '', false));
     });
 
     it('does NOT suppress an https default-src block (still potential signal)', () => {
@@ -134,8 +134,8 @@ describe('CSP violation filter (shouldSuppressCspViolation)', () => {
     });
 
     it('does NOT let a suffix-spoof lookalike bypass the first-party gate', () => {
-      // brians-world-monitor.vercel.app.evil.com is third-party → http block IS suppressed (it is not us).
-      assert.ok(suppress('enforce', 'default-src', 'http://brians-world-monitor.vercel.app.evil.com/x', '', false));
+      // thepublicdispatch.com.evil.com is third-party → http block IS suppressed (it is not us).
+      assert.ok(suppress('enforce', 'default-src', 'http://thepublicdispatch.com.evil.com/x', '', false));
     });
   });
 
@@ -438,7 +438,7 @@ describe('CSP violation filter (shouldSuppressCspViolation)', () => {
     // causing browsers to block our own favicon and panel icons even though our
     // policy (`img-src 'self' data: blob: https:`) allows them (WORLDMONITOR-JP).
     it('suppresses img-src to our own deployment host (favicon, WORLDMONITOR-JP)', () => {
-      assert.ok(suppress('enforce', 'img-src', 'https://brians-world-monitor.vercel.app/favico/favicon-32x32.png', '', false, FIRST_PARTY_CONVEX));
+      assert.ok(suppress('enforce', 'img-src', 'https://thepublicdispatch.com/favico/favicon-32x32.png', '', false, FIRST_PARTY_CONVEX));
     });
 
     it('does NOT suppress img-src to a foreign host', () => {
@@ -448,24 +448,24 @@ describe('CSP violation filter (shouldSuppressCspViolation)', () => {
 
     it('does NOT suppress img-src to suffix-spoof lookalike host', () => {
       // Exact-hostname match — attacker-controlled lookalikes
-      // (`brians-world-monitor.vercel.app.evil.com`, `not-brians-world-monitor.vercel.app`) are not whitelisted.
-      assert.ok(!suppress('enforce', 'img-src', 'https://brians-world-monitor.vercel.app.evil.com/pixel.gif', '', false, FIRST_PARTY_CONVEX));
+      // (`thepublicdispatch.com.evil.com`, `not-thepublicdispatch.com`) are not whitelisted.
+      assert.ok(!suppress('enforce', 'img-src', 'https://thepublicdispatch.com.evil.com/pixel.gif', '', false, FIRST_PARTY_CONVEX));
     });
 
     it('does NOT suppress img-src to prefix-spoof lookalike host', () => {
-      assert.ok(!suppress('enforce', 'img-src', 'https://not-brians-world-monitor.vercel.app/pixel.gif', '', false, FIRST_PARTY_CONVEX));
+      assert.ok(!suppress('enforce', 'img-src', 'https://not-thepublicdispatch.com/pixel.gif', '', false, FIRST_PARTY_CONVEX));
     });
 
     it('does NOT suppress connect-src to our own host (rule is scoped to img-src)', () => {
       // First-party img-src rule must not bleed into other directives.
       // A real connect-src regression to our own host must still surface.
-      assert.ok(!suppress('enforce', 'connect-src', 'https://brians-world-monitor.vercel.app/api/health', '', false, FIRST_PARTY_CONVEX));
+      assert.ok(!suppress('enforce', 'connect-src', 'https://thepublicdispatch.com/api/health', '', false, FIRST_PARTY_CONVEX));
     });
 
     it('does NOT suppress script-src to our own host (rule is scoped to img-src)', () => {
       // A script-src block on our own host indicates a real CSP regression
       // we want to see — must not be swallowed by the img-src rule.
-      assert.ok(!suppress('enforce', 'script-src', 'https://brians-world-monitor.vercel.app/assets/main-abc.js', '', false, FIRST_PARTY_CONVEX));
+      assert.ok(!suppress('enforce', 'script-src', 'https://thepublicdispatch.com/assets/main-abc.js', '', false, FIRST_PARTY_CONVEX));
     });
 
     // Mixed-content / wrong-scheme regression guard. Our CSP only allows `https:`
@@ -473,13 +473,13 @@ describe('CSP violation filter (shouldSuppressCspViolation)', () => {
     // first-party host would be blocked by the browser. The first-party host
     // suppression MUST NOT hide that signal — it requires `https:` explicitly.
     it('does NOT suppress http:// img-src to our own host (mixed-content regression must surface)', () => {
-      assert.ok(!suppress('enforce', 'img-src', 'http://brians-world-monitor.vercel.app/favico/favicon-32x32.png', '', false, FIRST_PARTY_CONVEX));
+      assert.ok(!suppress('enforce', 'img-src', 'http://thepublicdispatch.com/favico/favicon-32x32.png', '', false, FIRST_PARTY_CONVEX));
     });
 
     it('does NOT suppress ws:// img-src to our own host (only https: is whitelisted)', () => {
       // ws:// is not a valid img source but a malformed reference could trigger
       // a violation; protocol gate must reject anything other than https:.
-      assert.ok(!suppress('enforce', 'img-src', 'ws://brians-world-monitor.vercel.app/socket', '', false, FIRST_PARTY_CONVEX));
+      assert.ok(!suppress('enforce', 'img-src', 'ws://thepublicdispatch.com/socket', '', false, FIRST_PARTY_CONVEX));
     });
   });
 

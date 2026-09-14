@@ -13,12 +13,13 @@
  *      load the REAL `client_name` + `redirect_host`.
  *   4. Render the consent card (real metadata so users can spot phishing).
  *   5. On Authorize click: POST /api/internal/mcp-grant-mint {nonce}
- *      with Bearer JWT, navigate to the returned `redirect` URL (always
- *      `https://brians-world-monitor.vercel.app/oauth/authorize-pro?...` —
- *      the apex page never controls the host).
+ *      with Bearer JWT, navigate to the returned `redirect` URL (the live
+ *      paper host, or the retired Vercel host until mint is updated).
+ *      The apex page never controls the host.
  */
 
 import { initClerk, getClerkToken, getCurrentClerkUser, openSignIn, subscribeClerk } from '@/services/clerk';
+import { PUBLIC_ORIGIN, PUBLIC_WWW_ORIGIN } from '@/config/brand';
 
 // Apply user's saved theme preference. Inlined here (not the index.html head)
 // because the page's global CSP is hash-allowlisted and adding per-page
@@ -195,7 +196,15 @@ async function onAuthorizeClick(nonce: string): Promise<void> {
     showErrorView('The authorization service returned an invalid redirect.');
     return;
   }
-  if (target.origin !== 'https://brians-world-monitor.vercel.app') {
+  const allowedOrigins = new Set([
+    PUBLIC_ORIGIN,
+    PUBLIC_WWW_ORIGIN,
+    window.location.origin,
+    // Mint still hard-codes this host (api/internal/mcp-grant-mint.ts) until
+    // a later backend PR. Accept it so grant still completes.
+    'https://brians-world-monitor.vercel.app',
+  ]);
+  if (!allowedOrigins.has(target.origin)) {
     showErrorView('The authorization service returned an unexpected redirect host.');
     return;
   }

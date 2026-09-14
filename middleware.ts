@@ -75,40 +75,42 @@ const VARIANT_OG: Record<string, { name: string; title: string; description: str
     name: 'Tech Monitor',
     title: 'Tech Monitor - Real-Time AI & Tech Industry Dashboard',
     description: 'Real-time AI and tech industry dashboard tracking tech giants, AI labs, startup ecosystems, funding rounds, and tech events worldwide.',
-    image: 'https://brians-world-monitor.vercel.app/favico/tech/og-image.png',
-    url: 'https://brians-world-monitor.vercel.app/dashboard',
+    image: 'https://thepublicdispatch.com/favico/tech/og-image.png',
+    url: 'https://thepublicdispatch.com/dashboard',
   },
   finance: {
     name: 'Finance Monitor',
     title: 'Finance Monitor - Real-Time Markets & Trading Dashboard',
     description: 'Real-time finance and trading dashboard tracking global markets, stock exchanges, central banks, commodities, forex, crypto, and economic indicators worldwide.',
-    image: 'https://brians-world-monitor.vercel.app/favico/finance/og-image.png',
-    url: 'https://brians-world-monitor.vercel.app/dashboard',
+    image: 'https://thepublicdispatch.com/favico/finance/og-image.png',
+    url: 'https://thepublicdispatch.com/dashboard',
   },
   commodity: {
     name: 'Commodity Monitor',
     title: 'Commodity Monitor - Real-Time Commodity Markets & Supply Chain Dashboard',
     description: 'Real-time commodity markets dashboard tracking mining sites, processing plants, commodity ports, supply chains, and global commodity trade flows.',
-    image: 'https://brians-world-monitor.vercel.app/favico/commodity/og-image.png',
-    url: 'https://brians-world-monitor.vercel.app/dashboard',
+    image: 'https://thepublicdispatch.com/favico/commodity/og-image.png',
+    url: 'https://thepublicdispatch.com/dashboard',
   },
   happy: {
     name: 'Happy Monitor',
     title: 'Happy Monitor - Good News & Global Progress',
     description: 'Curated positive news, progress data, and uplifting stories from around the world.',
-    image: 'https://brians-world-monitor.vercel.app/favico/happy/og-image.png',
-    url: 'https://brians-world-monitor.vercel.app/dashboard',
+    image: 'https://thepublicdispatch.com/favico/happy/og-image.png',
+    url: 'https://thepublicdispatch.com/dashboard',
   },
   energy: {
     name: 'Energy Atlas',
     title: 'Energy Atlas - Real-Time Global Energy Intelligence Dashboard',
     description: 'Real-time global energy atlas tracking oil and gas pipelines, storage facilities, chokepoints, fuel shortages, tanker flows, and disruption events worldwide.',
-    image: 'https://brians-world-monitor.vercel.app/favico/energy/og-image.png',
-    url: 'https://brians-world-monitor.vercel.app/dashboard',
+    image: 'https://thepublicdispatch.com/favico/energy/og-image.png',
+    url: 'https://thepublicdispatch.com/dashboard',
   },
 };
 
 const ALLOWED_HOSTS = new Set([
+  'thepublicdispatch.com',
+  'www.thepublicdispatch.com',
   'brians-world-monitor.vercel.app',
   ...Object.keys(VARIANT_HOST_MAP),
 ]);
@@ -196,7 +198,7 @@ export default function middleware(request: Request) {
             isPartOf: {
               '@type': 'WebSite',
               name: "JSA's Monitor",
-              url: 'https://brians-world-monitor.vercel.app/',
+              url: 'https://thepublicdispatch.com/',
             },
             sameAs: [
               'https://github.com/Alfredapp-hash/brians-world-monitor',
@@ -208,7 +210,7 @@ export default function middleware(request: Request) {
 <p>${eDesc}</p>
 <h2>Explore the platform</h2>
 <ul>
-<li><a href="https://brians-world-monitor.vercel.app/dashboard">JSA's Monitor — geopolitics &amp; intelligence</a></li>
+<li><a href="https://thepublicdispatch.com/dashboard">The Public Dispatch — geopolitics &amp; intelligence</a></li>
 <li><a href="https://github.com/Alfredapp-hash/brians-world-monitor">Open source on GitHub</a></li>
 </ul>
 <h2>Sources</h2>
