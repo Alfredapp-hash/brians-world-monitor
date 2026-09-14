@@ -26,15 +26,17 @@ export class OsintCatalogPanel extends Panel {
     });
     this.element.classList.add('panel-tall');
     this.content.addEventListener('input', (event) => {
+      const search = this.searchInput;
       const target = event.target as HTMLElement | null;
-      if (target !== this.searchInput) return;
-      this.query = this.searchInput.value;
+      if (!search || target !== search) return;
+      this.query = search.value;
       this.paintResults();
     });
     this.content.addEventListener('change', (event) => {
+      const select = this.categorySelect;
       const target = event.target as HTMLElement | null;
-      if (target !== this.categorySelect) return;
-      this.categoryId = this.categorySelect.value || 'all';
+      if (!select || target !== select) return;
+      this.categoryId = select.value || 'all';
       this.paintResults();
     });
     void this.load();
