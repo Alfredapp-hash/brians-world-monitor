@@ -10,6 +10,10 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  # Only health / wm-session / bootstrap belong in this directory.
+  # Shared helpers live in netlify/lib/ so Netlify does not treat them
+  # as function entries. Tests must not live under netlify/functions/
+  # (a name like netlify-api.test is rejected: dots are not allowed).
 
 # Same-origin /api/health, /api/wm-session, and /api/bootstrap are
 # Netlify Functions (netlify/functions/{health,wm-session,bootstrap}.js).
