@@ -1823,3 +1823,93 @@
   color: var(--accent, #60a5fa);
   font-variant-numeric: tabular-nums;
 }
+
+.cdp-rights .cdp-card-body {
+  gap: 12px;
+}
+
+.cdp-rights-instrument-name {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  color: var(--text);
+}
+
+.cdp-rights-instrument-year {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.cdp-rights-instrument-note,
+.cdp-rights-unindexed,
+.cdp-rights-disclaimer,
+.cdp-rights-item-summary {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.cdp-rights-group-title {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.cdp-rights-list,
+.cdp-rights-source-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cdp-rights-item {
+  padding: 8px 10px;
+  border: 1px solid var(--wm-hairline, var(--border-subtle));
+  border-radius: var(--wm-radius-chip, 6px);
+  background: var(--wm-plate-inset, var(--bg));
+}
+
+.cdp-rights-item-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cdp-rights-item-source,
+.cdp-rights-source-link,
+.cdp-rights-osint {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cdp-rights-item-source:hover,
+.cdp-rights-source-link:hover,
+.cdp-rights-osint:hover {
+  color: var(--text);
+}
+
+.cdp-rights-sources-label {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.cdp-rights-footer {
+  border-top: 1px solid var(--wm-hairline, var(--border-subtle));
+  padding-top: 8px;
+}

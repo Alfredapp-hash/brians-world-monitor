@@ -271,6 +271,8 @@ export const COMMANDS: Command[] = [
   { id: 'view:fullscreen', keywords: ['fullscreen', 'full screen'], label: 'Toggle fullscreen', icon: '\u26F6', category: 'view' },
   { id: 'view:settings', keywords: ['settings', 'config', 'api keys'], label: 'Open settings', icon: '\u2699\uFE0F', category: 'view' },
   { id: 'view:refresh', keywords: ['refresh', 'reload', 'refresh all'], label: 'Refresh all data', icon: '\u{1F504}', category: 'view' },
+  { id: 'view:support', keywords: ['pro', 'upgrade', 'plan', 'billing', 'subscription', 'api key', 'byok', 'bring your own key'], label: 'Pro & support options', icon: '\u2665', category: 'view' },
+  { id: 'view:donate', keywords: ['donate', 'donation', 'support the project', 'sponsor', 'tip'], label: 'Donate to the project', icon: '\u{1F381}', category: 'view' },
   { id: 'view:resilience', keywords: ['resilience', 'resilience score', 'baseline', 'stress', 'country resilience'], label: 'Toggle resilience score', icon: '\u{1F6E1}\uFE0F', category: 'view' },
   { id: 'view:route-explorer', keywords: ['route', 'explorer', 'ship', 'shipping', 'freight', 'cargo', 'lane', 'hs code', 'hs2', 'import', 'export', 'plan a shipment'], label: 'Route Explorer \u2014 plan a shipment', icon: '\u{1F6A2}', category: 'view' },
 

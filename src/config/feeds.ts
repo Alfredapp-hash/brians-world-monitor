@@ -1167,8 +1167,11 @@ export const DEFAULT_ENABLED_SOURCES: Record<string, string[]> = {
   archaeology: ['Archaeology Magazine', 'HeritageDaily', 'Ancient Origins', 'Sci.News Archaeology', 'Smithsonian Archaeology', 'The Past', 'Phys.org Archaeology', 'Archaeology News'],
 };
 
+// 'Breaking Defense' is intentionally absent: INTEL_SOURCES carries no feed by
+// that name, so listing it here could never enable anything — it only tripped
+// the validator below with a console.error on every boot.
 export const DEFAULT_ENABLED_INTEL: string[] = [
-  'Defense One', 'Breaking Defense', 'The War Zone', 'Defense News',
+  'Defense One', 'The War Zone', 'Defense News',
   'Military Times', 'USNI News', 'Bellingcat', 'Krebs Security',
 ];
 

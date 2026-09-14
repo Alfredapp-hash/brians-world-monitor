@@ -53,6 +53,8 @@ import { exportCountryEvidenceMarkdown } from '@/utils/export';
 import type { CountryEvidenceBundleInput } from '@/utils/export';
 import { ciiBandForLevel } from './CountryDeepDivePanel-cii';
 import { CATEGORY, NEUTRAL } from '@/styles/tokens';
+import { getCountryRights, type RightsClause } from '@/data/country-rights';
+import { BRAND } from '@/config/brand';
 
 const DEPENDENCY_FLAG_LABELS: Record<string, { text: string; cls: string }> = {
   DEPENDENCY_FLAG_SINGLE_SOURCE_CRITICAL:   { text: 'Single Source',   cls: 'cdp-dep-critical' },
@@ -2541,6 +2543,8 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     const factsExpanded = this.el('div', 'cdp-expanded-only');
     factsExpanded.append(factsCard);
 
+    const rightsCard = this.renderRightsCard(code, country);
+
     const [energyCard, energyBody] = this.sectionCard('Energy Profile', 'Oil import dependency, chokepoint exposure, and energy shock data from JODI, IEA, and PortWatch.');
     this.energyBody = energyBody;
     energyBody.append(this.makeLoading('Loading energy data\u2026'));
@@ -2623,7 +2627,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     marketsBody.append(this.makeLoading(t('countryBrief.loadingMarkets')));
     briefBody.append(this.makeLoading(t('countryBrief.generatingBrief')));
 
-    bodyGrid.append(briefCard, ...(chinaSummaryCard ? [chinaSummaryCard] : []), factsExpanded, energyCard, maritimeCard, tradeCard, costShockCalcCard, productImportsCard, debtCard, sanctionsCard, comtradeCard, tariffCard, signalsCard, timelineCard, newsCard, militaryCard, infraCard, economicCard, housingCard, marketsCard);
+    bodyGrid.append(briefCard, rightsCard, ...(chinaSummaryCard ? [chinaSummaryCard] : []), factsExpanded, energyCard, maritimeCard, tradeCard, costShockCalcCard, productImportsCard, debtCard, sanctionsCard, comtradeCard, tariffCard, signalsCard, timelineCard, newsCard, militaryCard, infraCard, economicCard, housingCard, marketsCard);
     shell.append(header, summaryGrid, bodyGrid);
     this.content.append(shell);
   }
@@ -3042,6 +3046,88 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     panel.append(shell);
     document.body.append(panel);
     return panel;
+  }
+
+  private renderRightsCard(code: string, name: string): HTMLElement {
+    const record = getCountryRights(code, name);
+    const [card, body] = this.sectionCard(t('countryBrief.rights'), t('countryBrief.rightsHelp'));
+    card.classList.add('cdp-rights');
+    card.setAttribute('aria-label', t('countryBrief.rights'));
+
+    const instrument = this.el('div', 'cdp-rights-instrument');
+    const instName = this.el('div', 'cdp-rights-instrument-name', record.instrument.name);
+    instrument.append(instName);
+    if (record.instrument.year) {
+      instrument.append(this.el('div', 'cdp-rights-instrument-year', String(record.instrument.year)));
+    }
+    if (record.instrument.note) {
+      instrument.append(this.el('p', 'cdp-rights-instrument-note', record.instrument.note));
+    }
+    body.append(instrument);
+
+    if (record.coverage === 'links-only') {
+      body.append(this.el('p', 'cdp-rights-unindexed', t('countryBrief.rightsNotIndexed')));
+    }
+
+    const addGroup = (title: string, items: RightsClause[]) => {
+      if (items.length === 0) return;
+      const group = this.el('div', 'cdp-rights-group');
+      group.append(this.el('h4', 'cdp-rights-group-title', title));
+      const list = this.el('ul', 'cdp-rights-list');
+      for (const item of items) {
+        const li = this.el('li', 'cdp-rights-item');
+        li.append(this.el('div', 'cdp-rights-item-title', item.title));
+        if (item.summary && item.summary !== item.title) {
+          li.append(this.el('p', 'cdp-rights-item-summary', item.summary));
+        }
+        const sourceLink = this.httpLink('cdp-rights-item-source', 'Source', item.sourceUrl);
+        if (sourceLink) li.append(sourceLink);
+        list.append(li);
+      }
+      group.append(list);
+      body.append(group);
+    };
+
+    addGroup(t('countryBrief.rightsCitizens'), record.citizens);
+    addGroup(t('countryBrief.rightsPersons'), record.persons);
+    addGroup(t('countryBrief.rightsTravel'), record.travel);
+
+    const sources = this.el('div', 'cdp-rights-sources');
+    sources.append(this.el('div', 'cdp-rights-sources-label', 'Primary sources'));
+    const sourceList = this.el('ul', 'cdp-rights-source-list');
+    for (const s of record.sources) {
+      const a = this.httpLink('cdp-rights-source-link', s.label, s.url);
+      if (!a) continue;
+      const li = this.el('li');
+      li.append(a);
+      sourceList.append(li);
+    }
+    sources.append(sourceList);
+    body.append(sources);
+
+    const footer = this.el('div', 'cdp-rights-footer');
+    footer.append(this.el('p', 'cdp-rights-disclaimer', t('countryBrief.rightsDisclaimer')));
+    const tools = this.el('a', 'cdp-rights-osint', t('countryBrief.rightsOsint'));
+    tools.setAttribute('href', BRAND.osint4all);
+    tools.rel = 'noopener';
+    footer.append(tools);
+    body.append(footer);
+    return card;
+  }
+
+  private httpLink(className: string, label: string, url: string | undefined): HTMLAnchorElement | null {
+    if (!url) return null;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+      const a = this.el('a', className, label);
+      a.setAttribute('href', parsed.toString());
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      return a;
+    } catch {
+      return null;
+    }
   }
 
   private sectionCard(title: string, helpText?: string): [HTMLElement, HTMLElement] {

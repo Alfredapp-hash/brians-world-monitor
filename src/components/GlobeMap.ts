@@ -27,6 +27,7 @@ import { BRAND as BRAND_COLORS, STATUS, SEVERITY, SEVERITY_RAMP, CATEGORY, NEUTR
 import { t } from '@/services/i18n';
 import { SITE_VARIANT } from '@/config/variant';
 import { getGlobeRenderScale, resolveGlobePixelRatio, resolvePerformanceProfile, subscribeGlobeRenderScaleChange, getGlobeTexture, setGlobeTexture, GLOBE_TEXTURE_URLS, GLOBE_TEXTURE_OPTIONS, subscribeGlobeTextureChange, getGlobeVisualPreset, subscribeGlobeVisualPresetChange, getGlobeAutoRotate, setGlobeAutoRotate, type GlobeRenderScale, type GlobePerformanceProfile, type GlobeVisualPreset, type GlobeTexture } from '@/services/globe-render-settings';
+import { buildGlobeTileUrlFn, getGlobeDrapeMaxLevel, getSatelliteSource, isSatelliteImageryActive, setBasemapImagery } from '@/config/satellite-imagery';
 import {
   getLayerExplanation,
   getLayersForVariant,
@@ -514,7 +515,10 @@ export class GlobeMap {
   private extrasAnimFrameId: number | null = null;
   // GLOBE · WS: shared light rig (both presets) + surface-detail textures
   private sunLight: any = null;
+  private ambientLight: any = null;
   private lightRigHandler: (() => void) | null = null;
+  /** True while real imagery tiles are draped on the sphere (see applySatelliteDrape). */
+  private satelliteDrapeActive = false;
   private waterSpecTex: any = null;
   private waterRoughTex: any = null;
   private waterTexPromise: Promise<{ spec: any; rough: any } | null> | null = null;
@@ -628,6 +632,10 @@ export class GlobeMap {
   private layerGroupsHandle: GroupedLayerPanelHandle | null = null;
   private tooltipEl: HTMLElement | null = null;
   private tooltipHideTimer: ReturnType<typeof setTimeout> | null = null;
+  // Live webcam playback inside the current tooltip. Held here because
+  // hideTooltip() is the one place every dismissal path converges on, and an
+  // undestroyed HLS instance keeps pulling segments after the popup is gone.
+  private webcamPlayer: { destroy(): void } | null = null;
   private satHoverStyle: HTMLStyleElement | null = null;
   private readonly chrome: boolean;
 
@@ -734,9 +742,15 @@ export class GlobeMap {
     // jsam-terrain-mode preference in here would fight that dedicated texture
     // picker, so the globe intentionally keeps its own setting; the flat-map
     // hillshade/waterways treatment (DeckGLMap) is the terrain deliverable.
+    // Satellite drape is the default surface (see satellite-imagery.ts). The
+    // static equirectangular textures stay as the alternative for readers who
+    // want the art-directed Earth, and as the offline/no-network surface.
+    this.satelliteDrapeActive = isSatelliteImageryActive();
     const initialTexture = getGlobeTexture();
     globe
-      .globeImageUrl(GLOBE_TEXTURE_URLS[initialTexture])
+      // Skipped entirely while draping: the tile engine hides the textured
+      // sphere, so loading a 700KB albedo for an invisible mesh is pure cost.
+      .globeImageUrl(this.satelliteDrapeActive ? null : GLOBE_TEXTURE_URLS[initialTexture])
       // Starfield backdrop — the shipped 4096×2048 night-sky.png (previously
       // loaded by nobody: backgroundImageUrl('') left it dead weight).
       .backgroundImageUrl(NIGHT_SKY_URL)
@@ -745,6 +759,8 @@ export class GlobeMap {
       .width(initW)
       .height(initH)
       .pathTransitionDuration(0);
+
+    if (this.satelliteDrapeActive) this.applySatelliteDrape(globe);
 
     // Orbit controls — match Sentinel's settings
     const controls = globe.controls() as GlobeControlsLike;
@@ -811,6 +827,9 @@ export class GlobeMap {
     // the new one has actually been applied (three-globe loads async).
     this.unsubscribeGlobeTexture = subscribeGlobeTextureChange((texture) => {
       if (!this.globe) return;
+      // A texture change while draping would fetch an albedo for a hidden mesh.
+      // The preference is still recorded, and takes effect when drape goes off.
+      if (this.satelliteDrapeActive) { this.syncQuickControls(); return; }
       const mat = this.globe.globeMaterial() as any;
       const oldMap = mat?.map ?? null;
       this.globe.globeImageUrl(GLOBE_TEXTURE_URLS[texture]);
@@ -1800,34 +1819,85 @@ export class GlobeMap {
       wrapper.appendChild(previewDiv);
 
       const link = document.createElement('a');
-      link.href = `https://www.windy.com/webcams/${encodeURIComponent(d.webcamId)}`;
       link.target = '_blank';
       link.rel = 'noopener';
       link.style.cssText = 'display:block;color:var(--accent);font-size:11px;text-decoration:none;';
-      link.textContent = 'Open on Windy \u2197';
       wrapper.appendChild(link);
 
       const attribution = document.createElement('div');
       attribution.style.cssText = 'opacity:.4;font-size:9px;margin-top:4px;';
-      attribution.textContent = 'Powered by Windy';
       wrapper.appendChild(attribution);
 
-      import('@/services/webcams').then(({ fetchWebcamImage }) => {
+      import('@/services/webcams').then(({ fetchWebcamImage, getWebcamSource, getWebcamSourceUrl, getWebcamStream, createWebcamPlayer }) => {
+        // Provider chrome is resolved from the id rather than hardcoded: the
+        // layer mixes Windy with openly published agency cameras.
+        const source = getWebcamSource(d.webcamId);
+        attribution.textContent = source.attribution;
+        link.textContent = source.linkLabel;
+        link.href = getWebcamSourceUrl(d.webcamId);
+
         fetchWebcamImage(d.webcamId).then(img => {
           if (!el.isConnected) return;
+          const resolvedHref = getWebcamSourceUrl(d.webcamId, img);
+          if (resolvedHref) link.href = resolvedHref;
+          else link.remove();
           previewDiv.replaceChildren();
-          if (img.thumbnailUrl) {
-            const imgEl = document.createElement('img');
-            imgEl.src = img.thumbnailUrl;
-            imgEl.style.cssText = 'width:200px;border-radius:4px;margin-bottom:4px;';
-            imgEl.loading = 'lazy';
-            previewDiv.appendChild(imgEl);
+
+          const renderStill = (): void => {
+            if (img.thumbnailUrl) {
+              const imgEl = document.createElement('img');
+              imgEl.src = img.thumbnailUrl;
+              imgEl.style.cssText = 'width:200px;border-radius:4px;margin-bottom:4px;';
+              imgEl.loading = 'lazy';
+              // A camera the operator still lists but is no longer serving is the
+              // normal failure here, not an exception. Swap in a broken-camera
+              // line rather than leaving a torn image icon in the popup.
+              imgEl.addEventListener('error', () => {
+                if (!imgEl.isConnected) return;
+                const broken = document.createElement('span');
+                broken.style.cssText = 'opacity:.5;font-size:11px;';
+                broken.textContent = '\u{1F4F7}\u200A\u2715 Camera offline';
+                imgEl.replaceWith(broken);
+              });
+              previewDiv.appendChild(imgEl);
+            } else {
+              const span = document.createElement('span');
+              span.style.cssText = 'opacity:.5;font-size:11px;';
+              span.textContent = 'Preview unavailable';
+              previewDiv.appendChild(span);
+            }
+          };
+
+          // Caltrans and TfL publish a real stream next to the still. Play it,
+          // with the still as the poster so the frame is never blank, and put
+          // the plain still back on any failure — most Caltrans cameras are not
+          // publishing at any given moment, so that path is routine.
+          const stream = getWebcamStream(d.webcamId, img);
+          if (stream) {
+            const player = createWebcamPlayer({
+              stream,
+              posterUrl: img.thumbnailUrl,
+              width: 200,
+              onPlaying: () => {
+                // A feed the user is actually watching must not be yanked by
+                // the popup's auto-dismiss, nor by the mouse leaving it.
+                el.dataset.wmLivePlayback = '1';
+                if (this.tooltipHideTimer) { clearTimeout(this.tooltipHideTimer); this.tooltipHideTimer = null; }
+              },
+              onUnavailable: () => {
+                this.webcamPlayer = null;
+                if (!previewDiv.isConnected) return;
+                previewDiv.replaceChildren();
+                renderStill();
+              },
+            });
+            this.webcamPlayer?.destroy();
+            this.webcamPlayer = player;
+            previewDiv.appendChild(player.element);
           } else {
-            const span = document.createElement('span');
-            span.style.cssText = 'opacity:.5;font-size:11px;';
-            span.textContent = 'Preview unavailable';
-            previewDiv.appendChild(span);
+            renderStill();
           }
+
           const pinBtn = document.createElement('button');
           pinBtn.className = 'webcam-pin-btn';
           pinBtn.style.cssText = 'display:block;margin-top:4px;';
@@ -1871,6 +1941,10 @@ export class GlobeMap {
       if (this.tooltipHideTimer) { clearTimeout(this.tooltipHideTimer); this.tooltipHideTimer = null; }
     });
     el.addEventListener('mouseleave', () => {
+      // A live webcam that reached playback holds the popup open until the user
+      // closes it. Re-arming here would kill the stream the moment the cursor
+      // slid off, which is not how a video player is expected to behave.
+      if (el.dataset.wmLivePlayback === '1') return;
       this.tooltipHideTimer = setTimeout(() => this.hideTooltip(), 2000);
     });
 
@@ -1970,6 +2044,8 @@ export class GlobeMap {
 
   private hideTooltip(): void {
     if (this.tooltipHideTimer) { clearTimeout(this.tooltipHideTimer); this.tooltipHideTimer = null; }
+    this.webcamPlayer?.destroy();
+    this.webcamPlayer = null;
     this.tooltipEl?.remove();
     this.tooltipEl = null;
     this.popup?.hide();
@@ -2019,6 +2095,7 @@ export class GlobeMap {
     el.className = 'globe-quick-controls';
     setTrustedHtml(el, trustedHtml(`
       <span class="globe-quality-badge" title="Render quality — change in Settings"></span>
+      <button type="button" class="map-btn globe-qc-btn globe-qc-sat" title="Toggle satellite imagery" aria-pressed="false">&#128752;</button>
       <button type="button" class="map-btn globe-qc-btn globe-qc-texture" title="Cycle globe texture">&#127757;</button>
       <button type="button" class="map-btn globe-qc-btn globe-qc-rotate" title="Toggle auto-rotate" aria-pressed="false">&#10227;</button>
     `, "GLOBE WS quick controls"));
@@ -2028,6 +2105,9 @@ export class GlobeMap {
 
     el.querySelector('.globe-qc-rotate')?.addEventListener('click', () => {
       this.setAutoRotateEnabled(!this.autoRotateEnabled);
+    });
+    el.querySelector('.globe-qc-sat')?.addEventListener('click', () => {
+      this.toggleSatelliteDrape();
     });
     el.querySelector('.globe-qc-texture')?.addEventListener('click', () => {
       this.cycleGlobeTexture();
@@ -2080,6 +2160,17 @@ export class GlobeMap {
       rotateBtn.setAttribute('aria-pressed', String(this.autoRotateEnabled));
       rotateBtn.setAttribute('title', this.autoRotateEnabled ? 'Auto-rotate: on' : 'Auto-rotate: off');
     }
+    const satBtn = this.quickControlsEl.querySelector('.globe-qc-sat');
+    if (satBtn) {
+      satBtn.classList.toggle('active', this.satelliteDrapeActive);
+      satBtn.setAttribute('aria-pressed', String(this.satelliteDrapeActive));
+      satBtn.setAttribute('title', this.satelliteDrapeActive
+        ? `Satellite imagery: on (${getSatelliteSource().label})`
+        : 'Satellite imagery: off — showing globe texture');
+    }
+    // The texture picker only means anything when a texture is what is showing.
+    const texBtn = this.quickControlsEl.querySelector('.globe-qc-texture');
+    if (texBtn instanceof HTMLElement) texBtn.hidden = this.satelliteDrapeActive;
     if (this.qualityBadgeEl) {
       const scale = getGlobeRenderScale();
       this.qualityBadgeEl.textContent = scale === 'auto' ? 'AUTO' : `${scale}×`;
@@ -3011,6 +3102,12 @@ export class GlobeMap {
     return pov ? { lat: pov.lat, lon: pov.lng } : null;
   }
 
+  /** Camera altitude in Earth radii, as globe.gl reports it. */
+  public getViewAltitude(): number | null {
+    const pov = this.globe?.pointOfView();
+    return typeof pov?.altitude === 'number' ? pov.altitude : null;
+  }
+
   public getBbox(): string | null {
     if (!this.globe) return null;
     const pov = this.globe.pointOfView();
@@ -3728,8 +3825,13 @@ export class GlobeMap {
       if (!this.globe || this.destroyed) return;
       const ambient = new THREE.AmbientLight(0xffffff, 2.4);
       const sun = new THREE.DirectionalLight(0xfff1de, 1.8);
+      this.ambientLight = ambient;
       this.sunLight = sun;
       (this.globe as any).lights([ambient, sun]);
+      // The rig's default exposure is tuned for the dark topo texture; satellite
+      // tiles need it pulled back. initLightRig is async, so the drape may have
+      // been applied before these lights existed.
+      this.applyDrapeLighting();
 
       const dir = new THREE.Vector3();
       const up = new THREE.Vector3(0, 1, 0);
@@ -3748,6 +3850,95 @@ export class GlobeMap {
       this.lightRigHandler = update;
       this.controls?.addEventListener('change', update);
     } catch { /* cosmetic — ignore */ }
+  }
+
+  // ─── Satellite drape (real imagery tiles on the sphere) ──────────────────
+
+  /**
+   * Drape live satellite imagery on the globe instead of a single flat texture.
+   *
+   * WHY. A 4096×2048 equirectangular texture is ~10km per pixel at the equator:
+   * it reads as a planet from orbit and as a smear the moment anyone zooms to a
+   * country. three-globe ships a slippy-map tile engine (`globeTileEngineUrl`),
+   * which loads the SAME XYZ imagery the flat map uses, projects it onto the
+   * sphere, and swaps levels as the camera descends — so the globe now sharpens
+   * continuously from whole-Earth down to city blocks. globe.gl already calls
+   * `setPointOfView` every frame, which is what drives the engine's LOD; no
+   * render loop of our own is needed.
+   *
+   * THE TRADE. Setting a tile-engine URL makes three-globe hide the textured
+   * sphere (`globeObj.visible = false`) and render tiles in its place, so the
+   * bump/roughness/emissive finish built for that sphere becomes inert while
+   * draping — hence the guards in `refreshMaterialFinish`, `setSurfaceDetail`
+   * and `applyEnhancedVisuals`. Real photography at every scale is worth more
+   * than a synthetic relief pass over a 10km-per-pixel texture. Everything that
+   * is NOT the sphere — atmosphere, glow shells, starfield, markers, arcs —
+   * lives in the scene independently and is unaffected.
+   *
+   * The level cap comes from the shared policy rather than the source's own
+   * ceiling: see `getGlobeDrapeMaxLevel`.
+   */
+  private applySatelliteDrape(globe: GlobeInstance): void {
+    const source = getSatelliteSource();
+    const g = globe as unknown as {
+      globeTileEngineUrl: (fn: (x: number, y: number, level: number) => string) => unknown;
+      globeTileEngineMaxLevel: (level: number) => unknown;
+    };
+    g.globeTileEngineUrl(buildGlobeTileUrlFn(source));
+    g.globeTileEngineMaxLevel(getGlobeDrapeMaxLevel(source));
+    this.satelliteDrapeActive = true;
+    this.applyDrapeLighting();
+  }
+
+  /** Tear the drape down and hand the sphere back its texture. */
+  private removeSatelliteDrape(): void {
+    if (!this.globe) return;
+    const g = this.globe as unknown as {
+      globeTileEngineUrl: (fn: unknown) => unknown;
+      globeTileEngineClearCache?: () => unknown;
+    };
+    g.globeTileEngineUrl(undefined);
+    g.globeTileEngineClearCache?.();
+    this.satelliteDrapeActive = false;
+    this.globe.globeImageUrl(GLOBE_TEXTURE_URLS[getGlobeTexture()]);
+    this.applyDrapeLighting();
+    // The sphere is visible again, so the relief/water finish it was built for
+    // is worth restoring.
+    this.setSurfaceDetail(!resolvePerformanceProfile(getGlobeRenderScale()).disableSurfaceDetail);
+    this.refreshMaterialFinish();
+  }
+
+  /**
+   * Re-balance the light rig for whichever surface is showing.
+   *
+   * The rig was tuned against a dark, desaturated topo texture and runs hot
+   * (ambient 2.4) to lift it. Satellite tiles are already correctly exposed
+   * photographs on an unlit-leaning Lambert material, so the same rig blows
+   * their highlights to white and the coastlines disappear. Draping therefore
+   * gets a near-neutral exposure with just enough directional light left to
+   * keep the terminator readable as a curved planet.
+   */
+  private applyDrapeLighting(): void {
+    const ambient = this.ambientLight;
+    const sun = this.sunLight;
+    if (ambient) ambient.intensity = this.satelliteDrapeActive ? 1.05 : 2.4;
+    if (sun) sun.intensity = this.satelliteDrapeActive ? 0.55 : 1.8;
+  }
+
+  /** Flip between satellite drape and the static textures, and persist it. */
+  private toggleSatelliteDrape(): void {
+    if (!this.globe) return;
+    if (this.satelliteDrapeActive) {
+      setBasemapImagery('vector');
+      this.removeSatelliteDrape();
+      this.showTextureToast(GLOBE_TEXTURE_OPTIONS.find(o => o.value === getGlobeTexture())?.label ?? 'Texture');
+    } else {
+      setBasemapImagery('satellite');
+      this.applySatelliteDrape(this.globe);
+      this.showTextureToast(getSatelliteSource().label);
+    }
+    this.syncQuickControls();
+    this.wakeGlobe();
   }
 
   /**
@@ -3797,6 +3988,9 @@ export class GlobeMap {
    * uses. Safe to call repeatedly (preset switches, eco↔full transitions).
    */
   private async refreshMaterialFinish(): Promise<void> {
+    // Draping hides the sphere this finish paints, and the water map is a
+    // ~420KB fetch — skip it rather than decorate an invisible mesh.
+    if (this.satelliteDrapeActive) return;
     if (!this.globe || this.destroyed || !this.surfaceDetailOn) return;
     const water = await this.ensureWaterTextures();
     if (!this.globe || this.destroyed || !this.surfaceDetailOn) return;
@@ -3817,6 +4011,7 @@ export class GlobeMap {
 
   /** Eco render scale skips bump + water maps entirely (perf guardrail). */
   private setSurfaceDetail(enabled: boolean): void {
+    if (this.satelliteDrapeActive) return;
     if (!this.globe || this.surfaceDetailOn === enabled) return;
     this.surfaceDetailOn = enabled;
     if (enabled) {
@@ -3856,7 +4051,10 @@ export class GlobeMap {
       if (!this.globe || this.destroyed || epoch !== this.enhancedEpoch) return;
       const scene = this.globe.scene();
 
-      const oldMat = this.globe.globeMaterial();
+      // The Cosmos preset's atmosphere shells, fill light and starfield all
+      // still apply while draping; only the sphere-material upgrade below is
+      // skipped, because the sphere it upgrades is hidden behind the tiles.
+      const oldMat = this.satelliteDrapeActive ? null : this.globe.globeMaterial();
       if (oldMat) {
         const stdMat = new THREE.MeshStandardMaterial({
           color: 0xffffff, roughness: 1.0, metalness: 0.05,
@@ -4118,6 +4316,18 @@ export class GlobeMap {
       this.lightRigHandler = null;
     }
     this.sunLight = null;
+    this.ambientLight = null;
+    // Every draped tile is a live GPU texture. globe.gl's _destructor empties
+    // the tile-engine object, but clearing the cache first releases the tile
+    // textures deterministically instead of leaving them to the next GC — a
+    // renderer switch (2D ↔ 3D) can otherwise strand a whole level of imagery.
+    if (this.satelliteDrapeActive) {
+      try {
+        (this.globe as unknown as { globeTileEngineClearCache?: () => void } | null)
+          ?.globeTileEngineClearCache?.();
+      } catch { /* teardown must not throw */ }
+      this.satelliteDrapeActive = false;
+    }
     if (this.texToastTimer) { clearTimeout(this.texToastTimer); this.texToastTimer = null; }
     this.quickControlsEl?.remove();
     this.quickControlsEl = null;

@@ -24,6 +24,8 @@
 
   /* Signal amber accent */
   --accent: #f0a832;
+  /* Ink on amber CTAs — charcoal, not white-on-amber glare */
+  --accent-ink: #14120e;
 
   /* Overlays tinted warm */
   --overlay-subtle: rgba(240, 168, 50, 0.04);
@@ -214,11 +216,12 @@
   box-shadow: 0 0 10px var(--status-warn);
 }
 
-/* Active layer chips carry the brand accent, not upstream green —
-   "on" should read as JSA amber across every map engine's picker. */
+/* Active layer chips: on-state is the crimson rim light, not a CTA fill.
+   --accent is near-white after Console 2026 — leaving this on --accent
+   made "on" look like a primary button. */
 .layer-toggles .layer-toggle.active {
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--wm-red, var(--status-watch));
+  border-color: var(--wm-red, var(--status-watch));
 }
 
 /* Header & footer carry the identity strongest */

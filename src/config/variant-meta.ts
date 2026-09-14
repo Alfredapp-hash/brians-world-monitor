@@ -13,12 +13,12 @@ export interface VariantMeta {
 
 export const VARIANT_META: { full: VariantMeta; [k: string]: VariantMeta } = {
   full: {
-    title: "JSA's Monitor - Geopolitics, Finance, Science & Archaeology",
-    description: 'Personal real-time intelligence dashboard tracking world geopolitics, financial markets, scientific discoveries, and archaeology news from hundreds of sources — with local AI analysis.',
+    title: 'The Public Dispatch - a public record of the world',
+    description: 'A public record of the world: real-time geopolitics, financial markets, scientific discoveries, and archaeology news from hundreds of sources — with local AI analysis.',
     keywords: 'global intelligence, geopolitical dashboard, world news, market data, financial markets, science discoveries, archaeology news, real-time monitoring, situation awareness, OSINT, local AI, Ollama',
     url: 'https://brians-world-monitor.vercel.app/dashboard',
-    siteName: "JSA's Monitor",
-    shortName: 'JSAM',
+    siteName: 'The Public Dispatch',
+    shortName: 'TPD',
     subject: 'Geopolitics, Finance, Science, and Archaeology Intelligence',
     classification: 'AI Intelligence Dashboard, OSINT Tool, News Aggregator',
     categories: ['news', 'productivity'],

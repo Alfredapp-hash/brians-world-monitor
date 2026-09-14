@@ -120,6 +120,7 @@ export const BOOTSTRAP_CACHE_KEYS = Object.freeze({
   energyCrisisPolicies: 'energy:crisis-policies:v1',
   aaiiSentiment: 'market:aaii-sentiment:v1',
   breadthHistory: 'market:breadth-history:v1',
+  publicCameras: 'webcam:public-cameras:v1',
 });
 
 const SLOW_KEY_NAMES = new Set([
@@ -178,6 +179,10 @@ const ON_DEMAND_KEY_NAMES = new Set([
   'electricityPrices', 'jodiOil', 'chokepointBaselines',
   'portwatchChokepointsRef', 'portwatchPortActivity', 'sprPolicies',
   'energyDisruptions',
+  // Same reasoning as cyberThreats: the webcam layer is off by default in every
+  // variant, so a tier bundle would ship this coverage manifest to every visitor
+  // for a layer most never turn on. Fetched per-key once the layer is engaged.
+  'publicCameras',
 ]);
 
 function tierForKey(name) {

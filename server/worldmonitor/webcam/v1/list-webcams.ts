@@ -1,5 +1,6 @@
 import type { ListWebcamsRequest, ListWebcamsResponse, WebcamEntry, WebcamCluster, ServerContext } from '../../../../src/generated/server/worldmonitor/webcam/v1/service_server';
 import { geoSearchByBox, getHashFieldsBatch, getCachedJson, setCachedJson } from '../../../_shared/redis';
+import { loadPublicCameras } from './public-cameras';
 
 const MAX_RESULTS = 2000;
 const RESPONSE_CACHE_TTL = 3600; // 1 hour
@@ -80,18 +81,81 @@ export async function listWebcams(_ctx: ServerContext, req: ListWebcamsRequest):
   const qE = Math.ceil(req.boundE ?? 180);
   const qN = Math.ceil(req.boundN ?? 90);
 
-  // Read active version
+  // Read active version. A missing version means the Windy index was never
+  // seeded (no WINDY_API_KEY, or an expired 24h TTL). That is no longer fatal:
+  // the openly accessible public cameras stand on their own, so the request
+  // continues with the Windy half simply absent.
   const versionResult = await getCachedJson('webcam:cameras:active');
   const version = versionResult != null ? String(versionResult) : null;
-  if (!version) {
-    return { webcams: [], clusters: [], totalInView: 0 };
-  }
 
-  // Check response cache (quantized bbox + zoom + version)
-  const cacheKey = `webcam:resp:${version}:${zoom}:${qW}:${qS}:${qE}:${qN}`;
+  // Check response cache (quantized bbox + zoom + version). 'public' stands in
+  // for the version when only the keyless sources are live, so the two states
+  // never read each other's cached responses.
+  const cacheKey = `webcam:resp:${version ?? 'public'}:${zoom}:${qW}:${qS}:${qE}:${qN}`;
   const cached = await getCachedJson(cacheKey) as ListWebcamsResponse | null;
   if (cached) return cached;
 
+  const view = { w: qW, s: qS, e: qE, n: qN };
+  const [seeded, publicCameras] = await Promise.all([
+    version ? loadSeededWebcams(version, view) : Promise.resolve([]),
+    loadPublicCameras(view).catch((err) => {
+      console.warn('[webcam] public camera load failed:', err);
+      return [];
+    }),
+  ]);
+
+  const webcams = mergeById([
+    ...seeded,
+    ...publicCameras.map((camera) => ({
+      webcamId: camera.id,
+      title: camera.title,
+      lat: camera.lat,
+      lng: camera.lng,
+      category: camera.category,
+      country: camera.country,
+    })),
+  ]);
+
+  if (webcams.length === 0) {
+    const empty: ListWebcamsResponse = { webcams: [], clusters: [], totalInView: 0 };
+    await setCachedJson(cacheKey, empty, RESPONSE_CACHE_TTL);
+    return empty;
+  }
+
+  const cellSize = getClusterCellSize(zoom);
+  const { singles, clusters } = clusterWebcams(webcams, cellSize);
+
+  const result: ListWebcamsResponse = {
+    webcams: singles,
+    clusters,
+    totalInView: webcams.length,
+  };
+
+  setCachedJson(cacheKey, result, RESPONSE_CACHE_TTL).catch(err => {
+    console.warn('[webcam] response cache write failed:', err);
+  });
+
+  return result;
+}
+
+type SeededWebcam = { webcamId: string; title: string; lat: number; lng: number; category: string; country: string };
+
+/** Later entries lose: the seeded Windy record is the canonical one for an id. */
+function mergeById(entries: SeededWebcam[]): SeededWebcam[] {
+  const byId = new Map<string, SeededWebcam>();
+  for (const entry of entries) {
+    if (!byId.has(entry.webcamId)) byId.set(entry.webcamId, entry);
+    if (byId.size >= MAX_RESULTS) break;
+  }
+  return [...byId.values()];
+}
+
+/** The Windy half: a Redis geo index seeded by `scripts/seed-webcams.mjs`. */
+async function loadSeededWebcams(
+  version: string,
+  view: { w: number; s: number; e: number; n: number },
+): Promise<SeededWebcam[]> {
+  const { w: qW, s: qS, e: qE, n: qN } = view;
   const geoKey = `webcam:cameras:geo:${version}`;
   const metaKey = `webcam:cameras:meta:${version}`;
 
@@ -117,15 +181,11 @@ export async function listWebcams(_ctx: ServerContext, req: ListWebcamsRequest):
     ids = await geoSearchByBox(geoKey, centerLon, centerLat, widthKm, heightKm, MAX_RESULTS, true);
   }
 
-  if (ids.length === 0) {
-    const empty: ListWebcamsResponse = { webcams: [], clusters: [], totalInView: 0 };
-    await setCachedJson(cacheKey, empty, RESPONSE_CACHE_TTL);
-    return empty;
-  }
+  if (ids.length === 0) return [];
 
   // Fetch metadata
   const metaMap = await getHashFieldsBatch(metaKey, ids, true);
-  const webcams: Array<{ webcamId: string; title: string; lat: number; lng: number; category: string; country: string }> = [];
+  const webcams: SeededWebcam[] = [];
 
   for (const id of ids) {
     const raw = metaMap.get(id);
@@ -143,20 +203,7 @@ export async function listWebcams(_ctx: ServerContext, req: ListWebcamsRequest):
     } catch { /* skip malformed */ }
   }
 
-  const cellSize = getClusterCellSize(zoom);
-  const { singles, clusters } = clusterWebcams(webcams, cellSize);
-
-  const result: ListWebcamsResponse = {
-    webcams: singles,
-    clusters,
-    totalInView: webcams.length,
-  };
-
-  setCachedJson(cacheKey, result, RESPONSE_CACHE_TTL).catch(err => {
-    console.warn('[webcam] response cache write failed:', err);
-  });
-
-  return result;
+  return webcams;
 }
 
 function equirectangularWidthKm(s: number, n: number, w: number, e: number): number {

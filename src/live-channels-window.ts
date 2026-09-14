@@ -12,6 +12,7 @@ import {
   getFilteredChannelRegions,
 } from '@/components/LiveNewsPanel';
 import { t } from '@/services/i18n';
+import { BRAND } from '@/config/brand';
 import { escapeHtml } from '@/utils/sanitize';
 import { toApiUrl } from '@/services/runtime';
 import { resolveUserCountryCode } from '@/utils/user-location';
@@ -100,7 +101,7 @@ export async function initLiveChannelsWindow(containerEl?: HTMLElement): Promise
   }
 
   if (!containerEl) {
-    document.title = `${t('components.liveNews.manage') ?? 'Channel management'} - JSA's Monitor`;
+    document.title = `${t('components.liveNews.manage') ?? 'Channel management'} - ${BRAND.name}`;
   }
 
   channels = loadChannelsFromStorage();

@@ -20,6 +20,27 @@ import { sanitizeLayersForVariant } from '@/config/map-layer-definitions';
 import type { MapVariant } from '@/config/map-layer-definitions';
 import { getStoredMapModePreference } from '@/services/map-mode-preference';
 import {
+  applyMissionPresetToState,
+  loadStoredMissionPreset,
+  saveMissionPreset,
+} from '@/services/mission-presets';
+import {
+  EVERYDAY_MISSION_PRESET_ID,
+  applyReaderAnalystOpenToDocument,
+  applyReaderModeToDocument,
+  seedReaderModePreference,
+} from '@/services/reader-mode';
+import {
+  applyStageModeToDocument,
+  buildGodsEyeStageState,
+  engageGodsEyeStage,
+  getStageMode,
+  isGodsEyeStage,
+  parseStageCameraFromSearch,
+  releaseGodsEyeStage,
+  resolveStageModeForLoad,
+} from '@/services/godseye-mode';
+import {
   initDB,
   cleanOldSnapshots,
   isAisConfigured,
@@ -818,6 +839,84 @@ export class App {
       }
     }
 
+    // Everyday-reader default: seed preference, then apply Everyday Brief for
+    // fresh installs (no custom panel-order / mission) without rewriting
+    // existing analyst layouts.
+    // God's Eye resolves BEFORE the reader-mode seed: engaging the stage writes
+    // reader mode / map dimension / mission preset, and the seed must observe
+    // those writes rather than race them. A `?godseye=` link therefore lands on
+    // the stage on its first paint instead of the load after.
+    const stageMode = resolveStageModeForLoad(window.location.search, getStageMode());
+    if (stageMode === 'godseye') {
+      // A reader who typed `&godseye=1` onto their own deep link has their
+      // camera in that URL and nowhere else, so it is the only thing exit can
+      // give back to them.
+      engageGodsEyeStage(undefined, parseStageCameraFromSearch(window.location.search));
+    } else if (isGodsEyeStage()) {
+      releaseGodsEyeStage();
+    }
+    applyStageModeToDocument(stageMode);
+
+    const seededReaderMode = seedReaderModePreference();
+    applyReaderModeToDocument(seededReaderMode);
+    applyReaderAnalystOpenToDocument();
+    if (
+      storageAvailable &&
+      seededReaderMode === 'everyday' &&
+      !loadStoredMissionPreset() &&
+      !localStorage.getItem(PANEL_ORDER_KEY)
+    ) {
+      try {
+        const applied = applyMissionPresetToState(
+          EVERYDAY_MISSION_PRESET_ID,
+          panelSettings,
+          defaultLayers,
+          currentVariant,
+        );
+        panelSettings = applied.panelSettings;
+        mapLayers = normalizeExclusiveChoropleths(
+          sanitizeLayersForVariant(applied.mapLayers, currentVariant as MapVariant),
+          null,
+        );
+        saveToStorage(STORAGE_KEYS.panels, panelSettings);
+        saveToStorage(STORAGE_KEYS.mapLayers, mapLayers);
+        localStorage.setItem(PANEL_ORDER_KEY, JSON.stringify(applied.panelOrder));
+        saveMissionPreset(EVERYDAY_MISSION_PRESET_ID);
+      } catch (err) {
+        console.warn('[App] Everyday reader seed failed', err);
+      }
+    }
+
+    // Product sprint: Everyday = brief + top stories only (no regional dump).
+    const EVERYDAY_LAYOUT_V3_KEY = 'jsam-everyday-layout-v3';
+    if (
+      storageAvailable &&
+      seededReaderMode === 'everyday' &&
+      !localStorage.getItem(EVERYDAY_LAYOUT_V3_KEY)
+    ) {
+      try {
+        const applied = applyMissionPresetToState(
+          EVERYDAY_MISSION_PRESET_ID,
+          panelSettings,
+          defaultLayers,
+          currentVariant,
+        );
+        panelSettings = applied.panelSettings;
+        mapLayers = normalizeExclusiveChoropleths(
+          sanitizeLayersForVariant(applied.mapLayers, currentVariant as MapVariant),
+          null,
+        );
+        saveToStorage(STORAGE_KEYS.panels, panelSettings);
+        saveToStorage(STORAGE_KEYS.mapLayers, mapLayers);
+        localStorage.setItem(PANEL_ORDER_KEY, JSON.stringify(applied.panelOrder));
+        saveMissionPreset(EVERYDAY_MISSION_PRESET_ID);
+        localStorage.setItem(EVERYDAY_LAYOUT_V3_KEY, '1');
+        localStorage.setItem('jsam-everyday-layout-v2', '1');
+      } catch (err) {
+        console.warn('[App] Everyday layout v3 migration failed', err);
+      }
+    }
+
     if (storageAvailable) {
       // One-time migration: prune removed panel keys from stored settings and order
       const PANEL_PRUNE_KEY = 'worldmonitor-panel-prune-v1';
@@ -898,6 +997,34 @@ export class App {
           priority: panelSettings['runtime-config']?.priority ?? 2,
         };
         saveToStorage(STORAGE_KEYS.panels, panelSettings);
+      }
+    }
+
+    // God's Eye stages its own bundle, transiently.
+    //
+    // `engageGodsEyeStage` records the preset id; this is what actually applies
+    // it. Without it the stage inherited whatever the reader's dashboard was
+    // showing — every enabled panel got a deferred shell in a single-column
+    // rail (~84 of them, tens of thousands of pixels of empty scroll), and the
+    // HUD's "LIVE · N LAYERS" described the dashboard rather than the stage.
+    //
+    // Nothing here is persisted. The reader's stored layout is untouched, so
+    // leaving the stage needs no un-apply beyond the snapshot restore that
+    // already runs. It sits AFTER the storage migrations above deliberately —
+    // several of them write `panelSettings` back out, and they must never see
+    // the stage's transient bundle.
+    let stagePanelOrder: string[] | null = null;
+    if (stageMode === 'godseye') {
+      const staged = buildGodsEyeStageState(panelSettings, defaultLayers, currentVariant);
+      if (staged) {
+        panelSettings = staged.panelSettings;
+        mapLayers = normalizeExclusiveChoropleths(
+          sanitizeLayersForVariant(staged.mapLayers, currentVariant as MapVariant),
+          null,
+        );
+        stagePanelOrder = staged.panelOrder;
+      } else {
+        console.warn("[App] God's Eye preset unavailable; staging the reader's own layout");
       }
     }
 
@@ -1005,6 +1132,7 @@ export class App {
       resolvedLocation: 'global',
       activeChokepoint: initialUrlState.chokepoint ?? null,
       initialUrlState,
+      stagePanelOrder,
       PANEL_ORDER_KEY,
       PANEL_SPANS_KEY,
     };
@@ -1051,6 +1179,7 @@ export class App {
       syncDataFreshnessWithLayers: () => this.dataLoader.syncDataFreshnessWithLayers(),
       ensureCorrectZones: () => this.panelLayout.ensureCorrectZones(),
       applySavedPanelOrder: (panelOrder?: string[]) => this.panelLayout.applySavedPanelOrder(panelOrder),
+      applyPanelSettings: () => this.panelLayout.applyPanelSettings(),
       refreshCiiAfterFocalPointsReady: () => this.dataLoader.refreshCiiAfterFocalPointsReady(),
       stopLayerActivity: (layer) => this.dataLoader.stopLayerActivity(layer),
       mountLiveNewsIfReady: () => this.panelLayout.mountLiveNewsIfReady(),

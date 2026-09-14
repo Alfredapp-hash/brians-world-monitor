@@ -1,6 +1,8 @@
 // NOTE (Workstream 2 / terrain basemap): this D3/SVG renderer is the mobile /
-// no-WebGL fallback and draws vector topology only — raster hillshade (the
-// jsam-terrain-mode preference handled in DeckGLMap) does not apply here.
+// no-WebGL fallback. Raster hillshade (the jsam-terrain-mode preference handled
+// in DeckGLMap) does not apply here, but the shared satellite-imagery policy
+// does: see renderSatelliteBackdrop() for the equirectangular Earth it drapes
+// under the vector topology.
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { escapeHtml } from '@/utils/sanitize';
@@ -58,6 +60,15 @@ import {
 } from '@/services/hotspot-escalation';
 import { getCachedCountryScoreValue } from '@/services/cached-risk-scores';
 import { getAlertsNearLocation } from '@/services/geo-convergence';
+import { isSatelliteImageryActive } from '@/config/satellite-imagery';
+
+/**
+ * The one satellite frame this renderer draws.
+ *
+ * NASA Blue Marble, already shipped for the globe and already equirectangular,
+ * so it costs no new asset and aligns to `geoEquirectangular` without resampling.
+ */
+const SVG_SATELLITE_BACKDROP_URL = '/textures/earth-blue-marble.jpg';
 import { getCountryAtCoordinates, getCountryBbox } from '@/services/country-geometry';
 import type { CountryClickPayload } from './DeckGLMap';
 import { t } from '@/services/i18n';
@@ -209,6 +220,10 @@ export class MapComponent {
   private lastRenderTime = 0;
   private readonly MIN_RENDER_INTERVAL_MS = 100;
   private healthCheckLoop: SmartPollLoopHandle | null = null;
+  // Live webcam playback inside the current webcam tooltip, plus the hook that
+  // cancels that tooltip's auto-dismiss once frames are moving.
+  private webcamPlayer: { destroy(): void } | null = null;
+  private cancelWebcamTooltipDismiss: (() => void) | null = null;
   // First render paints the base map (countries) synchronously for LCP, then defers the
   // heavy dynamic-overlay pass off the first-paint critical path (#4429). Mobile uses this
   // SVG renderer and its synchronous overlay build was the #1 boot-scripting cost (~1.3s).
@@ -384,6 +399,9 @@ export class MapComponent {
       this.healthCheckLoop.stop();
       this.healthCheckLoop = null;
     }
+    this.webcamPlayer?.destroy();
+    this.webcamPlayer = null;
+    this.cancelWebcamTooltipDismiss = null;
   }
 
   private createControls(): HTMLElement {
@@ -1284,18 +1302,26 @@ export class MapComponent {
         .attr('height', height * 3)
         .attr('fill', getCSSColor('--map-bg'));
 
-      // Grid
-      this.renderGrid(this.baseLayerGroup, width, height);
-
       // Setup projection for base elements
       const baseProjection = this.getProjection(width, height);
       const basePath = d3.geoPath().projection(baseProjection);
+
+      // Satellite Earth under everything else, when imagery is the chosen
+      // basemap. Placed before the grid/graticule so both read as instrument
+      // overlay on a photograph rather than as a chart the photo sits on.
+      const imageryDrawn = this.renderSatelliteBackdrop(this.baseLayerGroup, baseProjection);
+
+      // Grid
+      this.renderGrid(this.baseLayerGroup, width, height);
 
       // Graticule
       this.renderGraticule(this.baseLayerGroup, basePath);
 
       // Countries
       this.renderCountries(this.baseLayerGroup, basePath);
+      // Over imagery the country fills would hide the land they outline, so the
+      // group drops to borders only.
+      this.baseLayerGroup.classed('over-imagery', imageryDrawn);
       this.baseRendered = true;
     }
 
@@ -1431,6 +1457,52 @@ export class MapComponent {
       .scale(scale)
       .center([0, LAT_CENTER])
       .translate([width / 2, height / 2]);
+  }
+
+  /**
+   * Drape a real satellite Earth under the SVG map.
+   *
+   * WHY THIS WORKS HERE. `getProjection()` is a plain `geoEquirectangular`, and
+   * an equirectangular satellite image is that projection's own raster form —
+   * so the whole texture can be placed with two corner projections and no
+   * per-pixel work. That is the only reason this renderer, which has no tile
+   * engine and no WebGL, can show photography at all.
+   *
+   * WHY NOT TILES. This is the mobile / WebGL-failure fallback; the reason a
+   * reader is on it is that the device could not run deck.gl or globe.gl. A tile
+   * pyramid of DOM `<image>` nodes is exactly the wrong thing to hand that
+   * device. One 4096×2048 Blue Marble frame is a fixed, cacheable cost, so this
+   * surface gets a genuine photograph of Earth at continental scale and stops
+   * there — the two GPU renderers are what go to city scale.
+   *
+   * Returns whether imagery was actually drawn, so the caller can restyle the
+   * country layer for whichever base it ended up on.
+   */
+  private renderSatelliteBackdrop(
+    group: d3.Selection<SVGGElement, unknown, null, undefined>,
+    projection: d3.GeoProjection,
+  ): boolean {
+    if (!isSatelliteImageryActive()) return false;
+    // Corners of the full graticule, in this projection's own pixel space.
+    const topLeft = projection([-180, 90]);
+    const bottomRight = projection([180, -90]);
+    if (!topLeft || !bottomRight) return false;
+    const w = bottomRight[0] - topLeft[0];
+    const h = bottomRight[1] - topLeft[1];
+    if (!(w > 0) || !(h > 0)) return false;
+
+    group
+      .append('image')
+      .attr('class', 'map-satellite-backdrop')
+      .attr('href', SVG_SATELLITE_BACKDROP_URL)
+      .attr('x', topLeft[0])
+      .attr('y', topLeft[1])
+      .attr('width', w)
+      .attr('height', h)
+      // The frame is a whole-Earth photo being fitted to a cropped latitude
+      // range, so it must stretch to the box rather than preserve its own ratio.
+      .attr('preserveAspectRatio', 'none');
+    return true;
   }
 
   private renderGraticule(
@@ -3228,8 +3300,21 @@ export class MapComponent {
     });
   }
 
+  /**
+   * Dismiss the webcam tooltip, tearing down any live playback first. Every
+   * dismissal path routes through here: an HLS instance that outlives its popup
+   * keeps pulling segments, and on Caltrans' media server that stray traffic is
+   * what earns the whole browser a 403.
+   */
+  private closeWebcamTooltip(tooltip: HTMLElement): void {
+    this.webcamPlayer?.destroy();
+    this.webcamPlayer = null;
+    tooltip.remove();
+  }
+
   private makeWebcamTooltipShell(): { tooltip: HTMLDivElement; closeBtn: HTMLButtonElement } {
-    this.container.querySelector('.webcam-tooltip')?.remove();
+    const existing = this.container.querySelector<HTMLElement>('.webcam-tooltip');
+    if (existing) this.closeWebcamTooltip(existing);
     const tooltip = document.createElement('div');
     tooltip.className = 'webcam-tooltip';
     tooltip.style.cssText = [
@@ -3250,7 +3335,7 @@ export class MapComponent {
     closeBtn.style.cssText = 'position:absolute;top:4px;right:4px;background:none;border:none;color:#888;cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;';
     closeBtn.setAttribute('aria-label', 'Close');
     closeBtn.textContent = '×';
-    closeBtn.addEventListener('click', () => tooltip.remove());
+    closeBtn.addEventListener('click', () => this.closeWebcamTooltip(tooltip));
     tooltip.appendChild(closeBtn);
     return { tooltip, closeBtn };
   }
@@ -3262,9 +3347,17 @@ export class MapComponent {
     const y = Math.max(clientY - rect.top - 20, 4);
     tooltip.style.left = `${x}px`;
     tooltip.style.top = `${y}px`;
-    let hideTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => tooltip.remove(), 8000);
+    let hideTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => this.closeWebcamTooltip(tooltip), 8000);
+    // A stream that reached playback pins the popup open: neither the initial
+    // auto-dismiss nor a mouseleave should yank a feed the user is watching.
+    // `wmLivePlayback` is set by the player's onPlaying callback.
+    const playbackLive = () => tooltip.dataset.wmLivePlayback === '1';
+    this.cancelWebcamTooltipDismiss = () => { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } };
     tooltip.addEventListener('mouseenter', () => { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } });
-    tooltip.addEventListener('mouseleave', () => { hideTimer = setTimeout(() => tooltip.remove(), 2000); });
+    tooltip.addEventListener('mouseleave', () => {
+      if (playbackLive()) return;
+      hideTimer = setTimeout(() => this.closeWebcamTooltip(tooltip), 2000);
+    });
   }
 
   private showWebcamTooltip(cam: WebcamEntry, clientX: number, clientY: number): void {
@@ -3288,34 +3381,88 @@ export class MapComponent {
     previewDiv.appendChild(loadingSpan);
     tooltip.appendChild(previewDiv);
 
+    const link = document.createElement('a');
     if (cam.webcamId) {
-      const link = document.createElement('a');
-      link.href = `https://www.windy.com/webcams/${cam.webcamId}`;
       link.target = '_blank';
       link.rel = 'noopener';
       link.style.cssText = 'display:block;margin-top:4px;color:var(--accent);font-size:11px;text-decoration:none;';
-      link.textContent = 'Open on Windy \u2197';
       tooltip.appendChild(link);
     }
+
+    // Operator credit is a licence condition for the open-data sources (TfL
+    // requires "Powered by TfL Open Data" verbatim), not decoration.
+    const attribution = document.createElement('div');
+    attribution.style.cssText = 'opacity:.4;font-size:9px;margin-top:4px;';
+    tooltip.appendChild(attribution);
 
     this.placeWebcamTooltip(tooltip, clientX, clientY);
 
     if (cam.webcamId) {
-      import('@/services/webcams').then(({ fetchWebcamImage }) => {
+      import('@/services/webcams').then(({ fetchWebcamImage, getWebcamSource, getWebcamSourceUrl, getWebcamStream, createWebcamPlayer }) => {
+        // Resolved from the id: the layer mixes Windy with openly published
+        // agency cameras, which credit and link elsewhere.
+        const source = getWebcamSource(cam.webcamId);
+        attribution.textContent = source.attribution;
+        link.textContent = source.linkLabel;
+        link.href = getWebcamSourceUrl(cam.webcamId);
+
         fetchWebcamImage(cam.webcamId).then(img => {
           if (!tooltip.isConnected) return;
+          const resolvedHref = getWebcamSourceUrl(cam.webcamId, img);
+          if (resolvedHref) link.href = resolvedHref;
+          else link.remove();
           previewDiv.replaceChildren();
-          if (img.thumbnailUrl) {
-            const imgEl = document.createElement('img');
-            imgEl.src = img.thumbnailUrl;
-            imgEl.style.cssText = 'width:200px;border-radius:4px;margin-bottom:4px;';
-            imgEl.loading = 'lazy';
-            previewDiv.appendChild(imgEl);
+
+          const renderStill = (): void => {
+            if (img.thumbnailUrl) {
+              const imgEl = document.createElement('img');
+              imgEl.src = img.thumbnailUrl;
+              imgEl.style.cssText = 'width:200px;border-radius:4px;margin-bottom:4px;';
+              imgEl.loading = 'lazy';
+              // Operator still lists the camera but stopped serving it — degrade
+              // to a broken-camera line rather than a torn image icon.
+              imgEl.addEventListener('error', () => {
+                if (!imgEl.isConnected) return;
+                const broken = document.createElement('span');
+                broken.style.cssText = 'opacity:0.5;font-size:10px;';
+                broken.textContent = '\u{1F4F7}\u200A\u2715 Camera offline';
+                imgEl.replaceWith(broken);
+              });
+              previewDiv.appendChild(imgEl);
+            } else {
+              const span = document.createElement('span');
+              span.style.cssText = 'opacity:0.5;font-size:10px;';
+              span.textContent = 'Preview unavailable';
+              previewDiv.appendChild(span);
+            }
+          };
+
+          // Caltrans and TfL publish a real stream next to the still. Play it,
+          // with the still as poster so the frame is never blank, and fall back
+          // to the plain still on any failure — most Caltrans cameras are not
+          // publishing at any given moment, so that path is routine.
+          const stream = getWebcamStream(cam.webcamId, img);
+          if (stream) {
+            const player = createWebcamPlayer({
+              stream,
+              posterUrl: img.thumbnailUrl,
+              width: 200,
+              onPlaying: () => {
+                tooltip.dataset.wmLivePlayback = '1';
+                this.cancelWebcamTooltipDismiss?.();
+              },
+              onUnavailable: () => {
+                this.webcamPlayer = null;
+                if (!previewDiv.isConnected) return;
+                previewDiv.replaceChildren();
+                renderStill();
+              },
+            });
+            this.webcamPlayer?.destroy();
+            this.webcamPlayer = player;
+            previewDiv.appendChild(player.element);
           } else {
-            const span = document.createElement('span');
-            span.style.cssText = 'opacity:0.5;font-size:10px;';
-            span.textContent = 'Preview unavailable';
-            previewDiv.appendChild(span);
+            renderStill();
           }
 
           const pinBtn = document.createElement('button');

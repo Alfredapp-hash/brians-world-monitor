@@ -18,7 +18,22 @@ export type CartoTheme = 'dark-matter' | 'voyager' | 'positron';
 export const FALLBACK_DARK_STYLE = 'https://tiles.openfreemap.org/styles/dark';
 export const FALLBACK_LIGHT_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
-export type MapProvider = 'auto' | 'pmtiles' | 'openfreemap' | 'carto';
+export type MapProvider = 'satellite' | 'auto' | 'pmtiles' | 'openfreemap' | 'carto';
+
+/**
+ * Satellite themes. 'imagery-hybrid' drapes boundaries + place names over the
+ * photography so a reader can name what they are looking at; 'imagery' is the
+ * bare photograph for screen captures and the God's Eye stage.
+ */
+export type SatelliteTheme = 'imagery-hybrid' | 'imagery';
+
+export function isSatelliteProvider(provider: MapProvider): boolean {
+  return provider === 'satellite';
+}
+
+export function asSatelliteTheme(mapTheme: string): SatelliteTheme {
+  return mapTheme === 'imagery' ? 'imagery' : 'imagery-hybrid';
+}
 
 const STORAGE_KEY = 'wm-map-provider';
 const THEME_STORAGE_PREFIX = 'wm-map-theme:';
@@ -42,7 +57,9 @@ function writeStorageValue(key: string, value: string): void {
 }
 
 export const MAP_PROVIDER_OPTIONS: { value: MapProvider; label: string }[] = (() => {
-  const opts: { value: MapProvider; label: string }[] = [];
+  const opts: { value: MapProvider; label: string }[] = [
+    { value: 'satellite', label: 'Satellite imagery (recommended)' },
+  ];
   if (hasTilesUrl) {
     opts.push({ value: 'auto', label: 'Auto (PMTiles → OpenFreeMap fallback)' });
     opts.push({ value: 'pmtiles', label: 'PMTiles (self-hosted)' });
@@ -61,6 +78,10 @@ const PMTILES_THEMES: { value: string; label: string }[] = [
 ];
 
 export const MAP_THEME_OPTIONS: Record<MapProvider, { value: string; label: string }[]> = {
+  satellite: [
+    { value: 'imagery-hybrid', label: 'Imagery + labels' },
+    { value: 'imagery', label: 'Imagery only' },
+  ],
   pmtiles: PMTILES_THEMES,
   auto: PMTILES_THEMES,
   openfreemap: [
@@ -75,12 +96,21 @@ export const MAP_THEME_OPTIONS: Record<MapProvider, { value: string; label: stri
 };
 
 const DEFAULT_THEME: Record<MapProvider, string> = {
+  satellite: 'imagery-hybrid',
   pmtiles: 'black',
   auto: 'black',
   openfreemap: 'dark',
   carto: 'dark-matter',
 };
 
+/**
+ * Satellite is the default basemap for every surface.
+ *
+ * Previously this defaulted to the PMTiles 'black' theme, which is a near-black
+ * vector style — correct for a chart, wrong for a product whose subject is the
+ * planet. Readers with a stored provider keep it; everyone else now opens on
+ * photography. See `satellite-imagery.ts` for which service actually serves it.
+ */
 export function getMapProvider(): MapProvider {
   const stored = readStorageValue(STORAGE_KEY) as MapProvider | null;
   if (stored) {
@@ -89,7 +119,7 @@ export function getMapProvider(): MapProvider {
     }
     return stored;
   }
-  return hasTilesUrl ? 'auto' : 'openfreemap';
+  return 'satellite';
 }
 
 export function setMapProvider(provider: MapProvider): void {

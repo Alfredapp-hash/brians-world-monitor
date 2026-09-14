@@ -44,8 +44,19 @@ import {
   maybeSendDailyDigest,
   type AlertStory,
 } from '@/services/discord-alerts';
+import { isEverydayReaderMode, summarizeCivilianCoverage } from '@/services/reader-mode';
 
 type SourceClass = 'mainstream' | 'independent' | 'state' | 'gov' | 'local';
+
+const CLASS_ORDER: SourceClass[] = ['mainstream', 'independent', 'local', 'state', 'gov'];
+
+const CLASS_LABELS: Record<SourceClass, string> = {
+  mainstream: 'Mainstream',
+  independent: 'Independent',
+  state: 'State-affiliated',
+  gov: 'Government/official',
+  local: 'Local press',
+};
 
 interface ComparedItem {
   item: NewsItem;
@@ -71,16 +82,6 @@ interface ComparedCluster {
   /** NCI score trend vs prior observations. */
   trend?: NciTrend;
 }
-
-const CLASS_LABELS: Record<SourceClass, string> = {
-  mainstream: 'Mainstream',
-  independent: 'Independent',
-  state: 'State-affiliated',
-  gov: 'Government/official',
-  local: 'Local press',
-};
-
-const CLASS_ORDER: SourceClass[] = ['mainstream', 'independent', 'local', 'state', 'gov'];
 
 function classifySource(item: NewsItem): SourceClass {
   // Local first: non-English coverage is the "what does the local press say" lens.
@@ -341,17 +342,22 @@ export class CoverageComparePanel extends Panel {
   private static readonly AUTO_REFRESH_MS = 10 * 60 * 1000;
 
   constructor(getLatestNews: () => NewsItem[]) {
+    const everyday = isEverydayReaderMode();
     super({
       id: 'coverage-compare',
-      title: 'Coverage Compare',
-      infoTooltip: 'Filters spin from signal: clusters the same story across mainstream, independent, state, and local sources; detects synchronized talking points (identical phrasing across outlets), separates normal wire-copy from coordinated messaging, flags loaded language, and scores narrative sync. AI Compare uses your local Ollama when configured.',
+      title: everyday ? 'How outlets frame this' : 'Coverage Compare',
+      infoTooltip: everyday
+        ? 'See which outlet types covered a story, which stayed quiet, and how framing differs — plain language first. Deeper scoring stays optional.'
+        : 'Filters spin from signal: clusters the same story across mainstream, independent, state, and local sources; detects synchronized talking points (identical phrasing across outlets), separates normal wire-copy from coordinated messaging, flags loaded language, and scores narrative sync. AI Compare uses your local Ollama when configured.',
     });
     this.getLatestNews = getLatestNews;
 
-    const refreshBtn = h('button', { className: 'cc-refresh-btn', type: 'button' }, 'Analyze coverage') as HTMLButtonElement;
+    const refreshBtn = h('button', { className: 'cc-refresh-btn', type: 'button' }, everyday ? 'Refresh framing' : 'Analyze coverage') as HTMLButtonElement;
     refreshBtn.addEventListener('click', () => void this.analyze());
 
-    this.statusEl = h('div', { className: 'cc-status' }, 'Click "Analyze coverage" to cluster current headlines across sources.');
+    this.statusEl = h('div', { className: 'cc-status' }, everyday
+      ? 'Comparing who covered each story, who stayed quiet, and how the framing differs…'
+      : 'Click "Analyze coverage" to cluster current headlines across sources.');
     this.statsEl = h('div', { className: 'cc-stats' });
     this.listEl = h('div', { className: 'cc-list' });
 
@@ -366,22 +372,35 @@ export class CoverageComparePanel extends Panel {
       alertsBtn.setAttribute('aria-expanded', String(open));
     });
 
-    replaceChildren(this.content, h('div', { className: 'cc-content' },
-      h('div', { className: 'cc-toolbar' }, refreshBtn, h('div', { className: 'cc-toolbar-right' }, this.aiStatusEl, alertsBtn)),
-      alertsPanel,
+    // Everyday: NCI / local AI / Discord behind a secondary expand — first paint is covered/ignored.
+    const methodNote = everyday
+      ? h('details', { className: 'cc-method-details' },
+          h('summary', { className: 'cc-method-summary' }, 'Scoring, AI & alerts (optional)'),
+          h('div', { className: 'cc-persistent-note' },
+            'Advanced scores measure coordination indicators (0–100) — not proof of manipulation. ',
+            h('a', { className: 'cc-method-link', href: '/methodology.html', target: '_blank', rel: 'noopener noreferrer' }, 'How scoring works →')),
+          h('div', { className: 'cc-everyday-advanced-tools' }, this.aiStatusEl, alertsBtn),
+          alertsPanel,
+        )
+      : h('div', { className: 'cc-persistent-note' },
+          'NCI = manipulation-indicator score (0–100). It measures signals of coordination, not proof of it. ',
+          h('a', { className: 'cc-method-link', href: '/methodology.html', target: '_blank', rel: 'noopener noreferrer' }, 'How it works →'));
+
+    replaceChildren(this.content, h('div', { className: `cc-content${everyday ? ' cc-content--everyday' : ''}` },
+      everyday
+        ? h('div', { className: 'cc-toolbar' }, refreshBtn)
+        : h('div', { className: 'cc-toolbar' }, refreshBtn, h('div', { className: 'cc-toolbar-right' }, this.aiStatusEl, alertsBtn)),
+      ...(everyday ? [] : [alertsPanel]),
       this.statsEl,
       this.statusEl,
-      // Always-visible epistemic disclaimer — the tool measures indicators,
-      // it does not prove coordination (design review P4).
-      h('div', { className: 'cc-persistent-note' },
-        'NCI = manipulation-indicator score (0–100). It measures signals of coordination, not proof of it. ',
-        h('a', { className: 'cc-method-link', href: '/methodology.html', target: '_blank', rel: 'noopener noreferrer' }, 'How it works →')),
+      methodNote,
       this.listEl,
     ));
     void this.updateAiStatus();
 
     // Auto-run once news is likely loaded, then keep fresh in the background.
-    setTimeout(() => { if (!this.analyzing && this.listEl.childElementCount === 0) void this.analyze(); }, 12_000);
+    // Everyday opens via "How outlets frame this" — analyze sooner so first paint isn't empty.
+    setTimeout(() => { if (!this.analyzing && this.listEl.childElementCount === 0) void this.analyze(); }, everyday ? 1_500 : 12_000);
     this.refreshTimer = setInterval(() => {
       if (!document.hidden && !this.analyzing && this.element.isConnected) void this.analyze();
     }, CoverageComparePanel.AUTO_REFRESH_MS);
@@ -400,6 +419,16 @@ export class CoverageComparePanel extends Panel {
       h('div', { className: `cc-stat ${cls}` },
         h('div', { className: 'cc-stat-value' }, value),
         h('div', { className: 'cc-stat-label' }, label));
+    if (isEverydayReaderMode()) {
+      // Civilian first paint — no NCI acronyms in the strip.
+      replaceChildren(this.statsEl,
+        stat('Stories', String(stories)),
+        stat('Shared phrasing', String(alerts), alerts > 0 ? 'cc-stat-alert' : ''),
+        stat('Coverage gaps', String(asymmetries), asymmetries > 0 ? 'cc-stat-warn' : ''),
+        stat('Recurring lines', String(recurring), recurring > 0 ? 'cc-stat-alert' : ''),
+      );
+      return;
+    }
     // Spelled-out labels (design review P3 — "TP"/"NCI" acronyms were opaque).
     replaceChildren(this.statsEl,
       stat('Stories', String(stories)),
@@ -713,11 +742,20 @@ export class CoverageComparePanel extends Panel {
       this.renderStats(compared.length, alerts, avgNci, maxNci, asymmetries, recurringCount);
       void this.updateAiStatus();
       const updatedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      this.statusEl.textContent =
-        (this.live ? '⦿ LIVE — synced with news feed refresh · ' : '')
-        + `${news.length} headlines analyzed`
-        + (alerts ? ` · ⚠ ${alerts} talking-point alert${alerts > 1 ? 's' : ''}` : ' · no synchronized talking points detected')
-        + ` · updated ${updatedAt}`;
+      if (isEverydayReaderMode()) {
+        this.statusEl.textContent =
+          (this.live ? 'Live · ' : '')
+          + `${compared.length} stor${compared.length === 1 ? 'y' : 'ies'} · ${news.length} headlines`
+          + (alerts ? ` · ${alerts} with shared phrasing` : ' · no synchronized phrasing spotted')
+          + (asymmetries ? ` · ${asymmetries} coverage gap${asymmetries > 1 ? 's' : ''}` : '')
+          + ` · updated ${updatedAt}`;
+      } else {
+        this.statusEl.textContent =
+          (this.live ? '⦿ LIVE — synced with news feed refresh · ' : '')
+          + `${news.length} headlines analyzed`
+          + (alerts ? ` · ⚠ ${alerts} talking-point alert${alerts > 1 ? 's' : ''}` : ' · no synchronized talking points detected')
+          + ` · updated ${updatedAt}`;
+      }
       this.nciUpdaters.clear();
       replaceChildren(this.listEl, ...compared.map(cc => this.renderCluster(cc)));
       void this.autoAiScore(compared);
@@ -909,6 +947,25 @@ export class CoverageComparePanel extends Panel {
     }
     const metaLine = h('div', { className: 'cc-meta' }, ...metaChildren);
 
+    const everyday = isEverydayReaderMode();
+    const civilian = everyday
+      ? summarizeCivilianCoverage(cc.groups, {
+          asymmetry: cc.asymmetry,
+          divergentCount: cc.items.filter((i) => i.divergent).length,
+          talkingPoint: cc.tp.talkingPointAlert,
+          loadedCount: cc.tp.loadedTerms.length,
+        })
+      : null;
+    const civilianCovered = civilian
+      ? h('div', { className: 'cc-civilian-covered' }, civilian.covered)
+      : null;
+    const civilianIgnored = civilian?.ignored
+      ? h('div', { className: 'cc-civilian-ignored' }, civilian.ignored)
+      : null;
+    const civilianFraming = civilian?.framing
+      ? h('div', { className: 'cc-civilian-framing' }, civilian.framing)
+      : null;
+
     const nciBody = h('div', { className: 'cc-nci-body' });
     let lastAiSummary: string | undefined;
     const renderNciBreakdown = (result: NciResult, aiSummary?: string) => {
@@ -989,7 +1046,7 @@ export class CoverageComparePanel extends Panel {
       );
     };
 
-    const nciAiBtn = h('button', { className: 'cc-ai-btn cc-nci-ai-btn', type: 'button' }, 'Full NCI Score (AI)') as HTMLButtonElement;
+    const nciAiBtn = h('button', { className: 'cc-ai-btn cc-nci-ai-btn', type: 'button' }, everyday ? 'Full score (local AI)' : 'Full NCI Score (AI)') as HTMLButtonElement;
     nciAiBtn.addEventListener('click', async () => {
       nciAiBtn.disabled = true;
       nciAiBtn.textContent = 'Scoring…';
@@ -1016,7 +1073,7 @@ export class CoverageComparePanel extends Panel {
         }
       } finally {
         nciAiBtn.disabled = false;
-        nciAiBtn.textContent = 'Full NCI Score (AI)';
+        nciAiBtn.textContent = everyday ? 'Full score (local AI)' : 'Full NCI Score (AI)';
       }
     });
 
@@ -1029,7 +1086,9 @@ export class CoverageComparePanel extends Panel {
 
     const nciDetails = h('details', { className: 'cc-nci' },
       h('summary', { className: 'cc-nci-toggle' },
-        `NCI Engineered Reality breakdown — ${cc.nci.normalized}/100 (${cc.nci.tier.label})`),
+        everyday
+          ? `Advanced score breakdown (optional) — ${cc.nci.normalized}/100`
+          : `NCI Engineered Reality breakdown — ${cc.nci.normalized}/100 (${cc.nci.tier.label})`),
       nciBody,
       h('div', { className: 'cc-ai-row' }, nciAiBtn),
     );
@@ -1125,26 +1184,50 @@ export class CoverageComparePanel extends Panel {
 
     // Left-border stripe colored by NCI tier makes suspicious stories pop out
     // of the list before any text is read (design review P1).
-    const details = h('details', { className: `cc-details cc-tier-l${cc.nci.tier.level}${cc.tp.talkingPointAlert ? ' cc-details-alert' : ''}` },
-      // Tier 1: NCI badge + source count + title + at most ONE worst flag
-      // (3 chips max), with the Tier 2 meta line wrapping underneath.
-      h('summary', { className: 'cc-summary' },
-        nciBadge,
-        h('span', { className: 'cc-count' }, `${cc.cluster.sourceCount}×`),
-        h('span', { className: 'cc-title' }, cc.cluster.primaryTitle),
-        ...(worstFlag ? [mkFlag(worstFlag)] : []),
-        metaLine,
-      ),
+    // Everyday Tier 1: covered / quiet / framing — NCI badge stays inside expansion.
+    const details = h('details', { className: `cc-details cc-tier-l${cc.nci.tier.level}${cc.tp.talkingPointAlert ? ' cc-details-alert' : ''}${everyday ? ' cc-details--everyday' : ''}` },
+      everyday
+        ? h('summary', { className: 'cc-summary cc-summary--everyday' },
+            h('span', { className: 'cc-count' }, `${cc.cluster.sourceCount}×`),
+            h('span', { className: 'cc-title' }, cc.cluster.primaryTitle),
+            ...(worstFlag && !worstFlag.text.includes('NCI') ? [mkFlag(worstFlag)] : []),
+            ...(civilianCovered ? [civilianCovered] : []),
+            ...(civilianIgnored ? [civilianIgnored] : []),
+            ...(civilianFraming ? [civilianFraming] : []),
+          )
+        : h('summary', { className: 'cc-summary' },
+            // Tier 1: NCI badge + source count + title + at most ONE worst flag
+            // (3 chips max), with the Tier 2 meta line wrapping underneath.
+            nciBadge,
+            h('span', { className: 'cc-count' }, `${cc.cluster.sourceCount}×`),
+            h('span', { className: 'cc-title' }, cc.cluster.primaryTitle),
+            ...(worstFlag ? [mkFlag(worstFlag)] : []),
+            metaLine,
+          ),
       actionRow,
-      signalRow,
-      ...phraseEls,
-      ...(loadedEl ? [loadedEl] : []),
-      ...(consensus ? [consensus] : []),
+      // Everyday: outlet groups (covered/ignored evidence) before sync/NCI chrome.
+      ...(everyday ? groupEls : []),
+      ...(everyday ? [] : [signalRow]),
+      ...(everyday ? [] : phraseEls),
+      ...(!everyday && loadedEl ? [loadedEl] : []),
+      ...(!everyday && consensus ? [consensus] : []),
+      ...(everyday
+        ? [h('div', { className: 'cc-everyday-score-row' }, nciBadge, h('span', { className: 'cc-everyday-score-hint' }, 'Optional deep score'))]
+        : []),
+      ...(everyday ? [signalRow, ...phraseEls] : []),
+      ...(everyday && loadedEl ? [loadedEl] : []),
+      ...(everyday && consensus ? [consensus] : []),
       nciDetails,
-      ...groupEls,
+      ...(everyday ? [] : groupEls),
       localResult,
-      h('div', { className: 'cc-ai-row' }, aiBtn, localBtn),
-      aiResult,
+      // Everyday: AI Compare stays inside the story expand, behind a quiet details gate.
+      ...(everyday
+        ? [h('details', { className: 'cc-everyday-ai-details' },
+            h('summary', { className: 'cc-everyday-ai-summary' }, 'Local AI compare (optional)'),
+            h('div', { className: 'cc-ai-row cc-ai-row--everyday' }, aiBtn, localBtn),
+            aiResult,
+          )]
+        : [h('div', { className: 'cc-ai-row' }, aiBtn, localBtn), aiResult]),
     );
     if (cc.tp.talkingPointAlert) (details as HTMLDetailsElement).open = true;
     return details as HTMLElement;

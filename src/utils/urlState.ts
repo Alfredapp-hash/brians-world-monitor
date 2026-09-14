@@ -38,6 +38,10 @@ const LAYER_KEYS: (keyof MapLayers)[] = [
   'satellites',
   'ciiChoropleth',
   'resilienceScore',
+  // Cameras are shareable like any other layer: without an entry here
+  // `?layers=webcams` parses to "every listed layer off, webcams untouched",
+  // so the link silently does nothing and the layer cannot be deep-linked.
+  'webcams',
 ];
 
 const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', '48h', '7d', 'all'];
@@ -144,6 +148,24 @@ export function parseMapUrlState(
   };
 }
 
+/**
+ * Query keys this module owns. Everything else in the base URL is somebody
+ * else's parameter (`?godseye=1`, `?lang=`, campaign tags) and is carried
+ * through untouched — the map's 250ms URL sync used to rebuild the query from
+ * scratch, which silently deleted whatever else the address bar was carrying.
+ */
+const MAP_OWNED_PARAMS = [
+  'lat',
+  'lon',
+  'zoom',
+  'view',
+  'timeRange',
+  'layers',
+  'country',
+  'expanded',
+  'chokepoint',
+] as const;
+
 export function buildMapUrl(
   baseUrl: string,
   state: {
@@ -164,7 +186,11 @@ export function buildMapUrl(
     // window.location.origin can be "null" string in some in-app browsers / WebViews
     url = new URL(window.location.href);
   }
-  const params = new URLSearchParams();
+  // Start from what the base URL already carries, then clear only the keys this
+  // function is authoritative for, so an absent `country`/`chokepoint` still
+  // drops out of the result exactly as it did when the query was rebuilt fresh.
+  const params = new URLSearchParams(url.search);
+  for (const key of MAP_OWNED_PARAMS) params.delete(key);
 
   if (state.center) {
     params.set('lat', state.center.lat.toFixed(4));

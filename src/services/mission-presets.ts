@@ -14,6 +14,8 @@ export const MISSION_PRESET_STORAGE_KEY = 'worldmonitor-mission-preset-v1';
 export const MISSION_PRESET_DISMISSED_KEY = 'worldmonitor-mission-preset-dismissed-v1';
 
 export type MissionPresetId =
+  | 'everyday-reader'
+  | 'gods-eye'
   | 'crisis-desk'
   | 'supply-chain-risk'
   | 'energy-security'
@@ -52,6 +54,68 @@ export interface ResetMissionPresetState {
 }
 
 export const MISSION_PRESETS: readonly MissionPreset[] = [
+  {
+    id: 'everyday-reader',
+    label: 'Everyday Brief',
+    shortLabel: 'Everyday',
+    description: 'Plain-language news brief first — map and analyst tools stay one click away.',
+    icon: 'B',
+    view: 'global',
+    zoom: 2.1,
+    timeRange: '24h',
+    panels: [
+      'map',
+      'insights',
+      'politics',
+    ],
+    layers: [
+      'hotspots',
+      'conflicts',
+      'protests',
+      'weather',
+      'natural',
+    ],
+  },
+  {
+    id: 'gods-eye',
+    label: "God's Eye",
+    shortLabel: 'Globe',
+    description: 'Globe-first stage — events, tracks, and alerts read as attached to Earth.',
+    icon: 'O',
+    view: 'global',
+    zoom: 1.9,
+    timeRange: '24h',
+    panels: [
+      'map',
+      'insights',
+      'live-news',
+      'politics',
+    ],
+    // Layers chosen to read at globe scale: broad geographic spread, moving
+    // tracks, and point events that stay legible from orbit.
+    //
+    // `webcams` is the stage's one look-down-and-see-it layer: everything else
+    // here is a plotted event, and the cameras are the point where the reader
+    // stops reading about a place and looks at it. Density is handled by the
+    // server's zoom-aware clustering, so it stays a cluster count from orbit
+    // and only resolves into individual cameras on the way down. It is allowed
+    // only in the `full` variant (VARIANT_LAYER_ORDER), so presets applied
+    // under happy/tech/finance/energy drop it in sanitizeLayersForVariant.
+    layers: [
+      'hotspots',
+      'conflicts',
+      'protests',
+      'military',
+      'ais',
+      'cables',
+      'fires',
+      'outages',
+      'cyberThreats',
+      'weather',
+      'natural',
+      'webcams',
+    ],
+  },
   {
     id: 'crisis-desk',
     label: 'Crisis Desk',

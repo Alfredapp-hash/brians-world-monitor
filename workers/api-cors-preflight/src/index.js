@@ -26,6 +26,8 @@ import { maybeServeBootstrapFromKv } from './kv-serve.js';
 // origins that the function would accept get the canonical fallback origin
 // echoed back and fail CORS at the browser.
 const ALLOWED_ORIGIN_PATTERNS = [
+  // Live paper host (Netlify). Apex + www only — no bare *.netlify.app.
+  /^https:\/\/(www\.)?thepublicdispatch\.com$/,
   // This fork's own Vercel deployment(s) only — never trust bare
   // worldmonitor.app or its subdomains, that's a different owner's
   // production domain. Mirror of server/cors.ts's PRODUCTION_PATTERNS

@@ -118,8 +118,9 @@ describe('insights-loader', () => {
       // bug: on 4G the fast-tier bootstrap aborts at 1.2 s, `insights` never
       // lands in the hydration cache, `getServerInsights()` returns null,
       // and InsightsPanel dead-ends on the mobile branch with no retry. The
-      // on-demand fetcher must hit /api/bootstrap?keys=insights and return
-      // validated data so the panel can recover without a page reload.
+      // Recovery fetcher must hit the public fast-tier bootstrap URL (insights
+      // is a FAST key; credentialed ?keys=insights 401s for anonymous readers)
+      // and return validated data so the panel can recover without a reload.
       const valid = makeValidInsights();
       let calledUrl = '';
       globalThis.fetch = async (url) => {
@@ -134,7 +135,11 @@ describe('insights-loader', () => {
       const fetched = await fetchServerInsights();
       assert.ok(fetched, 'fetch fallback returned data');
       assert.equal(fetched?.worldBrief, 'Test brief');
-      assert.match(calledUrl, /\/api\/bootstrap\?keys=insights\b/, 'used the bootstrap key-filter endpoint, not a separate route');
+      assert.match(
+        calledUrl,
+        /\/api\/bootstrap\?tier=fast&public=1\b/,
+        'used the public fast-tier bootstrap URL, not credentialed keys=',
+      );
     });
 
     it('caches the fetched value so subsequent getServerInsights() is synchronous', async () => {

@@ -106,6 +106,44 @@ describe('buildMapUrl expanded param', () => {
   });
 });
 
+describe('buildMapUrl parameter carry-through', () => {
+  const baseState = {
+    view: 'global' as const,
+    zoom: 2,
+    center: { lat: 0, lon: 0 },
+    timeRange: '24h' as const,
+    layers: EMPTY_LAYERS,
+  };
+
+  it('keeps parameters it does not own', () => {
+    // The map's 250ms URL sync runs through this function on every camera
+    // move. Rebuilding the query from scratch is what used to delete
+    // `?godseye=1` out from under a reader mid-stage.
+    const url = buildMapUrl('https://worldmonitor.app/?godseye=1&lang=fr', baseState);
+    const params = new URL(url).searchParams;
+    assert.equal(params.get('godseye'), '1');
+    assert.equal(params.get('lang'), 'fr');
+    assert.equal(params.get('view'), 'global');
+  });
+
+  it('still overwrites the parameters it does own', () => {
+    const url = buildMapUrl('https://worldmonitor.app/?view=mena&zoom=8&layers=ais', baseState);
+    const params = new URL(url).searchParams;
+    assert.equal(params.get('view'), 'global');
+    assert.equal(params.get('zoom'), '2.00');
+    assert.equal(params.get('layers'), 'none');
+    assert.equal(params.getAll('view').length, 1);
+  });
+
+  it('still drops owned parameters the new state has no value for', () => {
+    const url = buildMapUrl('https://worldmonitor.app/?country=IR&expanded=1&chokepoint=hormuz_strait', baseState);
+    const params = new URL(url).searchParams;
+    assert.equal(params.has('country'), false);
+    assert.equal(params.has('expanded'), false);
+    assert.equal(params.has('chokepoint'), false);
+  });
+});
+
 describe('expanded param round-trip', () => {
   const base = 'https://worldmonitor.app/dashboard';
   const baseState = {

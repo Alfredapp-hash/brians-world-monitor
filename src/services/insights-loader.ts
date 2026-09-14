@@ -83,27 +83,25 @@ export function getServerInsights(): ServerInsights | null {
 }
 
 /**
- * On-demand refetch of the server-insights snapshot via the bootstrap
- * key-filter endpoint. Used by InsightsPanel when getServerInsights() returns
- * null because the bootstrap hydration cache is empty — typically:
- *   - mobile fast-tier abort on 4G (bootstrap.ts:179 — 1.2 s budget),
+ * Recover server insights when the bootstrap hydration cache is empty —
+ * typically:
+ *   - mobile fast-tier abort on 4G (bootstrap.ts — short budget),
  *   - cached value went stale (>MAX_AGE_MS) with no second bootstrap fetch,
  *   - getHydratedData() was already consumed by an earlier failed validation
- *     (it deletes on read; insights-loader.ts validation drained the slot
- *     without caching, leaving subsequent reads with nothing).
+ *     (it deletes on read; validation drained the slot without caching).
  *
- * The bootstrap API supports `?keys=insights` filtering (api/bootstrap.js:250)
- * and is CDN-cached (s-maxage=600 for fast tier), so polling is cheap.
- * Mirrors the AAIISentimentPanel fallback shape (AAIISentimentPanel.ts:147).
- *
- * Returns the validated insights on success, null on any failure (network,
- * timeout, validation). Caches the value module-locally on success so
- * subsequent getServerInsights() calls return it without re-fetching.
+ * `insights` is a FAST-tier bootstrap key. The anonymous public contract is
+ * `GET /api/bootstrap?tier=fast&public=1` (CDN-cached). The legacy
+ * `?keys=insights` URL is credentialed and returns 401 without an API key —
+ * so Everyday/anonymous readers must use the public fast tier, then pull
+ * `data.insights`. Returns null when Redis has not seeded insights yet
+ * (payload lists it under `missing`) or on any network/validation failure.
  */
 export async function fetchServerInsights(timeoutMs = 5_000): Promise<ServerInsights | null> {
   if (cached && isFresh(cached)) return cached;
   try {
-    const resp = await fetch(toApiUrl('/api/bootstrap?keys=insights'), {
+    const resp = await fetch(toApiUrl('/api/bootstrap?tier=fast&public=1'), {
+      credentials: 'omit',
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!resp.ok) return null;

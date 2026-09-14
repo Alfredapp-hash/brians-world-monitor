@@ -1,0 +1,459 @@
+/*
+ * Conversion surfaces: the Pro & Support settings tab, the header Support
+ * control, and the briefing-allowance note.
+ *
+ * Everything here is built from the existing theme custom properties so it
+ * follows dark/light, the JSA identity theme, reader mode and the God's Eye
+ * stage without a second set of colours. Nothing in this file is allowed to
+ * cover, blur or dim app content — no overlays, no scrims, no sticky
+ * upsell bars.
+ */
+
+/* ── Header control ───────────────────────────────────────────────────── */
+
+/*
+ * Sized and coloured like the neighbouring utility buttons (copy-link,
+ * fullscreen) on purpose. A free user's chrome should look no different
+ * from a subscriber's, so this reads as one more tool rather than a
+ * flashing "BUY" button.
+ */
+.support-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.support-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.support-btn:focus-visible {
+  outline: 2px solid var(--wm-red-dim);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  /* Icon-only before the button competes with the search/settings controls. */
+  .support-btn__label {
+    display: none;
+  }
+}
+
+/* ── Settings: Pro & Support tab ──────────────────────────────────────── */
+
+.wm-support-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 4px 2px 8px;
+}
+
+.wm-support-h {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.wm-support-intro p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.wm-support-status {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.wm-support-status--active {
+  border-color: color-mix(in srgb, var(--status-good, #56b273) 30%, var(--border));
+  background: color-mix(in srgb, var(--status-good, #56b273) 5%, var(--surface));
+}
+
+.wm-support-status-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.wm-support-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-good, #56b273);
+  flex-shrink: 0;
+}
+
+.wm-support-status-desc {
+  margin: 6px 0 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.wm-support-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.wm-support-link {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.wm-support-link:hover {
+  color: var(--text);
+  border-bottom-color: var(--border-strong);
+}
+
+/* Two honest columns. Free is listed first and never styled as the lesser
+ * of the two — same type size, same weight, no strikethroughs. */
+.wm-support-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 640px) {
+  .wm-support-compare {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wm-support-col-h {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.wm-support-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.wm-support-list li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.wm-support-list li::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 11px;
+}
+
+.wm-support-list--free li::before {
+  content: '\2713';
+  color: var(--status-good, #56b273);
+}
+
+.wm-support-list--pro li::before {
+  content: '\002B';
+  color: var(--text-dim);
+}
+
+.wm-support-section-h {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.wm-support-section-desc {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.wm-support-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ── Allowance meter ─────────────────────────────────────────────────── */
+
+.wm-allowance-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-subtle);
+  overflow: hidden;
+}
+
+.wm-allowance-fill {
+  display: block;
+  height: 100%;
+  background: var(--text-dim);
+  transition: width 0.3s ease;
+}
+
+.wm-allowance-fill--unlimited {
+  background: var(--status-good, #56b273);
+}
+
+.wm-allowance-line {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ── BYOK rows ───────────────────────────────────────────────────────── */
+
+.wm-byok-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.wm-byok-row:last-of-type {
+  border-bottom: none;
+}
+
+.wm-byok-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.wm-byok-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.wm-byok-state {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.wm-byok-state--set {
+  color: var(--status-good, #56b273);
+}
+
+.wm-byok-controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.wm-byok-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 6px 8px;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+/* `:focus`, not `:focus-visible`: a key field is worth a ring however the
+   caret got there, and it is the one input here you cannot proofread by
+   sight once it is masked. */
+.wm-byok-input:focus {
+  outline: 2px solid var(--text-dim);
+  outline-offset: 1px;
+  border-color: var(--border-strong);
+}
+
+.wm-byok-btn {
+  padding: 6px 11px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.wm-byok-btn:focus-visible {
+  outline: 2px solid var(--text-dim);
+  outline-offset: 2px;
+}
+
+.wm-byok-btn--quiet {
+  color: var(--text-dim);
+  background: transparent;
+}
+
+.wm-byok-hint {
+  margin: 7px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.wm-byok-hint a {
+  color: var(--text-dim);
+}
+
+.wm-byok-status {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  min-height: 0;
+}
+
+.wm-byok-status:empty {
+  display: none;
+}
+
+.wm-byok-status--ok {
+  color: var(--status-good, #56b273);
+}
+
+.wm-byok-status--warn {
+  color: var(--status-watch, #d9b64a);
+}
+
+/* ── Donate ──────────────────────────────────────────────────────────── */
+
+.wm-donate-btn {
+  display: inline-block;
+  padding: 7px 14px;
+  font-size: 12px;
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+}
+
+.wm-donate-btn:hover {
+  background: var(--surface-hover);
+}
+
+.wm-donate-btn:focus-visible {
+  outline: 2px solid var(--text-dim);
+  outline-offset: 2px;
+}
+
+/* ── Regenerate-brief control ────────────────────────────────────────── */
+
+.insights-brief-regen {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 9px;
+}
+
+.brief-regen-btn {
+  padding: 4px 9px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.brief-regen-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.brief-regen-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.brief-regen-btn:focus-visible {
+  outline: 2px solid var(--text-dim);
+  outline-offset: 2px;
+}
+
+.brief-regen-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-stage-mode='godseye'] .insights-brief-regen {
+  display: none;
+}
+
+/* ── Briefing allowance note (inside the Insights panel) ─────────────── */
+
+/*
+ * Sits UNDER a brief the user can still read. Left rule instead of a full
+ * card so it reads as a footnote to the brief rather than an interstitial.
+ */
+.brief-allowance-note {
+  margin: 10px 0 14px;
+  padding: 9px 0 9px 11px;
+  border-left: 2px solid var(--border-strong);
+}
+
+.brief-allowance-text {
+  margin: 0 0 7px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.brief-allowance-cta {
+  padding: 0;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  cursor: pointer;
+}
+
+.brief-allowance-cta:hover {
+  color: var(--text);
+}
+
+.brief-allowance-cta:focus-visible {
+  outline: 2px solid var(--text-dim);
+  outline-offset: 2px;
+}
+
+/*
+ * Reader mode strips analyst chrome; the note stays but gets the calmer
+ * reader type scale so it doesn't shout inside a prose column.
+ */
+html[data-reader-mode='everyday'] .brief-allowance-text {
+  font-size: 12px;
+}
+
+/*
+ * God's Eye is a presentation stage — a live wall-display session must never
+ * show a monetisation prompt. Hide both, no exceptions.
+ */
+html[data-stage-mode='godseye'] .brief-allowance-note,
+html[data-stage-mode='godseye'] .support-btn {
+  display: none;
+}

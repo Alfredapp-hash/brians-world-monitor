@@ -3,6 +3,8 @@ import { toFlagEmoji } from '@/utils/country-flag';
 import { getCanonicalApiOrigin } from '@/services/runtime';
 // Canvas 2D cannot resolve CSS custom properties — raw token constants only.
 import { BRAND } from '@/styles/tokens';
+// Aliased: the token module already owns the name `BRAND` for its palette.
+import { BRAND as PUBLICATION } from '@/config/brand';
 
 const VALID_STORY_TYPES = ['ciianalysis', 'convergence', 'brief'] as const;
 type StoryType = typeof VALID_STORY_TYPES[number];
@@ -93,7 +95,7 @@ export const shareTexts = {
       ? `• Score: ${data.cii.score}/100 (${data.cii.level})\n• 24h change: ${data.cii.change24h > 0 ? '+' : ''}${data.cii.change24h}%\n`
       : '• Score: Unavailable\n') +
     `${data.threats.critical > 0 ? `• Critical threats: ${data.threats.critical}\n` : ''}` +
-    `\nData via JSA's Monitor - Open source geopolitical intelligence`,
+    `\nData via ${PUBLICATION.name} - Open source geopolitical intelligence`,
 
   telegram: (data: StoryData) =>
     `${toFlagEmoji(data.countryCode, '')} *${data.countryName} Intelligence*\n\n` +
@@ -115,7 +117,7 @@ export function getShareUrls(data: StoryData): Record<string, string> {
   return {
     twitter: `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
-    reddit: `https://reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(`${data.countryName} Intelligence Brief - JSA's Monitor`)}`,
+    reddit: `https://reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(`${data.countryName} Intelligence Brief - ${PUBLICATION.name}`)}`,
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
     whatsapp: `https://wa.me/?text=${encodeURIComponent(shareTexts.whatsapp(data))}`,
     telegram: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareTexts.telegram(data))}`,

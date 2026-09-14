@@ -5,15 +5,51 @@
  *
  * See: https://developer.mozilla.org/en-US/docs/Web/CSS/@layer
  */
+/*
+ * Layer order matters for `!important`, where the cascade REVERSES: an
+ * `!important` declaration in an EARLIER layer outranks a later one, and an
+ * unlayered `!important` loses to every layered one.
+ *
+ * `godseye-force` is therefore declared before `base` so the God's Eye stage
+ * can override main.css's `!important` map-section sizing (the mobile
+ * `height: calc(100dvh - 48px) !important` block). Only those few forced
+ * declarations live in that layer — the stage's ordinary styling stays
+ * unlayered in godseye-mode.css, where normal declarations win instead.
+ */
+@layer godseye-force, base;
+
 @import url('./main.css') layer(base);
 @import url('./header.css') layer(base);
 @import url('./country-deep-dive.css') layer(base);
 @import url('./map-context-menu.css') layer(base);
 @import url('./supply-chain-panel.css') layer(base);
 
-/* JSA's Monitor identity theme — imported UNLAYERED (no layer(base)) so it
+/* Legacy identity theme — imported UNLAYERED (no layer(base)) so it
  * wins the cascade over everything above, and rides the same deferred
  * dashboard stylesheet rather than adding a second render-blocking link. */
 @import url('./brians-theme.css');
 @import url('./states.css');
 @import url('./chrome.css');
+/* CONSOLE 2026 — the design system. Grey stage, true-black plates, slow
+ * crimson rim, hairlines, contemporary sans. Imported after chrome.css so it
+ * supersedes the amber identity, and before the stage stylesheets so God's Eye
+ * and the reader keep authority over their own compositions while inheriting
+ * the tokens.
+ *
+ * A parchment sheet (dispatch.css) briefly held this slot and repointed the
+ * same token names to paper and iron-gall ink. It no longer defines materials:
+ * the design system is here, and dispatch.css is now only the brand layer. */
+@import url('./console-2026.css');
+/* THE PUBLIC DISPATCH brand layer — the nameplate, the dispatch voice and the
+ * reader's front page, all expressed in the tokens above. It must load AFTER
+ * console-2026.css (it consumes --wm-*) and it must not introduce materials of
+ * its own: no new grounds, no new plate recipe, no second palette. */
+@import url('./dispatch.css');
+/* Map layer picker — restages the engines' existing toggle DOM into a
+ * plain-language, one-click control. After dispatch.css so it inherits the
+ * tokens and supersedes the analyst-voice row styling in main.css/chrome.css;
+ * it carries its own God's Eye block, so it stays before the stage sheets. */
+@import url('./layer-picker.css');
+@import url('./reader-mode.css');
+@import url('./godseye-mode.css');
+@import url('./support.css');

@@ -35,21 +35,27 @@ function appendHeader(headers, name, value) {
   return next;
 }
 
-function shouldUseSharedCookieDomain(req) {
-  const host = (req.headers.get('host') || new URL(req.url).hostname).toLowerCase();
-  return host === 'worldmonitor.app' || host.endsWith('.worldmonitor.app');
+function cookieHost(req) {
+  return (req.headers.get('host') || new URL(req.url).hostname).toLowerCase().split(':')[0];
 }
 
 function cookieDomainAttribute(req) {
-  return shouldUseSharedCookieDomain(req) ? '; Domain=.worldmonitor.app' : '';
+  const host = cookieHost(req);
+  if (host === 'worldmonitor.app' || host.endsWith('.worldmonitor.app')) {
+    return '; Domain=.worldmonitor.app';
+  }
+  if (host === 'thepublicdispatch.com' || host.endsWith('.thepublicdispatch.com')) {
+    return '; Domain=.thepublicdispatch.com';
+  }
+  return '';
 }
 
 function sessionCookie(req, name, value) {
   return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}${cookieDomainAttribute(req)}; HttpOnly; Secure; SameSite=Lax`;
 }
 
-function clearReadableCookie(name) {
-  return `${name}=; Domain=.worldmonitor.app; Path=/; Max-Age=0; Secure; SameSite=Lax`;
+function clearReadableCookie(req, name) {
+  return `${name}=${cookieDomainAttribute(req)}; Path=/; Max-Age=0; Secure; SameSite=Lax`;
 }
 
 function normalizeLegacyKey(value) {
@@ -172,11 +178,11 @@ export default async function handler(req, ctx) {
   // Best-effort cleanup for old JS-readable cookies only when replacing that
   // key. A no-key session refresh must preserve existing HttpOnly key cookies.
   if (widgetKey) {
-    headers = appendHeader(headers, 'Set-Cookie', clearReadableCookie(WIDGET_KEY_COOKIE));
+    headers = appendHeader(headers, 'Set-Cookie', clearReadableCookie(req, WIDGET_KEY_COOKIE));
     headers = appendHeader(headers, 'Set-Cookie', sessionCookie(req, WIDGET_KEY_COOKIE, widgetKey));
   }
   if (proKey) {
-    headers = appendHeader(headers, 'Set-Cookie', clearReadableCookie(PRO_KEY_COOKIE));
+    headers = appendHeader(headers, 'Set-Cookie', clearReadableCookie(req, PRO_KEY_COOKIE));
     headers = appendHeader(headers, 'Set-Cookie', sessionCookie(req, PRO_KEY_COOKIE, proKey));
   }
 

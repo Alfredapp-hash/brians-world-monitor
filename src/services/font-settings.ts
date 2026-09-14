@@ -12,11 +12,13 @@ export function getFontFamily(): FontFamily {
   } catch {
     // ignore
   }
-  return 'mono';
+  // The console's default voice is the UI sans stack (see console-2026.css).
+  // Mono stays one select away and still owns telemetry via --font-mono.
+  return 'system';
 }
 
 export function setFontFamily(font: FontFamily): void {
-  const safe = ALLOWED.includes(font) ? font : 'mono';
+  const safe = ALLOWED.includes(font) ? font : 'system';
   try {
     localStorage.setItem(STORAGE_KEY, safe);
   } catch {

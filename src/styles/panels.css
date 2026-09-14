@@ -3337,7 +3337,7 @@ a.hub-top-story {
 }
 /* The five-step NCI scale is the one legitimate multi-color system —
    harmonized onto the theme status tokens (calm green kept muted). */
-.cc-nci-l0 { background: rgba(79,168,124,0.12); color: #4fa87c; border-color: rgba(79,168,124,0.3); }
+.cc-nci-l0 { background: var(--overlay-subtle); color: var(--text-dim-safe, var(--text-dim)); border-color: var(--wm-hairline, var(--border)); }
 .cc-nci-l1 { background: var(--status-watch-bg, rgba(217,182,74,0.12)); color: var(--status-watch, #d9b64a); border-color: var(--status-watch, #d9b64a); }
 .cc-nci-l2 { background: var(--status-warn-bg, rgba(224,138,60,0.14)); color: var(--status-warn, #e08a3c); border-color: var(--status-warn, #e08a3c); }
 .cc-nci-l3 { background: var(--status-alert-bg, rgba(224,82,82,0.16)); color: var(--status-alert, #e05252); border-color: var(--status-alert, #e05252); }

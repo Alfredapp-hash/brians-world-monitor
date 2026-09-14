@@ -28,6 +28,8 @@
   --text-faint: #A8B4AA;
   --text-ghost: #C0C8C2;
   --accent: #3D4A3E;
+  /* Cream ink on dark-green accent CTAs */
+  --accent-ink: #FAFAF5;
 
   /* Overlays & shadows */
   --overlay-subtle: rgba(107, 143, 94, 0.03);
@@ -118,6 +120,7 @@
   --text-faint: #606860;
   --text-ghost: #485048;
   --accent: #E8E4DC;
+  --accent-ink: #1A2332;
 
   /* Overlays & shadows */
   --overlay-subtle: rgba(139, 175, 122, 0.03);

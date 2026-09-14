@@ -17,6 +17,8 @@ import {
 } from '@/config/panels';
 import type { McpDataPanel } from '@/components/McpDataPanel';
 import { deleteMcpPanel, getMcpPanel, saveMcpPanel } from '@/services/mcp-store';
+import { registerSettingsOpener } from '@/services/settings-bus';
+import { BRAND } from '@/config/brand';
 import type { PanelConfig, MapLayers, MilitaryFlight } from '@/types';
 import type { MapView } from '@/components/MapContainer';
 import type { PositionSample } from '@/services/aviation';
@@ -62,6 +64,28 @@ import {
   type MissionPresetId,
 } from '@/services/mission-presets';
 import {
+  EVERYDAY_ANALYST_PANELS,
+  EVERYDAY_MISSION_PRESET_ID,
+  applyReaderAnalystOpenToDocument,
+  applyReaderModeToDocument,
+  getReaderMode,
+  isReaderAnalystOpen,
+  setReaderAnalystOpen,
+  setReaderMode,
+  type ReaderMode,
+} from '@/services/reader-mode';
+import {
+  applyStageModeToDocument,
+  altitudeToZoom,
+  buildStageEntryUrl,
+  buildStageExitUrl,
+  engageGodsEyeStage,
+  isGodsEyeStage,
+  isStageEscapeOwned,
+  releaseGodsEyeStage,
+  type StageCamera,
+} from '@/services/godseye-mode';
+import {
   saveSnapshot,
   initAisStream,
   disconnectAisStream,
@@ -91,7 +115,6 @@ import { t } from '@/services/i18n';
 import { TvModeController } from '@/services/tv-mode';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
-import { scheduleAfterFirstPaint } from '@/utils/after-paint';
 import { escapeHtml } from '@/utils/sanitize';
 import { buildEmbedIframeSnippet, buildEmbedMapUrl, type EmbedVariant } from '@/embed/embed-url';
 import { createSettingsButton } from '@/components/settings-button';
@@ -130,6 +153,10 @@ class LazyUnifiedSettings implements UnifiedSettingsController {
 
   constructor(private readonly config: UnifiedSettingsConfig) {
     this.button = createSettingsButton(() => this.open());
+    // Let deep components (e.g. the briefing-allowance notice in
+    // InsightsPanel) route the user straight to a settings tab without
+    // importing the app layer. See services/settings-bus.ts.
+    registerSettingsOpener((tab) => this.open(tab as UnifiedSettingsTabId | undefined));
   }
 
   getButton(): HTMLButtonElement {
@@ -196,6 +223,8 @@ export interface EventHandlerCallbacks {
   syncDataFreshnessWithLayers: () => void;
   ensureCorrectZones: () => void;
   applySavedPanelOrder?: (panelOrder?: string[]) => void;
+  /** Prefer PanelLayoutManager.applyPanelSettings so lazy panels mount on enable. */
+  applyPanelSettings?: () => void;
   refreshCiiAfterFocalPointsReady?: () => void;
   stopLayerActivity?: (layer: keyof MapLayers) => void;
   mountLiveNewsIfReady?: () => void;
@@ -213,6 +242,8 @@ export class EventHandlerManager implements AppModule {
   private boundStorageHandler: ((e: StorageEvent) => void) | null = null;
   private boundTvKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundFocalPointsReadyHandler: (() => void) | null = null;
+  private godsEyeHotkeysBound = false;
+  private boundGodsEyeKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private boundThemeChangedHandler: (() => void) | null = null;
   private boundDropdownClickHandler: ((e: MouseEvent) => void) | null = null;
   private boundDropdownKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -281,7 +312,12 @@ export class EventHandlerManager implements AppModule {
   enablePanelById(panelId: string): boolean {
     const config = this.ctx.panelSettings[panelId];
     if (!config) return false;
-    if (config.enabled) return true;
+    if (config.enabled) {
+      // Settings may already say enabled while the panel was never mounted
+      // (everyday disclose / prior session). Re-run apply so lazy panels appear.
+      this.applyPanelSettings();
+      return true;
+    }
     if (isFreePanelCapBlocking(isProUser()) && isFreePanelCapCounted(panelId)) {
       const enabledCount = countFreePanelCapUsage(this.ctx.panelSettings);
       if (enabledCount >= FREE_MAX_PANELS) {
@@ -294,7 +330,10 @@ export class EventHandlerManager implements AppModule {
     }
     config.enabled = true;
     trackPanelToggled(panelId, true);
-    saveToStorage(STORAGE_KEYS.panels, this.ctx.panelSettings);
+    // Inside the stage `panelSettings` IS the stage's transient bundle, so
+    // persisting it here would write the stage's four curated panels over the
+    // dashboard layout the reader expects back when they leave.
+    if (!this.ctx.stagePanelOrder) saveToStorage(STORAGE_KEYS.panels, this.ctx.panelSettings);
     this.applyPanelSettings();
     this.ctx.unifiedSettings?.refreshPanelToggles();
 
@@ -393,6 +432,11 @@ export class EventHandlerManager implements AppModule {
     if (this.boundTvKeydownHandler) {
       document.removeEventListener('keydown', this.boundTvKeydownHandler);
       this.boundTvKeydownHandler = null;
+    }
+    if (this.boundGodsEyeKeydownHandler) {
+      window.removeEventListener('keydown', this.boundGodsEyeKeydownHandler);
+      this.boundGodsEyeKeydownHandler = null;
+      this.godsEyeHotkeysBound = false;
     }
     if (this.boundFocalPointsReadyHandler) {
       window.removeEventListener('focal-points-ready', this.boundFocalPointsReadyHandler);
@@ -712,6 +756,7 @@ export class EventHandlerManager implements AppModule {
 
     this.setupMobileMenu();
     this.setupMissionPresets();
+    this.setupReaderMode();
 
     if (this.ctx.isDesktopApp) {
       if (this.boundDesktopExternalLinkHandler) {
@@ -780,6 +825,17 @@ export class EventHandlerManager implements AppModule {
       trackThemeChanged(next);
     });
 
+    document.getElementById('mobileMenuSupport')?.addEventListener('click', () => {
+      this.closeMobileMenu();
+      this.ctx.unifiedSettings?.open('pro');
+    });
+
+    // Quiet header control. Opens the Pro & Support tab; it never blocks the
+    // session and is the same destination for free users and subscribers.
+    document.getElementById('supportBtn')?.addEventListener('click', () => {
+      this.ctx.unifiedSettings?.open('pro');
+    });
+
     const sheetBackdrop = document.getElementById('regionSheetBackdrop');
     sheetBackdrop?.addEventListener('click', () => this.closeRegionSheet());
 
@@ -823,23 +879,235 @@ export class EventHandlerManager implements AppModule {
       this.openMissionPresetPopover(document.getElementById('hamburgerBtn'), true);
     });
 
-    const shouldPrompt =
-      !this.ctx.isMobile &&
-      !window.location.search &&
-      !loadStoredMissionPreset() &&
-      !isMissionPresetPromptDismissed();
-    if (shouldPrompt) {
-      // Defer the onboarding auto-open to browser idle after first paint so it
-      // never competes with load or first-interaction work. This replaced a
-      // fixed 700ms timeout that forced layout reads (getBoundingClientRect +
-      // offsetHeight) on the post-load path. Re-check state at fire time since
-      // the idle wait can outlast an early user choice.
-      scheduleAfterFirstPaint(() => {
-        if (this.ctx.isDestroyed) return;
-        if (loadStoredMissionPreset() || isMissionPresetPromptDismissed()) return;
-        this.openMissionPresetPopover(document.getElementById('missionPresetBtn'), false);
-      });
+    // Mission is opt-in. Auto-opening the picker on first paint made Analyst
+    // look crashed-into a workspace modal (see .brand-shots/01-firstpaint.png).
+    // Everyday was already gated; Analyst now matches. Users open Mission
+    // from the header control or More menu.
+  }
+
+  private setupReaderMode(): void {
+    applyReaderModeToDocument(getReaderMode());
+    applyReaderAnalystOpenToDocument();
+    this.renderReaderModeControl();
+    this.bindReaderDiscloseControls();
+    this.setupGodsEyeStage();
+  }
+
+  /**
+   * God's Eye stage entry: a header control plus a `G` accelerator.
+   *
+   * The stage is entered and left by reload, because it rewrites the three
+   * durable preferences (reader mode, map dimension, mission preset) that the
+   * boot path reads — the same contract the Everyday/Analyst toggle uses.
+   */
+  private setupGodsEyeStage(): void {
+    applyStageModeToDocument();
+    this.renderGodsEyeControl();
+    this.bindGodsEyeHotkeys();
+  }
+
+  private renderGodsEyeControl(): void {
+    const mount = document.getElementById('godseyeMount');
+    if (!mount) return;
+    // Inside the stage the HUD owns entry/exit, so the header control would be
+    // a duplicate of the HUD's Exit button.
+    if (isGodsEyeStage()) {
+      mount.replaceChildren();
+      return;
     }
+
+    setTrustedHtml(mount, trustedHtml(`
+      <button type="button" class="godseye-enter-btn" id="godseyeEnterBtn"
+        title="God's Eye — globe-first view (G)" aria-label="God's Eye">
+        <span class="godseye-enter-btn__mark" aria-hidden="true"></span>
+        <span class="godseye-enter-btn__label">God's Eye</span>
+      </button>
+    `, "God's Eye entry button uses fixed labels"));
+
+    document.getElementById('godseyeEnterBtn')?.addEventListener('click', () => {
+      this.enterGodsEyeStage();
+    });
+  }
+
+  /**
+   * Where the reader is looking right now, in terms the exit URL can replay.
+   *
+   * The globe reports its camera as an altitude and pins `getState().zoom` at
+   * a constant, so the zoom level has to be derived rather than read; the flat
+   * renderers have no altitude and their state zoom is the real one.
+   */
+  private captureStageCamera(): StageCamera | null {
+    const map = this.ctx.map;
+    if (!map) return null;
+    const center = map.getCenter();
+    if (!center) return null;
+    const altitude = map.getViewAltitude();
+    const state = map.getState();
+    return {
+      lat: center.lat,
+      lon: center.lon,
+      zoom: altitude !== null ? altitudeToZoom(altitude) : state.zoom,
+      altitude,
+      view: state.view,
+    };
+  }
+
+  private enterGodsEyeStage(): void {
+    engageGodsEyeStage(undefined, this.captureStageCamera());
+    // Navigating (rather than reloading) puts `?godseye=1` in the address bar,
+    // so the stage is shareable from the moment it is up, and drops the
+    // dashboard's camera and layer parameters so the stage frames itself.
+    window.location.assign(buildStageEntryUrl(window.location.href));
+  }
+
+  private exitGodsEyeStage(): void {
+    const restored = releaseGodsEyeStage();
+    window.location.assign(buildStageExitUrl(window.location.href, restored?.camera ?? null));
+  }
+
+  /**
+   * The stage's accelerators: Escape leaves, `G` enters.
+   *
+   * Registered on `window` in the BUBBLE phase, which is the very last stop on
+   * the event path. Every component handler — on the target, on `document` —
+   * therefore gets first refusal, so anything that calls `stopPropagation` (an
+   * open mission-preset popover) or `preventDefault` (CountryDeepDivePanel)
+   * wins without this handler having to know about it. It used to sit on
+   * `document` alongside those handlers, where which one ran first came down to
+   * registration order: a story modal opened from the rail registers its
+   * Escape handler LAST, so the stage exited before the modal ever saw the key.
+   *
+   * Being last is not sufficient on its own, because most of those surfaces
+   * close on Escape without marking the event at all — hence the explicit
+   * `isStageEscapeOwned()` check.
+   */
+  private bindGodsEyeHotkeys(): void {
+    if (this.godsEyeHotkeysBound) return;
+    this.godsEyeHotkeysBound = true;
+
+    this.boundGodsEyeKeydownHandler = (event: KeyboardEvent) => {
+      // Never steal a key from a field, a shortcut chord, or a surface that
+      // already handled it (a popover closing on Escape, for instance).
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.isContentEditable
+        || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '')
+      ) {
+        return;
+      }
+
+      if (event.key === 'Escape' && isGodsEyeStage()) {
+        // A modal owns this keystroke. It closes itself; the reader's next
+        // Escape, with nothing left open, leaves the stage.
+        if (isStageEscapeOwned()) return;
+        event.preventDefault();
+        this.exitGodsEyeStage();
+        return;
+      }
+
+      if ((event.key === 'g' || event.key === 'G') && !isGodsEyeStage()) {
+        if (isStageEscapeOwned()) return;
+        event.preventDefault();
+        this.enterGodsEyeStage();
+      }
+    };
+    window.addEventListener('keydown', this.boundGodsEyeKeydownHandler);
+  }
+
+  private renderReaderModeControl(): void {
+    const mount = document.getElementById('readerModeMount');
+    if (!mount) return;
+    const mode = getReaderMode();
+    setTrustedHtml(mount, trustedHtml(`
+      <div class="reader-mode-toggle" role="group" aria-label="View density">
+        <button type="button" class="reader-mode-toggle__btn${mode === 'everyday' ? ' is-active' : ''}" data-reader-mode="everyday" aria-pressed="${mode === 'everyday' ? 'true' : 'false'}">Everyday</button>
+        <button type="button" class="reader-mode-toggle__btn${mode === 'analyst' ? ' is-active' : ''}" data-reader-mode="analyst" aria-pressed="${mode === 'analyst' ? 'true' : 'false'}">Analyst</button>
+      </div>
+    `, 'Reader mode toggle uses fixed labels'));
+
+    mount.querySelectorAll<HTMLButtonElement>('[data-reader-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const next = btn.dataset.readerMode;
+        if (next === 'everyday' || next === 'analyst') {
+          this.applyReaderMode(next);
+        }
+      });
+    });
+  }
+
+  private bindReaderDiscloseControls(): void {
+    const root = document.getElementById('readerDisclose');
+    if (!root || root.dataset.bound === '1') return;
+    root.dataset.bound = '1';
+
+    root.addEventListener('click', (event) => {
+      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-reader-disclose]');
+      if (!target) return;
+      const which = target.dataset.readerDisclose;
+      if (!which) return;
+
+      if (which === 'all') {
+        const nextOpen = !isReaderAnalystOpen();
+        setReaderAnalystOpen(nextOpen);
+        if (nextOpen) {
+          for (const panelId of EVERYDAY_ANALYST_PANELS) {
+            this.enablePanelById(panelId);
+          }
+          showToast('More analysis is available below');
+        } else {
+          showToast('Extra analysis tucked away');
+        }
+        const allBtn = document.getElementById('readerDiscloseAll');
+        if (allBtn) {
+          allBtn.textContent = nextOpen ? 'Hide extra analysis' : 'Show more analysis';
+          allBtn.classList.toggle('is-active', nextOpen);
+        }
+        return;
+      }
+
+      setReaderAnalystOpen(true);
+      this.enablePanelById(which);
+      // Lazy panels mount async — retry scroll until the shell appears.
+      const scrollToPanel = (attemptsLeft: number): void => {
+        const panelEl = document.querySelector<HTMLElement>(`[data-panel="${which}"]`);
+        if (panelEl) {
+          panelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          return;
+        }
+        if (attemptsLeft > 0) {
+          window.setTimeout(() => scrollToPanel(attemptsLeft - 1), 120);
+        }
+      };
+      scrollToPanel(20);
+      const allBtn = document.getElementById('readerDiscloseAll');
+      if (allBtn) {
+        allBtn.textContent = 'Hide extra analysis';
+        allBtn.classList.add('is-active');
+      }
+      showToast(
+        which === 'coverage-compare'
+          ? 'Opened: how outlets frame this'
+          : which === 'cii'
+            ? 'Opened: country stress'
+            : 'Opened: markets',
+      );
+    });
+  }
+
+  private applyReaderMode(mode: ReaderMode): void {
+    if (mode === getReaderMode() && document.documentElement.dataset.readerMode === mode) {
+      return;
+    }
+    setReaderMode(mode);
+    setReaderAnalystOpen(false);
+    if (mode === 'everyday') {
+      this.applyMissionPreset(EVERYDAY_MISSION_PRESET_ID);
+    } else if (loadStoredMissionPreset()?.id === EVERYDAY_MISSION_PRESET_ID) {
+      this.resetMissionPreset();
+    }
+    // Full reload so hero, map peek, and panel order hydrate cleanly for the mode.
+    window.location.reload();
   }
 
   private renderMissionPresetControl(): void {
@@ -1300,7 +1568,11 @@ export class EventHandlerManager implements AppModule {
     if (!this.ctx.map) return null;
     const state = this.ctx.map.getState();
     const center = this.ctx.map.getCenter();
-    const baseUrl = `${window.location.origin}${window.location.pathname}`;
+    // Carry the current query through: buildMapUrl overwrites the parameters it
+    // owns and leaves everything else alone. Rebuilding from origin+pathname is
+    // what let the 250ms map-movement URL sync delete `?godseye=1` out from
+    // under the reader mid-stage.
+    const baseUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
     const briefPage = this.ctx.countryBriefPage;
     const isCountryVisible = briefPage?.isVisible() ?? false;
     return buildMapUrl(baseUrl, {
@@ -1358,7 +1630,7 @@ export class EventHandlerManager implements AppModule {
 
     const preview = document.createElement('iframe');
     preview.className = 'embed-preview-frame';
-    preview.title = "JSA's Monitor live map preview";
+    preview.title = `${BRAND.name} live map preview`;
     preview.loading = 'lazy';
     preview.referrerPolicy = 'strict-origin-when-cross-origin';
     preview.src = embedUrl;
@@ -2247,6 +2519,10 @@ export class EventHandlerManager implements AppModule {
   }
 
   applyPanelSettings(): void {
+    if (this.callbacks.applyPanelSettings) {
+      this.callbacks.applyPanelSettings();
+      return;
+    }
     Object.entries(this.ctx.panelSettings).forEach(([key, config]) => {
       if (key === 'map') {
         const mapSection = document.getElementById('mapSection');

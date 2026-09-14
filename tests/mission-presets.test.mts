@@ -32,6 +32,7 @@ import {
   resetMissionPresetState,
   saveMissionPreset,
 } from '../src/services/mission-presets.ts';
+import { READER_MODE_KEY } from '../src/services/reader-mode.ts';
 
 class MemoryStorage {
   private store = new Map<string, string>();
@@ -601,11 +602,16 @@ afterEach(() => {
   resetMissionGlobals();
 });
 
+/** Presets that stage a reading experience rather than an analyst desk. */
+const PRESENTATION_PRESET_IDS = new Set<string>(['everyday-reader', 'gods-eye']);
+
 describe('mission preset definitions', () => {
   it('defines the v1 role presets with stable ids', () => {
     assert.deepEqual(
       MISSION_PRESETS.map((preset) => preset.id),
       [
+        'everyday-reader',
+        'gods-eye',
         'crisis-desk',
         'supply-chain-risk',
         'energy-security',
@@ -636,7 +642,14 @@ describe('mission preset definitions', () => {
       assert.ok(preset.label.length > 0, `${preset.id} needs a label`);
       assert.ok(preset.description.length > 0, `${preset.id} needs a description`);
       assert.ok(preset.panels.includes('map'), `${preset.id} must include the map panel`);
-      assert.ok(preset.panels.length > 3, `${preset.id} should enable a useful panel set`);
+      // Role presets stage a working desk and need real breadth. Presentation
+      // presets (Everyday brief, God's Eye globe stage) are deliberately narrow
+      // — their whole point is that the reader is not handed a dashboard.
+      const minPanels = PRESENTATION_PRESET_IDS.has(preset.id) ? 3 : 4;
+      assert.ok(
+        preset.panels.length >= minPanels,
+        `${preset.id} should enable a useful panel set`,
+      );
       assert.ok(preset.layers.length > 0, `${preset.id} should enable map layers`);
       assert.equal(new Set(preset.panels).size, preset.panels.length, `${preset.id} repeats panel ids`);
       assert.equal(new Set(preset.layers).size, preset.layers.length, `${preset.id} repeats layer ids`);
@@ -1114,22 +1127,22 @@ function createMissionHarness(options: { mobile?: boolean; storage?: MemoryStora
 }
 
 describe('mission preset shell integration', () => {
-  it('rechecks mission prompt eligibility before the idle auto-open fires', async () => {
-    const { manager } = createMissionHarness();
+  it('does not auto-open the mission picker on first paint', async () => {
+    // First paint is the record, not a workspace modal. Mission is opt-in
+    // from the header control / More menu in every mode.
+    const storage = new MemoryStorage();
+    storage.setItem(READER_MODE_KEY, 'analyst');
+    const { manager } = createMissionHarness({ storage });
     const opened: Array<{ anchor: unknown; mobile: unknown }> = [];
 
-    manager.setupMissionPresets();
     manager.openMissionPresetPopover = (anchor: unknown, mobile: unknown) => {
       opened.push({ anchor, mobile });
     };
+    manager.setupMissionPresets();
 
     const tasks = (globalThis as { __missionAfterPaintTasks?: Array<() => void> }).__missionAfterPaintTasks ?? [];
-    assert.equal(tasks.length, 1, 'desktop startup should schedule one mission prompt idle task');
-
-    saveMissionPreset('supply-chain-risk');
-    tasks[0]!();
-
-    assert.deepEqual(opened, [], 'stored mission state should cancel the delayed auto-open');
+    assert.equal(tasks.length, 0, 'startup must not schedule a mission prompt idle task');
+    assert.deepEqual(opened, [], 'mission popover must not open itself');
   });
 
   it('applies a preset through the real manager path and resets state, storage, layers, map view, and URL to defaults', async () => {

@@ -1,0 +1,72 @@
+# The Public Dispatch — Netlify production for thepublicdispatch.com
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--no-audit --no-fund"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Same-origin /api/health, /api/wm-session, and /api/bootstrap are
+# Netlify Functions (netlify/functions/{health,wm-session,bootstrap}.js).
+# Do not force-proxy /api/* or those functions are shadowed.
+[[redirects]]
+  from = "/api/*"
+  to = "https://brians-world-monitor.vercel.app/api/:splat"
+  status = 200
+
+# Agent/MCP/OAuth surfaces are not the SPA same-origin path. They still
+# 200-rewrite to the existing Edge handlers until those are wrapped too.
+[[redirects]]
+  from = "/mcp"
+  to = "https://brians-world-monitor.vercel.app/api/mcp"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/a2a"
+  to = "https://brians-world-monitor.vercel.app/api/a2a"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/ask"
+  to = "https://brians-world-monitor.vercel.app/api/ask"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/oauth/*"
+  to = "https://brians-world-monitor.vercel.app/oauth/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/dashboard"
+  to = "/dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/embed"
+  to = "/embed.html"
+  status = 200
+
+[[redirects]]
+  from = "/osint4all"
+  to = "/osint4all.html"
+  status = 200
+
+[[redirects]]
+  from = "/pro"
+  to = "/pro/index.html"
+  status = 200
+
+# Client-side app routes (Netlify still serves real files in dist first).
+[[redirects]]
+  from = "/*"
+  to = "/dashboard.html"
+  status = 200

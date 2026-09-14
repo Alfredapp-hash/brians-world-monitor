@@ -4049,6 +4049,84 @@ body.live-news-fullscreen-active .panels-grid > *:not(.live-news-fullscreen) {
   color: var(--accent, #00d4ff);
 }
 
+/* ── Live webcam playback (Caltrans HLS / TfL MP4) ──
+   The wrapper matches the still it replaces so the popup doesn't reflow when a
+   stream fails and the JPEG goes back in its place. */
+.webcam-stream-player {
+  position: relative;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+  line-height: 0;
+}
+
+.webcam-stream-video {
+  display: block;
+  width: 100%;
+  /* Traffic cameras are 4:3 far more often than 16:9, and `contain` keeps a
+     16:9 stream letterboxed rather than cropping the roadway out of frame. */
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  background: #000;
+}
+
+.webcam-stream-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.65);
+  color: var(--red-strong, #dc2626);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+/* Shown only when muted autoplay was refused, so the feed stays one click away
+   instead of silently presenting as a still. */
+.webcam-stream-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  border: 0;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.webcam-stream-play:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.webcam-stream-play:focus-visible {
+  outline: 2px solid rgba(248, 113, 113, 0.72);
+  outline-offset: -2px;
+}
+
+/* Pinned-panel slots are sized by the grid, not by a fixed preview width. */
+.pinned-webcam-player {
+  width: 100%;
+  height: 100%;
+  margin-bottom: 0;
+  border-radius: 0;
+}
+
+.pinned-webcam-player .webcam-stream-video {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
 /* DeckGL webcam click popup */
 .deckgl-webcam-popup {
   background: var(--bg-secondary, #1a1a2e);
@@ -5126,6 +5204,23 @@ body.playback-mode .status-dot {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* The SVG renderer over a satellite backdrop (Map.renderSatelliteBackdrop).
+   The country layer is drawn with `fill` as a presentation attribute, which any
+   CSS rule outranks — so this reduces it to an outline pass without touching the
+   render code, and the sanctions tint the same attribute carries still reads at
+   this opacity instead of being erased by `fill: none`. */
+.map-base.over-imagery .country {
+  fill-opacity: 0.12;
+  stroke-opacity: 0.55;
+}
+
+/* Imagery already carries the coastline, so the chart furniture recedes to a
+   faint instrument grid rather than competing with the photograph. */
+.map-base.over-imagery .graticule,
+.map-base.over-imagery .grid-line {
+  opacity: 0.18;
 }
 
 .map-controls {
@@ -13689,7 +13784,7 @@ a.prediction-link:hover {
     display: none !important;
   }
 
-  /* Mobile: show "World Monitor" instead of "MONITOR" */
+  /* Mobile: swap the full masthead for the short mark ("TPD") */
   .logo {
     display: none;
   }

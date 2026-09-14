@@ -40,6 +40,16 @@ export const CLOUD_SYNC_KEYS = [
   // last here" — synced so a phone visit doesn't re-flag stories already
   // read on desktop.
   'wm-read-state-v1',
+  'jsam-view-mode',
+  'jsam-reader-analyst-open',
+  // NOT synced, deliberately: `jsam-stage-mode` and `jsam-stage-restore-v1`.
+  // The God's Eye stage is device-local. Its restore snapshot describes the
+  // device that captured it, so replaying one device's snapshot on another
+  // would overwrite that device's real Everyday/Analyst and map-dimension
+  // preferences on exit. Because the stage FORCES `jsam-view-mode` and
+  // `worldmonitor-map-mode` while it is up, the uploader reports those two at
+  // their pre-stage values instead — see `withoutStageOverrides` in
+  // src/services/godseye-mode.ts.
 ] as const;
 
 export type CloudSyncKey = (typeof CLOUD_SYNC_KEYS)[number];

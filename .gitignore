@@ -13,6 +13,7 @@ public/crawlable-corpus.json
 .playwright-mcp/
 *-network.txt
 .vercel
+.netlify
 api/\[domain\]/v1/\[rpc\].js
 api/\[\[...path\]\].js
 .claude/
@@ -91,3 +92,4 @@ docs/plans/
 docs/brainstorms/
 playground-pricing.html
 audit-shots/
+.env*

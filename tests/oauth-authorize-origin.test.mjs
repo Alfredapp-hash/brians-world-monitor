@@ -38,6 +38,8 @@ const postWithOrigin = (origin) => {
 
 describe('OAuth authorize — consent POST origin gate (P1)', () => {
   const firstPartyOrigins = [
+    'https://thepublicdispatch.com',                     // live Netlify paper
+    'https://www.thepublicdispatch.com',
     'https://brians-world-monitor.vercel.app',           // production alias
     'https://brians-world-monitor-git-main.vercel.app',  // branch preview alias
     'https://brians-world-monitor-abc123.vercel.app',    // deployment-hash preview alias
@@ -68,6 +70,7 @@ describe('OAuth authorize — consent POST origin gate (P1)', () => {
     'https://worldmonitor.app',                                   // this fork does not control worldmonitor.app — must not be trusted
     'https://www.worldmonitor.app',
     'https://api.worldmonitor.app',
+    'https://thepublicdispatch.com.evil.example',                 // suffix attack — must stay anchored
     'https://brians-world-monitor.vercel.app.evil.example',       // suffix attack — must stay anchored
     'https://evilbrians-world-monitor.vercel.app',                // prefix attack — no subdomain dot
     'http://brians-world-monitor.vercel.app',                     // non-https
