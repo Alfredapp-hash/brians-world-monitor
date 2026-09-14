@@ -1,27 +1,37 @@
 import { strict as assert } from 'node:assert';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-import bootstrap from './bootstrap.js';
-import health from './health.js';
-import wmSession from './wm-session.js';
-import { invokeEdgeHandler } from './_shared/invoke-edge-handler.js';
+import bootstrap from '../netlify/functions/bootstrap.js';
+import health from '../netlify/functions/health.js';
+import wmSession from '../netlify/functions/wm-session.js';
+import { invokeEdgeHandler } from '../netlify/lib/invoke-edge-handler.js';
 
-const toml = readFileSync(new URL('../../netlify.toml', import.meta.url), 'utf8');
+const toml = readFileSync(new URL('../netlify.toml', import.meta.url), 'utf8');
+const functionsDir = new URL('../netlify/functions/', import.meta.url);
 
 describe('Netlify same-origin API wrappers', () => {
+  it('functions root contains only valid Netlify function entry names', () => {
+    const entries = readdirSync(functionsDir);
+    const names = entries.map((name) => name.replace(/\.(js|mjs|cjs|ts|mts)$/, ''));
+    assert.deepEqual([...names].sort(), ['bootstrap', 'health', 'wm-session']);
+    for (const name of names) {
+      assert.match(name, /^[A-Za-z0-9_-]+$/);
+    }
+  });
+
   it('health wrapper is mounted at /api/health', async () => {
-    const { config } = await import('./health.js');
+    const { config } = await import('../netlify/functions/health.js');
     assert.equal(config.path, '/api/health');
   });
 
   it('wm-session wrapper is mounted at /api/wm-session', async () => {
-    const { config } = await import('./wm-session.js');
+    const { config } = await import('../netlify/functions/wm-session.js');
     assert.equal(config.path, '/api/wm-session');
   });
 
   it('bootstrap wrapper is mounted at /api/bootstrap', async () => {
-    const { config } = await import('./bootstrap.js');
+    const { config } = await import('../netlify/functions/bootstrap.js');
     assert.equal(config.path, '/api/bootstrap');
   });
 
