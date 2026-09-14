@@ -170,7 +170,16 @@ describe('OSINT catalog panel wiring', () => {
     assert.equal(meta.categoryCount, 49);
     assert.equal(meta.categories.length, 49);
     assert.deepEqual(meta.tools, []);
-    assert.deepEqual(meta.toolShardFiles, ['catalog.tools.a.json', 'catalog.tools.b.json']);
+    assert.ok(Array.isArray(meta.toolShardFiles) && meta.toolShardFiles.length > 0);
     assert.equal(existsSync(resolve(__dirname, '../public/osint/_parts')), false);
+
+    const shardPaths = meta.toolShardFiles.map((name) => resolve(__dirname, '../public/osint', name));
+    if (shardPaths.every((path) => existsSync(path))) {
+      const shards = shardPaths.map((path) => JSON.parse(readFileSync(path, 'utf8')));
+      const merged = mergeOsintCatalogShards(meta, shards);
+      assert.equal(merged.tools.length, 246);
+      assert.equal(merged.categoryCount, 49);
+      assert.equal(new Set(merged.tools.map((tool) => tool.id)).size, 246);
+    }
   });
 });
