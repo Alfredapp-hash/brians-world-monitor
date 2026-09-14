@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 
 import bootstrap from '../netlify/functions/bootstrap.js';
 import health from '../netlify/functions/health.js';
-import productCatalog from '../netlify/functions/product-catalog.js';
 import versionWrapper from '../netlify/functions/version.js';
 import wmSession from '../netlify/functions/wm-session.js';
 import versionHandler, { PACKAGE_VERSION } from '../api/version.js';
@@ -59,11 +58,6 @@ const BOOT_RPC_WRAPPERS = [
     name: 'version',
     path: '/api/version',
     edge: '../../api/version.js',
-  },
-  {
-    name: 'product-catalog',
-    path: '/api/product-catalog',
-    edge: '../../api/product-catalog.js',
   },
 ];
 
@@ -203,24 +197,6 @@ describe('Netlify same-origin API wrappers', () => {
       headers: { origin: 'https://evil.example.com' },
     }));
     assert.equal(resp.status, 403);
-  });
-
-  it('product-catalog wrapper delegates GET to the existing Edge handler', async () => {
-    for (const k of [
-      'UPSTASH_REDIS_REST_URL', 'KV_REST_API_URL', 'REDIS_REST_URL',
-      'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_TOKEN', 'REDIS_REST_TOKEN',
-      'DODO_API_KEY',
-    ]) delete process.env[k];
-
-    const resp = await productCatalog(new Request('https://thepublicdispatch.com/api/product-catalog', {
-      method: 'GET',
-      headers: { origin: 'https://thepublicdispatch.com' },
-    }));
-    assert.equal(resp.status, 200);
-    const body = await resp.json();
-    assert.equal(body.priceSource, 'fallback');
-    assert.ok(Array.isArray(body.tiers));
-    assert.equal(resp.headers.get('x-product-catalog-source'), 'fallback');
   });
 
   it('invokeEdgeHandler forwards waitUntil onto the Netlify context', async () => {
