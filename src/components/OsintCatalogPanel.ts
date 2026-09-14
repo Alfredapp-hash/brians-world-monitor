@@ -63,7 +63,7 @@ export class OsintCatalogPanel extends Panel {
       this.error =
         err instanceof Error
           ? err.message
-          : 'WAITING ON catalog.json commit — could not load /osint/catalog.json.';
+          : 'WAITING ON catalog shards — could not load catalog.meta.json + tools.a/b.';
     }
     this.loading = false;
     this.render();
