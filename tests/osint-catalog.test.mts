@@ -7,9 +7,12 @@ import { fileURLToPath } from 'node:url';
 import fixture from '../src/osint/catalog.fixture.json' with { type: 'json' };
 import type { OsintCatalog } from '../src/osint/catalog.types.ts';
 import {
-  OSINT_CATALOG_URL,
+  OSINT_CATALOG_META_URL,
+  OSINT_CATALOG_TOOL_SHARD_URLS,
+  extractToolShard,
   isOsintCatalog,
   loadOsintCatalog,
+  mergeOsintCatalogShards,
   OsintCatalogLoadError,
 } from '../src/osint/load-catalog.ts';
 import { expandSearchTerms, filterOsintCatalog } from '../src/osint/search-catalog.ts';
@@ -27,21 +30,11 @@ describe('OSINT catalog fixture', () => {
     assert.ok(catalog.tools.length < 10, 'fixture must not pretend to be the 246-tool catalog');
   });
 
-  it('does not reconstruct the production catalog or keep _parts', () => {
+  it('lives next to the types file, not as public/osint/_parts', () => {
     const fixturePath = resolve(__dirname, '../src/osint/catalog.fixture.json');
-    const publicCatalog = resolve(__dirname, '../public/osint/catalog.json');
     const partsDir = resolve(__dirname, '../public/osint/_parts');
     assert.equal(readFileSync(fixturePath, 'utf8').includes('"wayback"'), true);
     assert.equal(existsSync(partsDir), false);
-    if (!existsSync(publicCatalog)) return;
-    const parsed: unknown = JSON.parse(readFileSync(publicCatalog, 'utf8'));
-    assert.equal(isOsintCatalog(parsed), true);
-    if (isOsintCatalog(parsed)) {
-      assert.equal(parsed.version, 2);
-      assert.equal(parsed.toolCount, 246);
-      assert.equal(parsed.tools.length, 246);
-      assert.equal(parsed.categoryCount, 49);
-    }
   });
 });
 
@@ -71,27 +64,75 @@ describe('OSINT catalog search', () => {
 });
 
 describe('OSINT catalog loader', () => {
-  it('fetches /osint/catalog.json and validates v2 shape', async () => {
+  const meta = {
+    ...catalog,
+    tools: [] as OsintCatalog['tools'],
+    toolCount: catalog.tools.length,
+    toolShardFiles: ['catalog.tools.a.json', 'catalog.tools.b.json'],
+  };
+  const shardA = catalog.tools.slice(0, 1);
+  const shardB = catalog.tools.slice(1);
+
+  it('merges meta + two tool arrays in memory', () => {
+    const merged = mergeOsintCatalogShards(meta, [shardA, shardB]);
+    assert.equal(merged.tools.length, 3);
+    assert.equal(merged.toolCount, 3);
+    assert.equal(merged.categoryCount, 2);
+    assert.deepEqual(merged.tools.map((tool) => tool.id), ['wayback', 'archive-today', 'crtsh']);
+  });
+
+  it('fetches catalog.meta.json plus tools.a/b and validates v2 shape', async () => {
     const seen: string[] = [];
     const loaded = await loadOsintCatalog(async (input) => {
       seen.push(input);
-      if (input === OSINT_CATALOG_URL) {
-        return { ok: true, status: 200, json: async () => catalog };
+      if (input === OSINT_CATALOG_META_URL) {
+        return { ok: true, status: 200, json: async () => meta };
+      }
+      if (input === '/osint/catalog.tools.a.json') {
+        return { ok: true, status: 200, json: async () => shardA };
+      }
+      if (input === '/osint/catalog.tools.b.json') {
+        return { ok: true, status: 200, json: async () => shardB };
       }
       return { ok: false, status: 404, json: async () => ({}) };
     });
-    assert.deepEqual(seen, [OSINT_CATALOG_URL]);
-    assert.equal(loaded.tools.length, 3);
+    assert.deepEqual(seen, [
+      OSINT_CATALOG_META_URL,
+      '/osint/catalog.tools.a.json',
+      '/osint/catalog.tools.b.json',
+    ]);
+    assert.deepEqual([...OSINT_CATALOG_TOOL_SHARD_URLS], [
+      '/osint/catalog.tools.a.json',
+      '/osint/catalog.tools.b.json',
+    ]);
+    assert.equal(loaded.toolCount, 3);
     assert.equal(loaded.tools[0]?.name, 'Internet Archive Wayback Machine');
   });
 
-  it('does not invent tools when catalog.json is missing', async () => {
+  it('does not invent tools when a shard is missing', async () => {
     await assert.rejects(
-      () => loadOsintCatalog(async () => ({ ok: false, status: 404, json: async () => ({}) })),
+      () => loadOsintCatalog(async (input) => {
+        if (input === OSINT_CATALOG_META_URL) {
+          return { ok: true, status: 200, json: async () => meta };
+        }
+        return { ok: false, status: 404, json: async () => ({}) };
+      }),
       (err: unknown) => {
         assert.ok(err instanceof OsintCatalogLoadError);
         assert.equal(err.status, 404);
-        assert.match(err.message, /WAITING ON catalog\.json/);
+        assert.match(err.message, /WAITING ON catalog shards/);
+        return true;
+      },
+    );
+  });
+
+  it('never treats file contents as paths to fetch', () => {
+    const stub = 'file:///workspace/osint-tools/OSINT4ALL-catalog/web/shards3/catalog.tools.a.json';
+    assert.throws(
+      () => extractToolShard(stub, 'catalog.tools.a.json'),
+      (err: unknown) => {
+        assert.ok(err instanceof OsintCatalogLoadError);
+        assert.match(err.message, /path\/stub/);
         return true;
       },
     );
@@ -113,17 +154,23 @@ describe('OSINT catalog panel wiring', () => {
     assert.match(vite, /OsintCatalog:\s*'panels-intel'/);
     assert.match(component, /loadOsintCatalog/);
     assert.match(component, /noopener noreferrer/);
-    assert.match(component, /WAITING ON catalog\.json/);
     assert.doesNotMatch(component, /parchment|JSA|jsa-monitor/i);
 
     const loader = readFileSync(resolve(__dirname, '../src/osint/load-catalog.ts'), 'utf8');
-    assert.match(loader, /\/osint\/catalog\.json/);
+    assert.match(loader, /catalog\.meta\.json/);
+    assert.match(loader, /catalog\.tools\.a\.json/);
+    assert.match(loader, /catalog\.tools\.b\.json/);
     assert.doesNotMatch(loader, /catalog\.json\.part/);
     assert.doesNotMatch(loader, /_parts/);
-    assert.doesNotMatch(loader, /toolShardFiles/);
 
+    const meta = JSON.parse(
+      readFileSync(resolve(__dirname, '../public/osint/catalog.meta.json'), 'utf8'),
+    ) as OsintCatalog;
+    assert.equal(meta.toolCount, 246);
+    assert.equal(meta.categoryCount, 49);
+    assert.equal(meta.categories.length, 49);
+    assert.deepEqual(meta.tools, []);
+    assert.deepEqual(meta.toolShardFiles, ['catalog.tools.a.json', 'catalog.tools.b.json']);
     assert.equal(existsSync(resolve(__dirname, '../public/osint/_parts')), false);
-    assert.equal(existsSync(resolve(__dirname, '../public/osint/catalog.tools.a.json')), false);
-    assert.equal(existsSync(resolve(__dirname, '../public/osint/catalog.tools.b.json')), false);
   });
 });

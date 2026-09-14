@@ -30,7 +30,7 @@ export class OsintCatalogPanel extends Panel {
       title: 'OSINT Tools',
       showCount: true,
       infoTooltip:
-        'Portable OSINT4ALL catalog from /osint/catalog.json. External links open in a new tab.',
+        'Portable OSINT4ALL catalog from catalog.meta.json plus tools.a/b shards. External links open in a new tab.',
     });
     this.element.classList.add('panel-tall');
     this.content.addEventListener('input', (event) => {
@@ -88,7 +88,7 @@ export class OsintCatalogPanel extends Panel {
       this.error =
         err instanceof Error
           ? err.message
-          : 'WAITING ON catalog.json — /osint/catalog.json is not available yet.';
+          : 'WAITING ON catalog shards — could not load catalog.meta.json + tools.a/b.';
     }
     this.loading = false;
     this.render();
@@ -111,7 +111,7 @@ export class OsintCatalogPanel extends Panel {
     if (this.error || !this.catalog) {
       this.resetChrome();
       this.showError(
-        this.error || 'WAITING ON catalog.json — /osint/catalog.json is not available yet.',
+        this.error || 'WAITING ON catalog shards — catalog.meta.json or tools.a/b is not available yet.',
         () => this.refresh(),
       );
       return;
