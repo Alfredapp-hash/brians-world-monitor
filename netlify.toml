@@ -61,6 +61,16 @@
   status = 200
 
 [[redirects]]
+  from = "/ONSITDispatch"
+  to = "/OSINTDispatch"
+  status = 301
+
+[[redirects]]
+  from = "/OSINTDispatch"
+  to = "/OSINTDispatch.html"
+  status = 200
+
+[[redirects]]
   from = "/pro"
   to = "/pro/index.html"
   status = 200

@@ -15,6 +15,11 @@ import {
   OsintCatalogLoadError,
 } from '../src/osint/load-catalog.ts';
 import { expandSearchTerms, filterOsintCatalog } from '../src/osint/search-catalog.ts';
+import {
+  OSINT_DISPATCH_NAME,
+  OSINT_DISPATCH_PATH,
+  isOsintDispatchPath,
+} from '../src/osint/dispatch.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const catalog = fixture as OsintCatalog;
@@ -141,15 +146,34 @@ describe('OSINT catalog panel wiring', () => {
     const commands = readFileSync(resolve(__dirname, '../src/config/commands.ts'), 'utf8');
     const vite = readFileSync(resolve(__dirname, '../vite.config.ts'), 'utf8');
     const component = readFileSync(resolve(__dirname, '../src/components/OsintCatalogPanel.ts'), 'utf8');
+    const view = readFileSync(resolve(__dirname, '../src/osint/catalog-view.ts'), 'utf8');
+    const brand = readFileSync(resolve(__dirname, '../src/config/brand.ts'), 'utf8');
+    const page = readFileSync(resolve(__dirname, '../OSINTDispatch.html'), 'utf8');
+    const pageMain = readFileSync(resolve(__dirname, '../src/osint-dispatch-main.ts'), 'utf8');
+    const netlify = readFileSync(resolve(__dirname, '../netlify.toml'), 'utf8');
+    const vercel = readFileSync(resolve(__dirname, '../vercel.json'), 'utf8');
 
     assert.match(layout, /lazyDefaultPanel\('osint-catalog'/);
-    assert.match(panels, /'osint-catalog':\s*\{\s*name:\s*'OSINT Tools'/);
+    assert.match(panels, /'osint-catalog':\s*\{\s*name:\s*'OSINTDispatch'/);
     assert.match(panels, /'osint-catalog'/);
     assert.match(commands, /id:\s*'panel:osint-catalog'/);
+    assert.match(commands, /label:\s*'Panel: OSINTDispatch'/);
     assert.match(vite, /OsintCatalog:\s*'panels-intel'/);
-    assert.match(component, /loadOsintCatalog/);
-    assert.match(component, /noopener noreferrer/);
+    assert.match(vite, /osintDispatch:\s*resolve\(__dirname,\s*'OSINTDispatch\.html'\)/);
+    assert.match(component, /OSINT_DISPATCH_NAME/);
+    assert.match(component, /OSINT_CATALOG_PANEL_ID/);
+    assert.match(view, /loadOsintCatalog/);
+    assert.match(view, /noopener noreferrer/);
+    assert.match(view, /OSINTDispatch/);
     assert.doesNotMatch(component, /parchment|JSA|jsa-monitor/i);
+    assert.match(brand, /osintDispatch:\s*'\/OSINTDispatch'/);
+    assert.match(page, /osint-dispatch-main/);
+    assert.match(pageMain, /loadOsintCatalog|OsintCatalogView/);
+    assert.match(pageMain, /OSINT_DISPATCH_NAME/);
+    assert.match(netlify, /from = "\/OSINTDispatch"/);
+    assert.match(netlify, /to = "\/OSINTDispatch\.html"/);
+    assert.match(vercel, /"source": "\/OSINTDispatch"/);
+    assert.match(vercel, /"destination": "\/OSINTDispatch\.html"/);
 
     const loader = readFileSync(resolve(__dirname, '../src/osint/load-catalog.ts'), 'utf8');
     assert.match(loader, /catalog\.meta\.json/);
@@ -178,5 +202,17 @@ describe('OSINT catalog panel wiring', () => {
       assert.equal(merged.categoryCount, 49);
       assert.equal(new Set(merged.tools.map((tool) => tool.id)).size, 246);
     }
+  });
+});
+
+describe('OSINTDispatch public route', () => {
+  it('brands the catalog OSINTDispatch at /OSINTDispatch', () => {
+    assert.equal(OSINT_DISPATCH_NAME, 'OSINTDispatch');
+    assert.equal(OSINT_DISPATCH_PATH, '/OSINTDispatch');
+    assert.equal(isOsintDispatchPath('/OSINTDispatch'), true);
+    assert.equal(isOsintDispatchPath('/OSINTDispatch/'), true);
+    assert.equal(isOsintDispatchPath('/OSINTDispatch.html'), true);
+    assert.equal(isOsintDispatchPath('/osint4all'), false);
+    assert.equal(existsSync(resolve(__dirname, '../OSINTDispatch.html')), true);
   });
 });

@@ -56,6 +56,7 @@ import { mlWorker } from '@/services/ml-worker';
 import { getAiFlowSettings, subscribeAiFlowChange, isHeadlineMemoryEnabled } from '@/services/ai-flow-settings';
 import { startLearning } from '@/services/country-instability';
 import { loadFromStorage, parseMapUrlState, saveToStorage, isMobileDevice, showToast } from '@/utils';
+import { isOsintDispatchPath, OSINT_CATALOG_PANEL_ID } from '@/osint/dispatch';
 import { clearPanelSpans, invalidatePanelStorageCacheForKeys } from '@/utils/panel-storage';
 import type { ParsedMapUrlState } from '@/utils';
 import { BreakingNewsBanner } from '@/components/BreakingNewsBanner';
@@ -2186,6 +2187,24 @@ export class App {
         this.state.map?.enableLayer('waterways');
         this.state.map?.openChokepoint(deepLinkChokepoint);
         this.eventHandlers.syncUrlState();
+      }, DEEP_LINK_INITIAL_DELAY_MS);
+    }
+
+    // /OSINTDispatch is a dedicated HTML entry. If the catch-all served the
+    // dashboard instead, focus the catalog panel so the public path still works.
+    if (isOsintDispatchPath(url.pathname)) {
+      window.setTimeout(() => {
+        if (this.state.isDestroyed) return;
+        this.eventHandlers.enablePanelById(OSINT_CATALOG_PANEL_ID);
+        const scroll = (attemptsLeft: number): void => {
+          const panelEl = document.querySelector<HTMLElement>(`[data-panel="${OSINT_CATALOG_PANEL_ID}"]`);
+          if (panelEl) {
+            panelEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+          }
+          if (attemptsLeft > 0) window.setTimeout(() => scroll(attemptsLeft - 1), 120);
+        };
+        scroll(20);
       }, DEEP_LINK_INITIAL_DELAY_MS);
     }
   }

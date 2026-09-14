@@ -122,7 +122,7 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'thermal-escalation': { name: 'Thermal Escalation', enabled: true, priority: 2 },
   'oref-sirens': { name: 'Israel Sirens', enabled: true, priority: 2, ...(_desktop && { premium: 'locked' as const }) },
   'telegram-intel': { name: 'Telegram Intel', enabled: true, priority: 2, ...(_desktop && { premium: 'locked' as const }) },
-  'osint-catalog': { name: 'OSINT Tools', enabled: true, priority: 1 },
+  'osint-catalog': { name: 'OSINTDispatch', enabled: true, priority: 1 },
   'airline-intel': { name: 'Airline Intelligence', enabled: true, priority: 2 },
   'tech-readiness': { name: 'Tech Readiness Index', enabled: true, priority: 2 },
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },

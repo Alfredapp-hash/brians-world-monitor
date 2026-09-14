@@ -1168,6 +1168,7 @@ export default defineConfig(({ mode }) => {
           main: resolve(__dirname, 'index.html'),
           embed: resolve(__dirname, 'embed.html'),
           osint4all: resolve(__dirname, 'osint4all.html'),
+          osintDispatch: resolve(__dirname, 'OSINTDispatch.html'),
           settings: resolve(__dirname, 'settings.html'),
           liveChannels: resolve(__dirname, 'live-channels.html'),
           mcpGrant: resolve(__dirname, 'mcp-grant.html'),

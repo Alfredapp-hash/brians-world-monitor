@@ -1081,6 +1081,7 @@ export class PanelLayoutManager implements AppModule {
         <div class="mobile-menu-divider"></div>
         <div class="mobile-menu-footer-links">
           <a href="${BRAND.about}" target="_blank" rel="noopener">About</a>
+          <a href="${BRAND.osintDispatch}">OSINTDispatch</a>
           <a href="${BRAND.osint4all}" target="_blank" rel="noopener">OSINT4ALL</a>
           <a href="${BRAND.github}" target="_blank" rel="noopener">GitHub</a>
           <a href="${BRAND.discordInvite}" target="_blank" rel="noopener">Discord</a>
@@ -1164,6 +1165,7 @@ export class PanelLayoutManager implements AppModule {
         </div>
         <nav>
           <a href="${BRAND.about}" target="_blank" rel="noopener">About</a>
+          <a href="${BRAND.osintDispatch}">OSINTDispatch</a>
           <a href="${BRAND.osint4all}" target="_blank" rel="noopener">OSINT4ALL</a>
           <a href="${BRAND.github}" target="_blank" rel="noopener">GitHub</a>
           <a href="${BRAND.discordInvite}" target="_blank" rel="noopener">Discord</a>
