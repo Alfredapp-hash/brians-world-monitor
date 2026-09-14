@@ -10,14 +10,17 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  # Only health / wm-session / bootstrap belong in this directory.
-  # Shared helpers live in netlify/lib/ so Netlify does not treat them
-  # as function entries. Tests must not live under netlify/functions/
-  # (a name like netlify-api.test is rejected: dots are not allowed).
+  # Function entries must be valid Netlify names only (alphanumeric,
+  # hyphen, underscore). Shared helpers live in netlify/lib/ so Netlify
+  # does not treat them as function entries. Tests must not live under
+  # netlify/functions/ (a name like netlify-api.test is rejected: dots
+  # are not allowed). Nested /api/<domain>/v1/<rpc> URLs are mounted
+  # with each wrapper's `config.path` — function filenames cannot
+  # contain `/`.
 
-# Same-origin /api/health, /api/wm-session, and /api/bootstrap are
-# Netlify Functions (netlify/functions/{health,wm-session,bootstrap}.js).
-# Do not force-proxy /api/* or those functions are shadowed.
+# Same-origin boot APIs are Netlify Functions (see netlify/functions/).
+# Remaining /api/* still 200-rewrites to Vercel. Do not set force=true
+# on this rule or the Functions would be shadowed.
 [[redirects]]
   from = "/api/*"
   to = "https://brians-world-monitor.vercel.app/api/:splat"
