@@ -712,6 +712,7 @@ function sebufApiPlugin(): Plugin {
 function mpaPrettyPathPlugin(): Plugin {
   const prettyToHtml: Record<string, string> = {
     '/OSINTDispatch': '/OSINTDispatch.html',
+    '/osintdispatch': '/OSINTDispatch.html',
     '/ONSITDispatch': '/OSINTDispatch.html',
     '/osint4all': '/osint4all.html',
   };

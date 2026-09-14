@@ -174,6 +174,7 @@ describe('OSINT catalog panel wiring', () => {
     assert.match(pageMain, /loadOsintCatalog|OsintCatalogView/);
     assert.match(pageMain, /OSINT_DISPATCH_NAME/);
     assert.match(netlify, /from = "\/OSINTDispatch"/);
+    assert.match(netlify, /from = "\/osintdispatch"/);
     assert.match(netlify, /to = "\/OSINTDispatch\.html"/);
     assert.match(vercel, /"source": "\/OSINTDispatch"/);
     assert.match(vercel, /"destination": "\/OSINTDispatch\.html"/);
@@ -215,7 +216,9 @@ describe('OSINTDispatch public route', () => {
     assert.equal(isOsintDispatchPath('/OSINTDispatch'), true);
     assert.equal(isOsintDispatchPath('/OSINTDispatch/'), true);
     assert.equal(isOsintDispatchPath('/OSINTDispatch.html'), true);
+    assert.equal(isOsintDispatchPath('/osintdispatch'), true);
     assert.equal(isOsintDispatchPath('/osint4all'), false);
+    assert.equal(isOsintDispatchPath('/osint'), false);
     assert.equal(existsSync(resolve(__dirname, '../OSINTDispatch.html')), true);
   });
 });

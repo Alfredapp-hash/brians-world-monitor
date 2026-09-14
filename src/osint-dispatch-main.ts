@@ -2,7 +2,7 @@ import './styles/osint4all.css';
 import './styles/osint-catalog.css';
 import { BRAND } from '@/config/brand';
 import { OsintCatalogView } from '@/osint/catalog-view';
-import { OSINT_DISPATCH_NAME, OSINT_DISPATCH_PATH } from '@/osint/dispatch';
+import { canonicalOsintDispatchHref, OSINT_DISPATCH_NAME, OSINT_DISPATCH_PATH } from '@/osint/dispatch';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -44,8 +44,7 @@ function boot(): void {
   root.replaceChildren(page);
 
   if (window.location.pathname !== OSINT_DISPATCH_PATH && window.history.replaceState) {
-    const next = `${OSINT_DISPATCH_PATH}${window.location.search}${window.location.hash}`;
-    window.history.replaceState(null, '', next);
+    window.history.replaceState(null, '', canonicalOsintDispatchHref(window.location.search, window.location.hash));
   }
 
   const view = new OsintCatalogView(mount, { showLede: false });

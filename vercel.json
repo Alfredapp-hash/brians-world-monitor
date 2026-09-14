@@ -45,6 +45,7 @@
     { "source": "/embed", "destination": "/embed.html" },
     { "source": "/osint4all", "destination": "/osint4all.html" },
     { "source": "/OSINTDispatch", "destination": "/OSINTDispatch.html" },
+    { "source": "/osintdispatch", "destination": "/OSINTDispatch.html" },
     { "source": "/dashboard", "has": [{ "type": "host", "value": "tech.worldmonitor.app" }], "destination": "/dashboard-tech.html" },
     { "source": "/dashboard", "has": [{ "type": "host", "value": "finance.worldmonitor.app" }], "destination": "/dashboard-finance.html" },
     { "source": "/dashboard", "has": [{ "type": "host", "value": "commodity.worldmonitor.app" }], "destination": "/dashboard-commodity.html" },

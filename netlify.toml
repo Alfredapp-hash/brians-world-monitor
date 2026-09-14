@@ -70,6 +70,13 @@
   to = "/OSINTDispatch.html"
   status = 200
 
+# Netlify CDN 301s mixed-case static paths to lowercase. Same catalog page;
+# the client replaceStates back to /OSINTDispatch. Not a new product slug.
+[[redirects]]
+  from = "/osintdispatch"
+  to = "/OSINTDispatch.html"
+  status = 200
+
 [[redirects]]
   from = "/pro"
   to = "/pro/index.html"
