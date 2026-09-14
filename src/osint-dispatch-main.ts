@@ -48,7 +48,7 @@ function boot(): void {
     window.history.replaceState(null, '', next);
   }
 
-  const view = new OsintCatalogView(mount);
+  const view = new OsintCatalogView(mount, { showLede: false });
   view.refresh();
 }
 

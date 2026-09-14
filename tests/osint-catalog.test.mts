@@ -160,6 +160,9 @@ describe('OSINT catalog panel wiring', () => {
     assert.match(commands, /label:\s*'Panel: OSINTDispatch'/);
     assert.match(vite, /OsintCatalog:\s*'panels-intel'/);
     assert.match(vite, /osintDispatch:\s*resolve\(__dirname,\s*'OSINTDispatch\.html'\)/);
+    assert.match(vite, /mpaPrettyPathPlugin/);
+    assert.match(vite, /'\/OSINTDispatch':\s*'\/OSINTDispatch\.html'/);
+    assert.match(vite, /if \(!file\.endsWith\('\/index\.html'\)\) return html;/);
     assert.match(component, /OSINT_DISPATCH_NAME/);
     assert.match(component, /OSINT_CATALOG_PANEL_ID/);
     assert.match(view, /loadOsintCatalog/);

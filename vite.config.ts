@@ -219,7 +219,9 @@ function brotliPrecompressPlugin(): Plugin {
 function htmlVariantPlugin(activeMeta: VariantMeta, activeVariant: string, isDesktopBuild: boolean): Plugin {
   return {
     name: 'html-variant',
-    transformIndexHtml(html) {
+    transformIndexHtml(html, ctx) {
+      const file = ctx.filename.replace(/\\/g, '/');
+      if (!file.endsWith('/index.html')) return html;
       let result = html
         .replace(/<title>.*?<\/title>/, `<title>${activeMeta.title}</title>`)
         .replace(/<meta name="title" content=".*?" \/>/, `<meta name="title" content="${activeMeta.title}" />`)
@@ -707,6 +709,39 @@ function sebufApiPlugin(): Plugin {
   };
 }
 
+function mpaPrettyPathPlugin(): Plugin {
+  const prettyToHtml: Record<string, string> = {
+    '/OSINTDispatch': '/OSINTDispatch.html',
+    '/ONSITDispatch': '/OSINTDispatch.html',
+    '/osint4all': '/osint4all.html',
+  };
+
+  const apply = (req: { url?: string }) => {
+    if (!req.url) return;
+    const q = req.url.indexOf('?');
+    const path = q === -1 ? req.url : req.url.slice(0, q);
+    const dest = prettyToHtml[path];
+    if (!dest) return;
+    req.url = dest + (q === -1 ? '' : req.url.slice(q));
+  };
+
+  return {
+    name: 'mpa-pretty-paths',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        apply(req);
+        next();
+      });
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        apply(req);
+        next();
+      });
+    },
+  };
+}
+
 function rssProxyPlugin(): Plugin {
   return {
     name: 'rss-proxy',
@@ -974,6 +1009,7 @@ export default defineConfig(({ mode }) => {
       // hostname). Desktop and dedicated VITE_VARIANT builds skip it.
       !isDesktopBuild && activeVariant === 'full' && variantDashboardHtmlPlugin(),
       polymarketPlugin(),
+      mpaPrettyPathPlugin(),
       rssProxyPlugin(),
       youtubeLivePlugin(),
       gpsjamDevPlugin(),

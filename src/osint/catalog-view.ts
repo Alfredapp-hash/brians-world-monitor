@@ -17,6 +17,8 @@ export interface OsintCatalogViewHooks {
   showLoading?: (message: string) => void;
   showError?: (message: string, retry: () => void) => void;
   clearError?: () => void;
+  /** When false, the page chrome supplies the lede. */
+  showLede?: boolean;
 }
 
 export class OsintCatalogView {
@@ -186,13 +188,12 @@ export class OsintCatalogView {
     });
     const list = h('div', { className: 'osint-catalog-list' });
 
+    const children: HTMLElement[] = [filters, status, list];
+    if (this.hooks.showLede !== false) {
+      children.unshift(h('p', { className: 'osint-catalog-lede' }, OSINT_DISPATCH_LEDE));
+    }
     replaceChildren(this.host,
-      h('div', { className: 'osint-catalog-panel' },
-        h('p', { className: 'osint-catalog-lede' }, OSINT_DISPATCH_LEDE),
-        filters,
-        status,
-        list,
-      ),
+      h('div', { className: 'osint-catalog-panel' }, ...children),
     );
 
     this.searchInput = search;
