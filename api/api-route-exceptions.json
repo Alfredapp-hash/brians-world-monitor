@@ -539,6 +539,13 @@
       "removal_issue": null
     },
     {
+      "path": "api/postal-lookup.js",
+      "category": "internal-helper",
+      "reason": "Postal / ZIP lookup helper for the first-visit Dispatch gate. Wraps Nominatim search; shape tracks upstream, not a versioned product contract. Client never talks to Nominatim directly.",
+      "owner": "@SebastienMelki",
+      "removal_issue": null
+    },
+    {
       "path": "api/symbol-search.ts",
       "category": "internal-helper",
       "reason": "Stock-symbol typeahead used only by the watchlist editor — thin wrapper over Finnhub's /api/v1/search. Light filter (equity-type instruments) + field rename (symbol/description/displaySymbol -> symbol/name/display); shape tracks Finnhub, not a versioned product contract. Same constraint as api/reverse-geocode.js (UI-only helper wrapping an upstream provider). Could fold into MarketService as a SearchSymbol RPC — flagged for reviewer; kept as a helper so the watchlist-editor PR stays self-contained rather than coupling it to a proto regen.",

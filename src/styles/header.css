@@ -1,5 +1,6 @@
 .header {
   contain: layout;
+  --header-control-height: 24px;
 }
 
 .pro-banner-slot {
@@ -22,7 +23,7 @@ html.wm-pro-banner-reserved .pro-banner-slot {
   --header-auth-slot-width: 200px;
   --header-findings-slot-width: 72px;
 
-  padding-left: calc(var(--header-findings-slot-width) + 12px);
+  padding-left: calc(var(--header-findings-slot-width) + var(--space-2, 8px));
   position: relative;
 }
 
@@ -52,17 +53,17 @@ html.wm-pro-banner-reserved .pro-banner-slot {
 
 #missionPresetMount {
   min-width: 86px;
-  min-height: 24px;
+  min-height: var(--header-control-height);
 }
 
 #unifiedSettingsMount {
-  min-width: 28px;
-  min-height: 28px;
+  min-width: var(--header-control-height);
+  min-height: var(--header-control-height);
 }
 
 #authWidgetMount {
   min-width: var(--header-auth-slot-width);
-  min-height: 32px;
+  min-height: var(--header-control-height);
 }
 
 .auth-header-widget-pending {
@@ -77,10 +78,10 @@ html.wm-pro-banner-reserved .pro-banner-slot {
       color-mix(in srgb, var(--text) 13%, transparent),
       color-mix(in srgb, var(--text) 7%, transparent)
     );
-  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  border-radius: 6px;
+  border: 1px solid var(--wm-hairline);
+  border-radius: var(--wm-radius-control);
   display: block;
-  height: 32px;
+  height: var(--header-control-height);
   pointer-events: none;
 }
 

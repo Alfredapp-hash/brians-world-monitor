@@ -333,7 +333,13 @@ export class MapContainer {
     this.resizeObserver.observe(this.container);
   }
 
+  private skipDeckDemand = false;
+
   private waitForDeckRendererDemand(token: number): Promise<boolean> {
+    if (this.skipDeckDemand) {
+      this.skipDeckDemand = false;
+      return Promise.resolve(true);
+    }
     if (typeof window === 'undefined') return Promise.resolve(true);
 
     this.rendererDemandCleanup?.();
@@ -590,8 +596,8 @@ export class MapContainer {
   }
 
   /** Switch back to flat map at runtime (called from Settings). */
-  public switchToFlat(): void {
-    if (!this.useGlobe) return;
+  public switchToFlat(options?: { immediate?: boolean }): Promise<void> {
+    if (!this.useGlobe) return Promise.resolve();
     const snapshot = this.getState();
     const center = this.getCenter();
     this.resizeObserver?.disconnect();
@@ -610,7 +616,8 @@ export class MapContainer {
     // the new init during the afterFirstPaint() window.
     this.rendererDemandCleanup?.();
     this.rendererDemandCleanup = null;
-    void this.init();
+    if (options?.immediate) this.skipDeckDemand = true;
+    return this.init();
   }
 
   private rehydrateActiveMap(): void {

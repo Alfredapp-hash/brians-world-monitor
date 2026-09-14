@@ -81,6 +81,11 @@ import {
   isReaderAnalystOpen,
 } from '@/services/reader-mode';
 import { GodsEyeHud } from '@/components/GodsEyeHud';
+import {
+  DispatchGate,
+  isDispatchGateOpen,
+  playDispatchEntryCinematic,
+} from '@/components/DispatchGate';
 import type { MapView } from '@/components/MapContainer';
 import {
   buildStageExitUrl,
@@ -372,6 +377,7 @@ export class PanelLayoutManager implements AppModule {
   private responsiveZoneListener: ResponsiveZoneListener | null = null;
   private readerHero: ReaderHero | null = null;
   private godsEyeHud: GodsEyeHud | null = null;
+  private dispatchGate: DispatchGate | null = null;
 
   constructor(ctx: AppContext, callbacks: PanelLayoutManagerCallbacks) {
     this.ctx = ctx;
@@ -549,6 +555,10 @@ export class PanelLayoutManager implements AppModule {
   }
 
   destroy(): void {
+    this.dispatchGate?.destroy();
+    this.dispatchGate = null;
+    this.godsEyeHud?.destroy();
+    this.godsEyeHud = null;
     this.readerHero?.destroy();
     this.readerHero = null;
     clearAllPendingCalls();
@@ -811,7 +821,7 @@ export class PanelLayoutManager implements AppModule {
   private mountGodsEyeHud(): void {
     this.godsEyeHud?.destroy();
     this.godsEyeHud = null;
-    if (!isGodsEyeStage()) return;
+    if (!isGodsEyeStage() || isDispatchGateOpen()) return;
 
     const host = document.querySelector<HTMLElement>('.main-content');
     if (!host) return;
@@ -862,6 +872,25 @@ export class PanelLayoutManager implements AppModule {
     hud.focusExit();
   }
 
+  private mountDispatchGate(): void {
+    this.dispatchGate?.destroy();
+    this.dispatchGate = null;
+    if (!isDispatchGateOpen()) return;
+
+    this.dispatchGate = new DispatchGate(async (location) => {
+      await playDispatchEntryCinematic(this.ctx.map, location, () => {
+        if (isEverydayReaderMode()) this.expandEverydayMap(false);
+        const toggle = document.getElementById('mapDimensionToggle');
+        toggle?.querySelector('[data-mode="flat"]')?.classList.add('active');
+        toggle?.querySelector('[data-mode="globe"]')?.classList.remove('active');
+      });
+      this.dispatchGate = null;
+      this.mountGodsEyeHud();
+      this.mountReaderHero();
+      this.ctx.map?.resize();
+    });
+  }
+
   private mountReaderHero(): void {
     const mount = document.getElementById('readerHeroMount');
     if (!mount) return;
@@ -894,7 +923,7 @@ export class PanelLayoutManager implements AppModule {
   }
 
   async renderLayout(): Promise<void> {
-    const isGlobeMode = getStoredMapModePreference() === 'globe';
+    const isGlobeMode = getStoredMapModePreference() === 'globe' || isDispatchGateOpen();
     // #5159: the collapsed-map cohort's #mapSection must be CREATED with
     // .collapsed — main.css sets the expanded mobile height with !important
     // inside a cascade layer, and layered !important beats any unlayered
@@ -1202,6 +1231,7 @@ export class PanelLayoutManager implements AppModule {
 
     this.mountReaderHero();
     this.mountGodsEyeHud();
+    this.mountDispatchGate();
 
     this.initPanelTabs();
     if (import.meta.env.DEV && bootShellFootprint) warnOnBootShellFootprintDrift(bootShellFootprint);
@@ -1953,7 +1983,7 @@ export class PanelLayoutManager implements AppModule {
     this.initiallyMountedEnabledPanelCount = 0;
 
     const mapContainer = document.getElementById('mapContainer') as HTMLElement;
-    const preferGlobe = getStoredMapModePreference() === 'globe';
+    const preferGlobe = getStoredMapModePreference() === 'globe' || isDispatchGateOpen();
     // Dynamic import: keeps maplibre-gl + @deck.gl/* + @loaders.gl + @luma.gl out of
     // the entry chunk.
     //

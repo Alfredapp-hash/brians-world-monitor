@@ -40,6 +40,11 @@ import {
   releaseGodsEyeStage,
   resolveStageModeForLoad,
 } from '@/services/godseye-mode';
+import { shouldShowDispatchGate } from '@/services/dispatch-gate';
+import {
+  applyDispatchGatePresentation,
+  clearDispatchGatePresentation,
+} from '@/components/DispatchGate';
 import {
   initDB,
   cleanOldSnapshots,
@@ -845,16 +850,29 @@ export class App {
     // reader mode / map dimension / mission preset, and the seed must observe
     // those writes rather than race them. A `?godseye=` link therefore lands on
     // the stage on its first paint instead of the load after.
+    const isE2E = import.meta.env.VITE_E2E === '1' || import.meta.env.VITE_E2E === 'true';
+    const wantsDispatchGate = shouldShowDispatchGate({
+      search: window.location.search,
+      pathname: window.location.pathname,
+      isE2E,
+    });
     const stageMode = resolveStageModeForLoad(window.location.search, getStageMode());
-    if (stageMode === 'godseye') {
-      // A reader who typed `&godseye=1` onto their own deep link has their
-      // camera in that URL and nowhere else, so it is the only thing exit can
-      // give back to them.
-      engageGodsEyeStage(undefined, parseStageCameraFromSearch(window.location.search));
-    } else if (isGodsEyeStage()) {
-      releaseGodsEyeStage();
+    if (wantsDispatchGate) {
+      // Visual-only globe stage. Must not write jsam-stage-mode or the reader
+      // returns to God's Eye forever after this first visit.
+      applyDispatchGatePresentation();
+    } else {
+      if (stageMode === 'godseye') {
+        // A reader who typed `&godseye=1` onto their own deep link has their
+        // camera in that URL and nowhere else, so it is the only thing exit can
+        // give back to them.
+        engageGodsEyeStage(undefined, parseStageCameraFromSearch(window.location.search));
+      } else if (isGodsEyeStage()) {
+        releaseGodsEyeStage();
+      }
+      applyStageModeToDocument(stageMode);
+      clearDispatchGatePresentation();
     }
-    applyStageModeToDocument(stageMode);
 
     const seededReaderMode = seedReaderModePreference();
     applyReaderModeToDocument(seededReaderMode);
@@ -985,7 +1003,7 @@ export class App {
     // several of them write `panelSettings` back out, and they must never see
     // the stage's transient bundle.
     let stagePanelOrder: string[] | null = null;
-    if (stageMode === 'godseye') {
+    if (stageMode === 'godseye' && !wantsDispatchGate) {
       const staged = buildGodsEyeStageState(panelSettings, defaultLayers, currentVariant);
       if (staged) {
         panelSettings = staged.panelSettings;

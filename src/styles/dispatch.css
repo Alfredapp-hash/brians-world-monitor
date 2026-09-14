@@ -50,6 +50,7 @@
   align-items: center;
   gap: 0.55rem;
   min-width: 0;
+  height: var(--header-control-height, 24px);
   text-decoration: none;
   color: inherit;
 }
@@ -309,13 +310,31 @@ html[data-reader-mode='everyday'] .hamburger-btn:hover {
   color: var(--text);
 }
 
-/* Footer is a record lockup, not a mono instrument strip. */
+/* Footer is the same lockup as the header, on the same padding and ink. */
+.site-footer {
+  padding-inline: 14px;
+  gap: var(--space-2, 8px);
+  color: var(--wm-ink-3);
+}
+
+.site-footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.site-footer .brand-lockup {
+  height: auto;
+}
+
 .site-footer-sub,
 .site-footer nav a,
 .site-footer-copy {
   font-family: var(--font-ui);
+  color: var(--wm-ink-3);
 }
 
 .site-footer a:hover {
-  color: var(--text);
+  color: var(--wm-ink);
 }

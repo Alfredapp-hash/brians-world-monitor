@@ -19,6 +19,7 @@ async function seedEverydayFresh(page: Page): Promise<void> {
       /* storage may be unavailable in some harnesses */
     }
     localStorage.setItem('worldmonitor-variant', 'full');
+    localStorage.setItem('tpd-dispatch-entered-v1', '1');
     localStorage.setItem('jsam-view-mode', 'everyday');
     localStorage.setItem('jsam-everyday-seeded-v1', '1');
     localStorage.setItem('wm-layer-warning-dismissed', 'true');
@@ -36,6 +37,7 @@ async function seedAnalystCustom(page: Page): Promise<void> {
       /* ignore */
     }
     localStorage.setItem('worldmonitor-variant', 'full');
+    localStorage.setItem('tpd-dispatch-entered-v1', '1');
     localStorage.setItem('jsam-view-mode', 'analyst');
     localStorage.setItem('jsam-everyday-seeded-v1', '1');
     localStorage.setItem('panel-order', '["insights","politics"]');

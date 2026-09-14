@@ -114,7 +114,13 @@ function runPrepaintBootScript(mapCollapsed) {
   assert.ok(script, 'Expected the explicitly marked inline pre-paint boot script in index.html');
 
   const classes = new Set();
-  const storage = new Map([['mobile-map-collapsed', String(mapCollapsed)]]);
+  const storage = new Map([
+    ['mobile-map-collapsed', String(mapCollapsed)],
+    // Custom layout without a stored reader mode hits the mobile-map-collapsed
+    // branch instead of the everyday-default collapse.
+    ['panel-order', '["insights"]'],
+    ['tpd-dispatch-entered-v1', '1'],
+  ]);
   const window = {};
   window.self = window;
   window.top = window;
@@ -134,7 +140,8 @@ function runPrepaintBootScript(mapCollapsed) {
       getItem: (key) => storage.get(key) ?? null,
       removeItem: (key) => storage.delete(key),
     },
-    location: { hostname: 'www.worldmonitor.app' },
+    location: { hostname: 'www.worldmonitor.app', search: '' },
+    URLSearchParams,
     window,
   });
 
@@ -270,7 +277,7 @@ describe('#4580 boot skeleton <-> app footprint parity', () => {
     // reproduced 3/3 for the mobile-map-collapsed cohort).
     assert.match(
       panelLayout,
-      /const mapStartsCollapsed = this\.ctx\.isMobile && PanelLayoutManager\.isMobileMapCollapsedPreferred\(\);/,
+      /const mapStartsCollapsed =\s*!isEverydayReaderMode\(\) &&\s*this\.ctx\.isMobile &&\s*PanelLayoutManager\.isMobileMapCollapsedPreferred\(\);/,
       'renderLayout must read the collapse pref (via the guarded helper) before building the shell template',
     );
     // #5205 review P1: this read runs BEFORE the shell installs — a bare

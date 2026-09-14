@@ -100,6 +100,30 @@ describe('Edge Function no node: built-ins', () => {
 // docs/adding-endpoints.mdx). The new check covers nested paths and .ts files,
 // which this block missed.
 
+describe('postal-lookup Redis write', () => {
+  const postalPath = join(apiDir, 'postal-lookup.js');
+
+  it('uses ctx.waitUntil for Redis write (non-blocking, survives isolate teardown)', () => {
+    const src = readFileSync(postalPath, 'utf-8');
+    assert.ok(
+      src.includes('ctx.waitUntil('),
+      'postal-lookup.js: Redis cache write must use ctx.waitUntil() so the response is not blocked by the write',
+    );
+  });
+
+  it('sends a User-Agent to Nominatim', () => {
+    const src = readFileSync(postalPath, 'utf-8');
+    assert.ok(
+      src.includes("headers: { 'User-Agent': CHROME_UA"),
+      'postal-lookup.js: Nominatim requires a User-Agent',
+    );
+    assert.ok(
+      src.includes('nominatim.openstreetmap.org/search'),
+      'postal-lookup.js must query Nominatim search, not reverse',
+    );
+  });
+});
+
 describe('reverse-geocode Redis write', () => {
   const geocodePath = join(apiDir, 'reverse-geocode.js');
 

@@ -1,0 +1,260 @@
+/**
+ * First-visit cinematic gate for The Public Dispatch.
+ *
+ * Unlayered after godseye-mode.css so the overlay sits on the existing
+ * globe stage. Consumes Console 2026 tokens only.
+ */
+
+html[data-dispatch-gate='open'] .panels-grid,
+html[data-dispatch-gate='open'] .godseye-hud,
+html[data-dispatch-gate='open'] .header,
+html[data-dispatch-gate='open'] .pro-banner-slot,
+html[data-dispatch-gate='open'] .reader-hero,
+html[data-dispatch-gate='open'] .panel-tab-bar,
+html[data-dispatch-gate='open'] .map-controls,
+html[data-dispatch-gate='open'] .add-panel-block,
+html[data-dispatch-gate='open'] .maplibregl-ctrl-attrib,
+html[data-dispatch-gate='open'] .mapboxgl-ctrl-attrib,
+html[data-dispatch-gate='open'] .globe-quick-controls {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html[data-dispatch-gate='open'] #mapSection:not(.reader-map-expanded)::after {
+  content: none !important;
+  display: none !important;
+}
+
+.dispatch-gate {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 1000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  background:
+    linear-gradient(to bottom, rgb(4 7 11 / 42%) 0%, rgb(4 7 11 / 18%) 38%, rgb(4 7 11 / 48%) 100%);
+  color: var(--wm-ink);
+  font-family: var(--font-ui);
+  opacity: 0;
+  transition: opacity var(--wm-dur-3) var(--wm-ease);
+}
+
+.dispatch-gate.is-open {
+  opacity: 1;
+}
+
+.dispatch-gate.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dispatch-gate__plate {
+  position: relative;
+  width: min(28.5rem, 100%);
+  padding: 1.65rem 1.7rem 1.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  background: color-mix(in srgb, var(--wm-plate) 88%, transparent);
+  border: 1px solid var(--wm-hairline-strong);
+  border-radius: var(--wm-radius-panel);
+  box-shadow: inset 0 1px 0 0 var(--wm-highlight);
+  backdrop-filter: blur(16px) saturate(120%);
+}
+
+.dispatch-gate__eyebrow {
+  margin: 0;
+  font-size: var(--tpd-eyebrow-size, 10px);
+  font-weight: 650;
+  letter-spacing: var(--tpd-eyebrow-track, 0.09em);
+  text-transform: uppercase;
+  color: var(--wm-red);
+}
+
+.dispatch-gate__title {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--wm-ink);
+}
+
+.dispatch-gate__tagline {
+  margin: 0.15rem 0 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--wm-ink-2);
+}
+
+.dispatch-gate__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dispatch-gate__label {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--wm-ink-3);
+}
+
+.dispatch-gate__input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--wm-hairline-solid);
+  border-radius: var(--wm-radius-control);
+  background: var(--wm-plate-inset);
+  color: var(--wm-ink);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.dispatch-gate__input:focus-visible {
+  outline: 2px solid var(--wm-red);
+  outline-offset: 2px;
+}
+
+.dispatch-gate__input::placeholder {
+  color: var(--wm-ink-4);
+}
+
+.dispatch-gate__geo {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--wm-ink-2);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+.dispatch-gate__geo:hover,
+.dispatch-gate__geo:focus-visible {
+  color: var(--wm-ink);
+}
+
+.dispatch-gate__geo:disabled {
+  color: var(--wm-ink-4);
+  text-decoration: none;
+  cursor: progress;
+}
+
+.dispatch-gate__error {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--wm-red-hot, var(--wm-red));
+}
+
+.dispatch-gate__error:empty {
+  display: none;
+}
+
+.dispatch-gate__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.dispatch-gate__primary,
+.dispatch-gate__secondary,
+.dispatch-gate__tertiary {
+  min-height: 2.7rem;
+  padding: 0.65rem 1rem;
+  border-radius: var(--wm-radius-control);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dispatch-gate__primary {
+  border: 1px solid transparent;
+  background: var(--wm-ink);
+  color: var(--wm-stage-sunken, #171a1f);
+}
+
+.dispatch-gate__primary:hover,
+.dispatch-gate__primary:focus-visible {
+  background: var(--wm-accent-hover, #fff);
+}
+
+.dispatch-gate__secondary {
+  border: 1px solid var(--wm-hairline-strong);
+  background: transparent;
+  color: var(--wm-ink);
+}
+
+.dispatch-gate__secondary:hover,
+.dispatch-gate__secondary:focus-visible {
+  border-color: var(--wm-ink-3);
+}
+
+.dispatch-gate__tertiary {
+  border: 0;
+  background: none;
+  color: var(--wm-ink-3);
+  font-weight: 500;
+}
+
+.dispatch-gate__tertiary:hover,
+.dispatch-gate__tertiary:focus-visible {
+  color: var(--wm-ink);
+}
+
+.dispatch-gate__primary:disabled,
+.dispatch-gate__secondary:disabled,
+.dispatch-gate__tertiary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.dispatch-gate__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--wm-ink-4);
+}
+
+html[data-dispatch-entering] .panels-grid > * {
+  animation: dispatch-panel-in var(--wm-dur-3) var(--wm-ease) both;
+}
+
+html[data-dispatch-entering] .panels-grid > *:nth-child(1) { animation-delay: 40ms; }
+html[data-dispatch-entering] .panels-grid > *:nth-child(2) { animation-delay: 80ms; }
+html[data-dispatch-entering] .panels-grid > *:nth-child(3) { animation-delay: 120ms; }
+html[data-dispatch-entering] .panels-grid > *:nth-child(4) { animation-delay: 160ms; }
+html[data-dispatch-entering] .panels-grid > *:nth-child(5) { animation-delay: 200ms; }
+html[data-dispatch-entering] .panels-grid > *:nth-child(6) { animation-delay: 240ms; }
+html[data-dispatch-entering] .panels-grid > *:nth-child(n+7) { animation-delay: 280ms; }
+
+@keyframes dispatch-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dispatch-gate,
+  html[data-dispatch-entering] .panels-grid > * {
+    transition: none;
+    animation: none;
+  }
+}

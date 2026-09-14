@@ -7,15 +7,23 @@
 /* ============================================================
    1. Header zones — left: brand | context: region + mission | right: controls
    All existing IDs/classes preserved; grouping is visual only.
+   One control height, one gap, Console 2026 radius. The 40px header's
+   padded row is 24px — every chrome control sits on that baseline.
    ============================================================ */
 
-.header-left {
+.header {
+  --header-control-height: 24px;
+  display: flex;
+  align-items: center;
   gap: var(--space-2, 8px);
-  min-width: 0;
 }
 
+.header-left,
 .header-right {
+  display: flex;
+  align-items: center;
   gap: var(--space-2, 8px);
+  min-width: 0;
 }
 
 .logo,
@@ -24,11 +32,169 @@
   white-space: nowrap;
 }
 
+.header .brand-lockup,
+.header .variant-switcher,
+.header .status-indicator,
+.header .region-selector,
+.header .mission-preset-mount,
+.header .reader-mode-mount,
+.header .godseye-mount,
+.header .auth-header-widget {
+  display: inline-flex;
+  align-items: center;
+}
+
+.header .brand-lockup {
+  height: var(--header-control-height);
+}
+
 /* Context zone: divider ahead of the live-status + region + mission group */
 .header .status-indicator {
   margin-left: var(--space-2, 8px);
-  padding-left: var(--space-3, 14px);
-  border-left: 1px solid var(--border, #262c38);
+  padding-left: var(--space-3, 12px);
+  border-left: 1px solid var(--wm-hairline);
+  color: var(--wm-ink-3);
+  height: var(--header-control-height);
+}
+
+.header .version {
+  color: var(--wm-ink-3);
+  opacity: 1;
+}
+
+/* Shared chrome-control geometry. Primary/secondary paint stays on the
+   existing .btn / console-2026 recipes; this only equalizes the row. */
+.header .search-btn,
+.header .copy-link-btn,
+.header .fullscreen-btn,
+.header .support-btn,
+.header .mission-preset-button,
+.header .unified-settings-btn,
+.header .intel-findings-badge,
+.header .region-select,
+.header .auth-signin-btn,
+.header .auth-signup-link,
+.header .auth-settings-btn,
+.header .auth-header-skeleton,
+.header .godseye-enter-btn,
+.header .reader-mode-toggle,
+.header .reader-mode-toggle__btn {
+  box-sizing: border-box;
+  height: var(--header-control-height);
+  min-height: var(--header-control-height);
+}
+
+.header .search-btn,
+.header .copy-link-btn,
+.header .fullscreen-btn,
+.header .support-btn,
+.header .mission-preset-button,
+.header .unified-settings-btn,
+.header .intel-findings-badge,
+.header .region-select,
+.header .auth-signin-btn,
+.header .auth-signup-link,
+.header .auth-settings-btn,
+.header .auth-header-skeleton {
+  border-radius: var(--wm-radius-control);
+}
+
+.header .search-btn,
+.header .copy-link-btn,
+.header .fullscreen-btn,
+.header .support-btn,
+.header .mission-preset-button,
+.header .intel-findings-badge,
+.header .auth-signin-btn,
+.header .auth-signup-link {
+  display: inline-flex;
+  align-items: center;
+  padding-block: 0;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.header .search-btn,
+.header .copy-link-btn,
+.header .fullscreen-btn,
+.header .support-btn,
+.header .mission-preset-button {
+  color: var(--wm-ink-3);
+}
+
+.header .search-btn {
+  margin-right: 0;
+  padding-inline: 9px;
+}
+
+.header .region-select {
+  padding-block: 0;
+}
+
+.header .copy-link-btn {
+  padding-inline: 8px;
+}
+
+.header .fullscreen-btn,
+.header .unified-settings-btn,
+.header .auth-settings-btn {
+  justify-content: center;
+  width: var(--header-control-height);
+  padding-inline: 0;
+}
+
+.header .unified-settings-btn:hover {
+  transform: none;
+}
+
+.header .auth-signin-btn {
+  padding-inline: 10px;
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.header .auth-signup-link {
+  padding-inline: 10px;
+  background: var(--surface);
+  border-color: var(--wm-hairline);
+  color: var(--wm-ink-2);
+}
+
+.header .mission-preset-button:hover,
+.header .mission-preset-button[aria-expanded='true'] {
+  color: var(--text);
+  border-color: var(--wm-hairline-strong);
+  background: var(--surface-hover);
+}
+
+/* Everyday/Analyst + God's Eye is one segmented control; keep the join
+   but sit it on the same 24px baseline as Mission / Settings / auth. */
+.header .reader-mode-toggle {
+  border-radius: var(--wm-radius-control) 0 0 var(--wm-radius-control);
+}
+
+.header .godseye-enter-btn {
+  border-radius: 0 var(--wm-radius-control) var(--wm-radius-control) 0;
+  padding-block: 0;
+}
+
+.header .reader-mode-toggle__btn {
+  padding-block: 0;
+  padding-inline: 8px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+@media (max-width: 900px) {
+  /* Cooperate with console-2026's 32px touch targets; header-right hides at 768. */
+  .header .search-btn,
+  .header .copy-link-btn,
+  .header .fullscreen-btn {
+    height: auto;
+    min-height: 32px;
+  }
 }
 
 /* ── Variant switcher demoted: at rest only the active variant shows.
@@ -55,7 +221,7 @@
   font-size: 8px;
   line-height: 1;
   padding: 0 2px;
-  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  color: var(--wm-ink-3);
   pointer-events: none;
 }
 
@@ -73,28 +239,8 @@
   filter: none;
 }
 
-/* ── Right-cluster compression: secondary actions get quieter/smaller */
-.copy-link-btn {
-  padding: 3px 8px;
-  font-size: 10px;
-  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
-  border-radius: var(--radius-sm, 3px);
-}
-
-.search-btn {
-  padding: 3px 9px;
-  border-radius: var(--radius-sm, 3px);
-  margin-right: 0;
-}
-
-.fullscreen-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 6px;
-  border-radius: var(--radius-sm, 3px);
-}
-
+/* Right-cluster buttons inherit the header control recipe above.
+   Keep SVG centering for the icon-only fullscreen control. */
 .fullscreen-btn svg {
   display: block;
 }
@@ -154,12 +300,12 @@
   min-width: 28px;
   min-height: 28px;
   font-size: 18px;
-  color: var(--text-dim-safe, var(--text-dim, #a9a49b));
+  color: var(--wm-ink-3);
 }
 
 .cw-close:hover,
 .cw-close:focus-visible {
-  color: var(--text, #e9e6df);
+  color: var(--wm-ink);
 }
 
 /* ============================================================

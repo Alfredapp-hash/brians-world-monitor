@@ -64,6 +64,8 @@ const FLAT_LOADERS: Record<string, () => Promise<EdgeHandler>> = {
   // @ts-expect-error untyped api JS
   '/api/product-catalog': flatLoader(() => import('../api/product-catalog.js')),
   // @ts-expect-error untyped api JS
+  '/api/postal-lookup': flatLoader(() => import('../api/postal-lookup.js')),
+  // @ts-expect-error untyped api JS
   '/api/reverse-geocode': flatLoader(() => import('../api/reverse-geocode.js')),
   // @ts-expect-error untyped api JS
   '/api/rss-proxy': flatLoader(() => import('../api/rss-proxy.js')),

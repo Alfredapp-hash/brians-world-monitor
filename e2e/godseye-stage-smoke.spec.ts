@@ -40,6 +40,7 @@ function seedStorage(page: Page, readerMode: 'everyday' | 'analyst'): Promise<vo
         /* storage may be unavailable in some harnesses */
       }
       localStorage.setItem('worldmonitor-variant', 'full');
+      localStorage.setItem('tpd-dispatch-entered-v1', '1');
       localStorage.setItem('jsam-view-mode', mode);
       localStorage.setItem('jsam-everyday-seeded-v1', '1');
       localStorage.setItem('wm-layer-warning-dismissed', 'true');

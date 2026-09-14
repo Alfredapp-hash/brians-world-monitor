@@ -83,6 +83,45 @@
   font-weight: 600;
 }
 
+/* Panel heads stay one line at 1280: title ellipsizes, chips don't shrink. */
+.panel-header {
+  flex-wrap: nowrap;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.panel-header .panel-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-header .panel-freshness-badge,
+.panel-header .panel-count,
+.panel-header .panel-live-count,
+.panel-header .map-header-actions {
+  flex-shrink: 0;
+}
+
+.panel-header .panel-freshness-badge {
+  max-width: 7.5rem;
+  border-radius: var(--wm-radius-chip);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
 /* ----------------------------------------------------------
    Satellite Fires Panel
    ---------------------------------------------------------- */

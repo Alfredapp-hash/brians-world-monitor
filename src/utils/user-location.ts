@@ -40,6 +40,10 @@ function coordsToRegion(lat: number, lon: number): MapView {
   return 'global';
 }
 
+export function regionFromCoordinates(lat: number, lon: number): MapView {
+  return coordsToRegion(lat, lon);
+}
+
 function getGeolocationPosition(timeout: number): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -201,4 +205,68 @@ export async function resolveUserRegion(): Promise<MapView> {
   // Don't cache timezone fallback: subsequent variant switches should
   // retry geolocation in case the user has since granted permission.
   return tzRegion;
+}
+
+/** Prompt for precise coordinates. Call only from a user gesture. */
+export async function requestUserGeolocation(timeout = 8000): Promise<PreciseCoordinates | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
+  const cached = getCachedCoords();
+  if (cached) return cached;
+  try {
+    const pos = await getGeolocationPosition(timeout);
+    const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+    cacheCoords(coords);
+    return coords;
+  } catch {
+    return null;
+  }
+}
+
+export interface PostalLookupResult {
+  lat: number;
+  lon: number;
+  country: string | null;
+  code: string | null;
+  postal: string;
+  displayName: string;
+}
+
+export async function lookupPostalCode(
+  postal: string,
+  country?: string | null,
+  signal?: AbortSignal,
+): Promise<PostalLookupResult | null> {
+  const query = postal.trim();
+  if (!query) return null;
+  const params = new URLSearchParams({ postal: query });
+  if (country && /^[A-Za-z]{2}$/.test(country)) params.set('country', country.toUpperCase());
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  const onExternalAbort = () => controller.abort();
+  signal?.addEventListener('abort', onExternalAbort, { once: true });
+
+  try {
+    const res = await fetch(toApiUrl(`/api/postal-lookup?${params.toString()}`), {
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as Partial<PostalLookupResult>;
+    const lat = Number(data.lat);
+    const lon = Number(data.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return {
+      lat,
+      lon,
+      country: typeof data.country === 'string' ? data.country : null,
+      code: typeof data.code === 'string' ? data.code.toUpperCase() : null,
+      postal: typeof data.postal === 'string' ? data.postal : query,
+      displayName: typeof data.displayName === 'string' ? data.displayName : query,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', onExternalAbort);
+  }
 }

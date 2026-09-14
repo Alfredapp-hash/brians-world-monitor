@@ -84,6 +84,7 @@ import {
   releaseGodsEyeStage,
   type StageCamera,
 } from '@/services/godseye-mode';
+import { isDispatchGateOpen } from '@/components/DispatchGate';
 import {
   saveSnapshot,
   initAisStream,
@@ -900,7 +901,7 @@ export class EventHandlerManager implements AppModule {
    * boot path reads — the same contract the Everyday/Analyst toggle uses.
    */
   private setupGodsEyeStage(): void {
-    applyStageModeToDocument();
+    if (!isDispatchGateOpen()) applyStageModeToDocument();
     this.renderGodsEyeControl();
     this.bindGodsEyeHotkeys();
   }
@@ -1006,7 +1007,7 @@ export class EventHandlerManager implements AppModule {
       }
 
       if ((event.key === 'g' || event.key === 'G') && !isGodsEyeStage()) {
-        if (isStageEscapeOwned()) return;
+        if (isDispatchGateOpen() || isStageEscapeOwned()) return;
         event.preventDefault();
         this.enterGodsEyeStage();
       }
