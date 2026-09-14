@@ -1,12 +1,8 @@
 import type { OsintCatalog, OsintDetailsShard, OsintTool, OsintToolDetails } from './catalog.types';
 
 export const OSINT_CATALOG_META_URL = '/osint/catalog.meta.json';
-export const OSINT_CATALOG_TOOL_SHARD_URLS = [
-  '/osint/catalog.tools.a.json',
-  '/osint/catalog.tools.b.json',
-] as const;
 
-/** Loader-merge path is meta + tools.a/b, not a single catalog.json. */
+/** Loader-merge path is meta + every meta.toolShardFiles entry. */
 export const OSINT_CATALOG_URL = OSINT_CATALOG_META_URL;
 
 export const OSINT_DETAILS_SHARD_URLS = [
@@ -183,16 +179,20 @@ async function fetchJsonOptional(fetchImpl: FetchLike, url: string): Promise<unk
   }
 }
 
-function shardFilesFromMeta(meta: OsintCatalog): string[] {
+export function shardFilesFromMeta(meta: OsintCatalog): string[] {
   const listed = (meta as OsintCatalogMeta).toolShardFiles;
-  if (Array.isArray(listed) && listed.length > 0) return listed;
-  return [...OSINT_CATALOG_TOOL_SHARD_URLS];
+  if (!Array.isArray(listed) || listed.length === 0) {
+    throw new OsintCatalogLoadError(
+      'WAITING ON catalog shards — catalog.meta.json has no toolShardFiles list.',
+    );
+  }
+  return listed;
 }
 
 /**
- * Load catalog.meta.json plus catalog.tools.a.json / catalog.tools.b.json
- * and merge in memory as `{...meta, tools: [...a, ...b]}`.
- * Do not invent tools when a shard is missing. Prefer this over catalog.json.
+ * Load `/osint/catalog.meta.json`, then every file in `meta.toolShardFiles`.
+ * Each shard must be a JSON array of tools. Concatenate to `tools`.
+ * Do not invent tools when a shard is missing. Never treat file contents as paths.
  */
 export async function loadOsintCatalog(
   fetchImpl: FetchLike = (input, init) => globalThis.fetch(input, init),

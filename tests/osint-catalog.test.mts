@@ -8,7 +8,6 @@ import fixture from '../src/osint/catalog.fixture.json' with { type: 'json' };
 import type { OsintCatalog } from '../src/osint/catalog.types.ts';
 import {
   OSINT_CATALOG_META_URL,
-  OSINT_CATALOG_TOOL_SHARD_URLS,
   extractToolShard,
   isOsintCatalog,
   loadOsintCatalog,
@@ -68,7 +67,7 @@ describe('OSINT catalog loader', () => {
     ...catalog,
     tools: [] as OsintCatalog['tools'],
     toolCount: catalog.tools.length,
-    toolShardFiles: ['catalog.tools.a.json', 'catalog.tools.b.json'],
+    toolShardFiles: ['catalog.tools.0.json', 'catalog.tools.1.json'],
   };
   const shardA = catalog.tools.slice(0, 1);
   const shardB = catalog.tools.slice(1);
@@ -81,29 +80,25 @@ describe('OSINT catalog loader', () => {
     assert.deepEqual(merged.tools.map((tool) => tool.id), ['wayback', 'archive-today', 'crtsh']);
   });
 
-  it('fetches catalog.meta.json plus tools.a/b and validates v2 shape', async () => {
+  it('fetches catalog.meta.json then every toolShardFiles entry', async () => {
     const seen: string[] = [];
     const loaded = await loadOsintCatalog(async (input) => {
       seen.push(input);
       if (input === OSINT_CATALOG_META_URL) {
         return { ok: true, status: 200, json: async () => meta };
       }
-      if (input === '/osint/catalog.tools.a.json') {
+      if (input === '/osint/catalog.tools.0.json') {
         return { ok: true, status: 200, json: async () => shardA };
       }
-      if (input === '/osint/catalog.tools.b.json') {
+      if (input === '/osint/catalog.tools.1.json') {
         return { ok: true, status: 200, json: async () => shardB };
       }
       return { ok: false, status: 404, json: async () => ({}) };
     });
     assert.deepEqual(seen, [
       OSINT_CATALOG_META_URL,
-      '/osint/catalog.tools.a.json',
-      '/osint/catalog.tools.b.json',
-    ]);
-    assert.deepEqual([...OSINT_CATALOG_TOOL_SHARD_URLS], [
-      '/osint/catalog.tools.a.json',
-      '/osint/catalog.tools.b.json',
+      '/osint/catalog.tools.0.json',
+      '/osint/catalog.tools.1.json',
     ]);
     assert.equal(loaded.toolCount, 3);
     assert.equal(loaded.tools[0]?.name, 'Internet Archive Wayback Machine');
@@ -158,8 +153,10 @@ describe('OSINT catalog panel wiring', () => {
 
     const loader = readFileSync(resolve(__dirname, '../src/osint/load-catalog.ts'), 'utf8');
     assert.match(loader, /catalog\.meta\.json/);
-    assert.match(loader, /catalog\.tools\.a\.json/);
-    assert.match(loader, /catalog\.tools\.b\.json/);
+    assert.match(loader, /toolShardFiles/);
+    assert.doesNotMatch(loader, /OSINT_CATALOG_TOOL_SHARD_URLS/);
+    assert.doesNotMatch(loader, /catalog\.tools\.a\.json/);
+    assert.doesNotMatch(loader, /catalog\.tools\.b\.json/);
     assert.doesNotMatch(loader, /catalog\.json\.part/);
     assert.doesNotMatch(loader, /_parts/);
 
