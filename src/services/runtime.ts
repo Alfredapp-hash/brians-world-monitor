@@ -16,9 +16,9 @@ const ENV = (() => {
 })();
 
 const WS_API_URL = ENV.VITE_WS_API_URL || '';
-// Fork: no separate api.<domain> edge — this deployment serves its own
-// /api/* routes same-origin on the Vercel project domain.
-const DEFAULT_WEB_API_URL = 'https://brians-world-monitor.vercel.app';
+// Same-origin API on The Public Dispatch. Desktop builds with no env still
+// talk to this host — not the old Vercel World Monitor app.
+const DEFAULT_WEB_API_URL = 'https://thepublicdispatch.com';
 const KEYED_CLOUD_API_PATTERN = /^\/api\/(?:[^/]+\/v1\/|bootstrap(?:\?|$)|polymarket(?:\?|$)|ais-snapshot(?:\?|$))/;
 
 const DEFAULT_REMOTE_HOSTS: Record<string, string> = {
@@ -129,12 +129,14 @@ export function getApiBaseUrl(): string {
 }
 
 function isWorldMonitorWebHost(hostname: string): boolean {
-  // Fork: this app only ever runs on the Vercel project domain (no custom
-  // domain / subdomains yet). Cover the production host plus preview
-  // deployments (*.vercel.app) — never trust the upstream worldmonitor.app
-  // domain, which this fork does not own or control.
-  return hostname === 'brians-world-monitor.vercel.app'
-    || hostname.endsWith('.vercel.app');
+  // First-party hosts that serve this app's own /api/*. Never trust
+  // worldmonitor.app — that is a separately owned product.
+  return hostname === 'thepublicdispatch.com'
+    || hostname === 'www.thepublicdispatch.com'
+    || hostname === 'thepublicsdispatch.netlify.app'
+    || hostname.endsWith('--thepublicsdispatch.netlify.app')
+    || hostname === 'brians-world-monitor.vercel.app'
+    || (hostname.startsWith('brians-world-monitor') && hostname.endsWith('.vercel.app'));
 }
 
 export function getConfiguredWebApiBaseUrl(): string {
@@ -177,7 +179,7 @@ export function getRemoteApiBaseUrl(): string {
   if (fromHosts) return fromHosts;
 
   // Desktop builds may not set VITE_WS_API_URL; default to production.
-  if (isDesktopRuntime()) return 'https://brians-world-monitor.vercel.app';
+  if (isDesktopRuntime()) return DEFAULT_WEB_API_URL;
   return '';
 }
 
@@ -221,6 +223,9 @@ function extractHostnames(...urls: (string | undefined)[]): string[] {
 }
 
 const APP_HOSTS = new Set([
+  'thepublicdispatch.com',
+  'www.thepublicdispatch.com',
+  'thepublicsdispatch.netlify.app',
   'brians-world-monitor.vercel.app',
   'localhost',
   '127.0.0.1',
@@ -234,7 +239,9 @@ function isAppOriginUrl(urlStr: string): boolean {
     // .vercel.app covers preview deployments of this project; never trust
     // the upstream worldmonitor.app domain as first-party (this fork does
     // not own or control it).
-    return APP_HOSTS.has(host) || host.endsWith('.vercel.app');
+    return APP_HOSTS.has(host)
+      || host.endsWith('--thepublicsdispatch.netlify.app')
+      || (host.startsWith('brians-world-monitor') && host.endsWith('.vercel.app'));
   } catch {
     return false;
   }

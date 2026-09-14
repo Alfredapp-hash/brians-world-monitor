@@ -48,18 +48,18 @@ describe('consentPage — Pro CTA structure (U4)', () => {
     assert.match(html, /\.pro-cta\{[^}]*background:#2d8a6e/);
   });
 
-  it('Pro CTA href is exactly https://worldmonitor.app/mcp-grant?nonce=<n> — no www, no return_to, no extra params', async () => {
+  it('Pro CTA href is exactly https://thepublicdispatch.com/mcp-grant?nonce=<n> — no www, no return_to, no extra params', async () => {
     const html = await renderHtml(BASE_PARAMS, NONCE);
     const m = html.match(/<a id="pc"[^>]*href="([^"]+)"/);
     assert.ok(m, 'pro-cta anchor with href must exist');
     const href = m[1];
     // Exact wire format (the apex page reads oauth:nonce:<nonce> itself; we
     // do NOT forward client_id / redirect_uri / state via URL — U3 contract).
-    assert.equal(href, `https://worldmonitor.app/mcp-grant?nonce=${NONCE}`);
+    assert.equal(href, `https://thepublicdispatch.com/mcp-grant?nonce=${NONCE}`);
     // Defense-in-depth structural assertions in case the regex above ever
     // matches an unrelated <a id="pc">.
     const u = new URL(href);
-    assert.equal(u.origin, 'https://worldmonitor.app');
+    assert.equal(u.origin, 'https://thepublicdispatch.com');
     assert.equal(u.pathname, '/mcp-grant');
     assert.equal(u.searchParams.get('nonce'), NONCE);
     assert.equal([...u.searchParams.keys()].length, 1, 'no extra query params allowed');
@@ -73,7 +73,7 @@ describe('consentPage — Pro CTA structure (U4)', () => {
     const html = await renderHtml(BASE_PARAMS, weirdNonce);
     const m = html.match(/<a id="pc"[^>]*href="([^"]+)"/);
     assert.ok(m);
-    assert.equal(m[1], 'https://worldmonitor.app/mcp-grant?nonce=a%20b%26c%3Dd');
+    assert.equal(m[1], 'https://thepublicdispatch.com/mcp-grant?nonce=a%20b%26c%3Dd');
   });
 
   it('renders the "Use API key instead" disclosure link below the Pro CTA', async () => {
@@ -149,7 +149,7 @@ describe('consentPage — XSS defense for client metadata (U4)', () => {
     // The Pro CTA href is built from the nonce only (NOT from client_name
     // or redirect_uri) — so a malicious client_name CANNOT influence it.
     const m = html.match(/<a id="pc"[^>]*href="([^"]+)"/);
-    assert.equal(m[1], `https://worldmonitor.app/mcp-grant?nonce=${NONCE}`);
+    assert.equal(m[1], `https://thepublicdispatch.com/mcp-grant?nonce=${NONCE}`);
   });
 
   it('rejects (via URL constructor) a redirect_uri that fails to parse — production handler allowlists URIs upstream, so consentPage assumes parseable input', async () => {
@@ -168,7 +168,7 @@ describe('consentPage — XSS defense for client metadata (U4)', () => {
     assert.match(html, /<div class="client-name">Unknown Client wants access<\/div>/);
     assert.match(html, /<a id="pc" class="pro-cta"[^>]*>Sign in with WorldMonitor Pro<\/a>/);
     const m = html.match(/<a id="pc"[^>]*href="([^"]+)"/);
-    assert.equal(m[1], `https://worldmonitor.app/mcp-grant?nonce=${NONCE}`);
+    assert.equal(m[1], `https://thepublicdispatch.com/mcp-grant?nonce=${NONCE}`);
   });
 });
 

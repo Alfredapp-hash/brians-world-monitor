@@ -5,6 +5,9 @@ const ALLOWED_ORIGIN_PATTERNS = [
   // different, separately-owned deployment this fork doesn't control —
   // never trusted as a first-party origin.
   /^https:\/\/brians-world-monitor(-[a-z0-9-]+)?\.vercel\.app$/,
+  /^https:\/\/(www\.)?thepublicdispatch\.com$/,
+  /^https:\/\/thepublicsdispatch\.netlify\.app$/,
+  /^https:\/\/[a-z0-9-]+--thepublicsdispatch\.netlify\.app$/,
   ...(process.env.ALLOWED_ORIGIN
     ? [new RegExp('^' + process.env.ALLOWED_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$')]
     : []),

@@ -84,8 +84,8 @@ const PAGE_HEADERS: Record<string, string> = {
   Pragma: 'no-cache',
 };
 
-const GLOBE_SVG =
-  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+const TPD_LOCKUP = '<a href="https://thepublicdispatch.com/" class="brand-lockup" aria-label="The Public Dispatch"><span class="logo">TPD</span><span class="logo-full">The Public Dispatch</span></a>';
+const TPD_LOCKUP_CSS = '.brand-lockup{display:inline-flex;align-items:center;gap:.55rem;margin-bottom:2rem;text-decoration:none;color:#f2f4f7}.brand-lockup .logo{font-weight:750;letter-spacing:.04em}.brand-lockup .logo::before{content:"";display:inline-block;width:3px;height:.92em;margin-inline-end:8px;vertical-align:-.08em;border-radius:1px;background:linear-gradient(180deg,#ff8a96 0%,#ff2f45 55%,#8d0f1e 100%)}.brand-lockup .logo-full{font-size:.78rem;font-weight:500;color:#c5cad2}';
 
 function escapeHtml(str: string): string {
   return String(str)
@@ -105,11 +105,11 @@ function escapeHtml(str: string): string {
  */
 function htmlError(title: string, detail: string, status: number = 400): Response {
   return new Response(
-    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Error &#x2014; JSA's Monitor MCP</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:ui-monospace,'SF Mono','Cascadia Code',monospace;background:#0a0a0a;color:#e8e8e8;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}.wm-logo{display:flex;align-items:center;gap:.5rem;margin-bottom:2rem;text-decoration:none}.wm-logo svg{color:#2d8a6e}.wm-logo-text{font-size:.75rem;color:#555;letter-spacing:.1em;text-transform:uppercase}.card{width:100%;max-width:420px;background:#111;border:1px solid #1e1e1e;padding:2rem}h1{font-size:.95rem;font-weight:600;color:#ef4444;margin-bottom:.75rem;letter-spacing:.02em}p{font-size:.85rem;color:#666;line-height:1.6}.back{display:inline-block;margin-top:1.5rem;font-size:.75rem;color:#444;text-decoration:none;letter-spacing:.03em}.back:hover{color:#888}.footer{margin-top:1.5rem;font-size:.7rem;color:#2a2a2a;text-align:center}.footer a{color:#333;text-decoration:none}.footer a:hover{color:#555}</style></head>
-<body><a href="https://brians-world-monitor.vercel.app" class="wm-logo" target="_blank" rel="noopener">${GLOBE_SVG}<span class="wm-logo-text">JSA's Monitor MCP</span></a>
+    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Error &#x2014; The Public Dispatch MCP</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,'Segoe UI',system-ui,sans-serif;background:#1c1f25;color:#f2f4f7;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}${TPD_LOCKUP_CSS}.card{width:100%;max-width:420px;background:#000;border:1px solid #2b3037;padding:2rem;border-radius:14px}h1{font-size:.95rem;font-weight:600;color:#ff2f45;margin-bottom:.75rem;letter-spacing:.02em}p{font-size:.85rem;color:#9aa1ac;line-height:1.6}.back{display:inline-block;margin-top:1.5rem;font-size:.75rem;color:#c5cad2;text-decoration:none;letter-spacing:.03em}.back:hover{color:#f2f4f7}.footer{margin-top:1.5rem;font-size:.7rem;color:#9aa1ac;text-align:center}.footer a{color:#c5cad2;text-decoration:none}.footer a:hover{color:#f2f4f7}</style></head>
+<body>${TPD_LOCKUP}
 <div class="card"><h1>${escapeHtml(title)}</h1><p>${escapeHtml(detail)}</p><a href="javascript:history.back()" class="back">&#8592; go back</a></div>
-<p class="footer"><a href="https://brians-world-monitor.vercel.app" target="_blank" rel="noopener">brians-world-monitor.vercel.app</a></p>
+<p class="footer"><a href="https://thepublicdispatch.com" target="_blank" rel="noopener">thepublicdispatch.com</a></p>
 </body></html>`,
     { status, headers: PAGE_HEADERS },
   );

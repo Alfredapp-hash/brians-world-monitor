@@ -32,6 +32,9 @@ const ALLOWED_ORIGIN_PATTERNS = [
   // entry for this fork (see superset note above). Tight on purpose:
   // never a bare *.vercel.app (this is a security allowlist).
   /^https:\/\/brians-world-monitor(-[a-z0-9-]+)?\.vercel\.app$/,
+  /^https:\/\/(www\.)?thepublicdispatch\.com$/,
+  /^https:\/\/thepublicsdispatch\.netlify\.app$/,
+  /^https:\/\/[a-z0-9-]+--thepublicsdispatch\.netlify\.app$/,
   /^https?:\/\/tauri\.localhost(:\d+)?$/,
   /^https?:\/\/[a-z0-9-]+\.tauri\.localhost(:\d+)?$/i,
   /^tauri:\/\/localhost$/,

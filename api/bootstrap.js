@@ -1,5 +1,3 @@
-import { waitUntil as vercelWaitUntil } from '@vercel/functions';
-
 import {
   PUBLIC_BOOTSTRAP_TIERS,
   isPublicTierBootstrapRequest,
@@ -27,6 +25,20 @@ import {
   readBootstrapTierObject,
 } from './_bootstrap-r2.js';
 import { deliverBootstrapR2Shadow, deriveExecutionRegion } from './_usage-telemetry.js';
+
+function noopWaitUntil(promise) {
+  void promise;
+}
+
+let vercelWaitUntil = noopWaitUntil;
+try {
+  const vercelFunctions = await import('@vercel/functions');
+  if (typeof vercelFunctions.waitUntil === 'function') {
+    vercelWaitUntil = vercelFunctions.waitUntil;
+  }
+} catch {
+  // Netlify and other non-Vercel runtimes omit @vercel/functions.
+}
 
 export const config = { runtime: 'edge' };
 

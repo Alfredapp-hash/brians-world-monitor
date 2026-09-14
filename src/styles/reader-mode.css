@@ -14,7 +14,7 @@ html[data-reader-mode='everyday'] {
   --reader-space-1: 0.35rem;
   --reader-space-2: 0.7rem;
   --reader-space-3: 1.1rem;
-  --reader-peek-h: 9.25rem;
+  --reader-peek-h: min(34vh, 22rem);
 }
 
 /* ---- Header toggle ---- */
@@ -118,19 +118,18 @@ html[data-reader-mode='everyday'] {
   grid-column: 1 / -1;
   isolation: isolate;
   overflow: hidden;
-  /* Keep brand + lead + why + CTAs in fold; leave room for map peek */
   min-height: 0;
-  padding: clamp(1.35rem, 3.2vw, 2.35rem) clamp(1.25rem, 3.5vw, 2.75rem) clamp(1.5rem, 3vw, 2rem);
+  padding: 0.85rem 1.05rem 0.9rem;
   animation: reader-hero-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .reader-hero__copy {
   position: relative;
   z-index: 1;
-  max-width: 40rem;
+  max-width: 52rem;
   display: flex;
   flex-direction: column;
-  gap: var(--reader-space-2);
+  gap: 0.45rem;
 }
 
 .reader-hero__brand {
@@ -147,12 +146,11 @@ html[data-reader-mode='everyday'] {
 .reader-hero__lead {
   margin: 0;
   font-family: var(--reader-display);
-  font-size: clamp(1.28rem, 2.6vw, 1.85rem);
+  font-size: clamp(1.15rem, 2.2vw, 1.65rem);
   font-weight: 560;
   line-height: 1.22;
   color: var(--text);
-  /* Reserve lead block height to limit CLS when hydrate swaps copy */
-  min-height: 2.6em;
+  min-height: 0;
   animation: reader-rise 640ms 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -213,8 +211,8 @@ html[data-reader-mode='everyday'] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.75rem;
-  padding: 0.55rem 1rem;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.9rem;
   border-radius: var(--radius-md, 8px);
   font-family: var(--reader-sans);
   font-size: 0.88rem;
@@ -340,13 +338,18 @@ html[data-reader-mode='everyday'] .hamburger-btn svg {
   opacity: 0.85;
 }
 
-/* Hero owns brand-first signal; header logo stays compact.
-   Case, tracking, and face live in dispatch.css — do not restage them here. */
-html[data-reader-mode='everyday'] .header .logo,
-html[data-reader-mode='everyday'] .header .logo-mobile {
-  font-size: 0.78rem;
-  font-weight: 600;
-  opacity: 0.88;
+/* Header lockup: bold TPD + full name. Don't fade it into a caption. */
+html[data-reader-mode='everyday'] .header .logo {
+  font-size: 0.95rem;
+  font-weight: 750;
+  opacity: 1;
+  letter-spacing: 0.04em;
+}
+
+html[data-reader-mode='everyday'] .header .logo-full {
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.82;
 }
 
 html[data-reader-mode='everyday'] .header {
@@ -386,16 +389,21 @@ html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded):hover {
 }
 
 html[data-reader-mode='everyday'] #mapSection.reader-map-expanded {
-  max-height: min(55vh, 520px);
-  min-height: min(45vh, 420px);
+  max-height: min(68vh, 720px);
+  min-height: min(52vh, 560px);
   cursor: default;
 }
 
 html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .map-container {
   display: block !important;
-  height: calc(var(--reader-peek-h) - 2.35rem);
-  min-height: 6.5rem;
+  height: 100%;
+  min-height: 14rem;
   pointer-events: none;
+}
+
+/* Peek is the map, not a title bar. Header chrome comes back on expand. */
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) > .panel-header {
+  display: none !important;
 }
 
 /* The peek is a 9.25rem strip of live canvas, so every control the expanded map
@@ -410,15 +418,31 @@ html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .map-hea
 html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .deckgl-layer-toggles,
 html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .layer-toggles,
 html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .map-legend,
-html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .header-clock {
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .header-clock,
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .time-slider,
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .zoom-controls {
   display: none !important;
 }
 
 html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .panel-title::after {
-  content: ' — tap to expand';
-  font-weight: 400;
-  color: var(--text-secondary);
-  font-size: 0.78em;
+  content: none;
+}
+
+html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded)::after {
+  content: 'Tap to expand map';
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  bottom: 12px;
+  padding: 0.28rem 0.55rem;
+  border-radius: var(--wm-radius-chip, 6px);
+  background: color-mix(in srgb, var(--wm-plate) 78%, transparent);
+  border: 1px solid var(--wm-hairline-strong);
+  color: var(--text);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  pointer-events: none;
 }
 
 html[data-reader-mode='everyday'] #mapSection.reader-map-expanded .panel-title::after {
@@ -594,6 +618,14 @@ html[data-reader-mode='everyday'] .insights-empty {
   font-family: var(--reader-sans);
   font-size: 0.95rem;
   line-height: 1.45;
+}
+
+html[data-reader-mode='everyday'] .insights-synthesis-note {
+  margin: 0 0 0.65rem;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 /* ---- Everyday Coverage Compare: civilian first paint ---- */
@@ -881,7 +913,7 @@ html[data-reader-mode='everyday'] .cc-details--everyday:not([open]) .cc-nci-badg
   }
 
   html[data-reader-mode='everyday'] #mapSection:not(.reader-map-expanded) .panel-title::after {
-    content: ' — tap to expand';
+    content: none;
   }
 
   /* Beat mobile .collapsed display:none so peek shows a live strip */
@@ -896,9 +928,9 @@ html[data-reader-mode='everyday'] .cc-details--everyday:not([open]) .cc-nci-badg
   }
 
   html[data-reader-mode='everyday'] .main-content #mapSection.reader-map-expanded {
-    height: min(55vh, 520px) !important;
-    min-height: min(45vh, 420px) !important;
-    max-height: min(55vh, 520px) !important;
+    height: min(68vh, 720px) !important;
+    min-height: min(52vh, 560px) !important;
+    max-height: min(68vh, 720px) !important;
   }
 
   html[data-reader-mode='everyday'] #panelsGrid {

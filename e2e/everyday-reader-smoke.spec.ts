@@ -85,7 +85,10 @@ test.describe('Everyday reader smoke', () => {
 
     await expect(page.locator('html')).toHaveAttribute('data-reader-mode', 'everyday');
     await expect(page.locator('.reader-hero')).toBeVisible({ timeout: 45_000 });
-    await expect(page.locator('.reader-hero__brand')).toBeVisible();
+    await expect(page.locator('.header .logo')).toHaveText('TPD');
+    await expect(page.locator('.header .logo-full')).toHaveText('The Public Dispatch');
+    await expect(page.locator('.site-footer .logo')).toHaveText('TPD');
+    await expect(page.locator('.reader-hero__brand')).toHaveCount(1);
     await expect(page.locator('#hamburgerBtn')).toBeVisible();
     await expect(page.locator('#hamburgerBtn')).toHaveAttribute('aria-label', 'More');
     await expect(page.locator('#hamburgerBtn .hamburger-btn__label')).toHaveText('More');

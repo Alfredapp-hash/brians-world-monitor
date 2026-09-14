@@ -283,7 +283,7 @@ export class InsightsPanel extends Panel {
     }
 
     if (clusters.length === 0) {
-      this.setDataBadge('unavailable');
+      this.clearDataBadge();
       const emptyMsg = isEverydayReaderMode()
         ? 'Today’s brief is still gathering sources — check back in a moment.'
         : t('components.insights.waitingForData');
@@ -293,7 +293,7 @@ export class InsightsPanel extends Panel {
 
     // Fallback: full client-side pipeline (skip on mobile — too heavy)
     if (isMobileDevice()) {
-      this.setDataBadge('unavailable');
+      this.clearDataBadge();
       const emptyMsg = isEverydayReaderMode()
         ? 'Today’s brief is still gathering sources — check back in a moment.'
         : t('components.insights.waitingForData');
@@ -468,6 +468,7 @@ export class InsightsPanel extends Panel {
       const importantClusters = importantItems.map(({ cluster }) => cluster);
 
       if (importantClusters.length === 0) {
+        this.clearDataBadge();
         const emptyMsg = isEverydayReaderMode()
           ? 'No multi-source stories yet — check back shortly.'
           : t('components.insights.noStories');
@@ -572,7 +573,7 @@ export class InsightsPanel extends Panel {
         this.setProgress(3, totalSteps, t('components.insights.usingCachedBrief'));
       }
 
-      this.setDataBadge(worldBrief ? 'live' : 'unavailable');
+      this.setDataBadge(worldBrief || importantItems.length > 0 ? 'live' : 'unavailable');
 
       // Step 4: Wait for parallel analysis to complete
       this.setProgress(4, totalSteps, t('components.insights.multiPerspectiveAnalysis'));
@@ -630,12 +631,12 @@ export class InsightsPanel extends Panel {
 
     if (isEverydayReaderMode()) {
       // Hero already owns the world brief — story list only, no duplicate lead.
-      // The allowance note still rides along: everyday mode has no regenerate
-      // button, but the client fallback path can have spent a run getting the
-      // brief the hero is showing, and the user deserves to know why the next
-      // refresh won't re-synthesize.
+      const synthesisNote = !worldBrief && items.length > 0
+        ? '<p class="insights-synthesis-note">Headlines are live. The written brief isn’t ready yet.</p>'
+        : '';
       this.setSafeContent(unsafeRawHtml(`
         ${allowanceNoteHtml}
+        ${synthesisNote}
         <div class="insights-section">
           <div class="insights-section-title">Top stories</div>
           ${breakingHtml || `<div class="insights-empty">No multi-source stories yet — check back shortly.</div>`}
@@ -689,8 +690,11 @@ export class InsightsPanel extends Panel {
     const storiesHtml = this.renderServerStories(insights.topStories, sentiments);
 
     if (isEverydayReaderMode()) {
-      // Hero owns the brief synthesis; panel is the scan list underneath.
+      const synthesisNote = !insights.worldBrief && insights.topStories.length > 0
+        ? '<p class="insights-synthesis-note">Headlines are live. The written brief isn’t ready yet.</p>'
+        : '';
       this.setSafeContent(unsafeRawHtml(`
+        ${synthesisNote}
         <div class="insights-section">
           <div class="insights-section-title">Top stories</div>
           ${storiesHtml || `<div class="insights-empty">No multi-source stories yet — check back shortly.</div>`}

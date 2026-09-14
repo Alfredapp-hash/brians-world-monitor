@@ -1,5 +1,5 @@
 import './styles/osint4all.css';
-import { BRAND } from '@/config/brand';
+import { BRAND, createBrandLockup } from '@/config/brand';
 import {
   OSINT_CATEGORIES,
   OSINT_TOOLS,
@@ -60,9 +60,7 @@ function boot(): void {
   const state = { query: '', category: 'Any' as OsintCategory | 'Any', pricing: 'Any' as OsintPricing | 'Any' };
 
   const page = el('main', 'o4a');
-  const brand = el('a', 'o4a-brand', BRAND.name);
-  brand.href = '/';
-  page.append(brand);
+  page.append(createBrandLockup('/'));
   page.append(el('h1', '', 'OSINT4ALL'));
   page.append(
     el(

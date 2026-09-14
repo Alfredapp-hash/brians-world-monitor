@@ -508,15 +508,22 @@ html[data-stage-mode='godseye'] .godseye-hud.is-live {
   color: var(--ge-hud-dim);
 }
 
-.godseye-hud__title {
+.godseye-hud__title,
+.godseye-hud .brand-lockup {
   margin: 0;
   font-family: var(--font-ui);
   font-size: clamp(0.95rem, 1.7vw, 1.3rem);
   font-weight: 700;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-transform: none;
   color: var(--ge-stage-ink);
-  text-shadow: 0 0 14px var(--ge-hud-glow);
+}
+
+.godseye-hud .brand-lockup .logo-full {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ge-hud-dim);
 }
 
 .godseye-hud__readout {
@@ -881,8 +888,9 @@ html[data-stage-mode='godseye'] .godseye-hud.is-live {
     translate: none;
   }
 
-  .godseye-hud__title {
-    letter-spacing: 0.14em;
+  .godseye-hud__title,
+  .godseye-hud .brand-lockup {
+    letter-spacing: 0.04em;
   }
 }
 

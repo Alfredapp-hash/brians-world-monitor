@@ -17,6 +17,7 @@
  */
 
 import { h } from '@/utils/dom-utils';
+import { createBrandLockup } from '@/config/brand';
 import { setSplitFlapText } from '@/utils/split-flap';
 import {
   formatHudLatLon,
@@ -87,9 +88,9 @@ export class GodsEyeHud {
       h('span', { className: 'godseye-hud__bracket', 'aria-hidden': 'true' }),
       h(
         'div',
-        { className: 'godseye-hud__stack' },
+        { className: 'godseye-hud__stack', 'aria-label': options.title },
         h('span', { className: 'godseye-hud__classification' }, 'Open sources · global'),
-        h('p', { className: 'godseye-hud__title' }, options.title),
+        createBrandLockup('/'),
       ),
     );
 

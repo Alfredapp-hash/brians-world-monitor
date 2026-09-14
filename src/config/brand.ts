@@ -9,6 +9,7 @@
 export const BRAND = {
   name: 'The Public Dispatch',
   shortName: 'TPD',
+  tagline: 'See the news. And see through it.',
   /** Public home of the paper. */
   domain: 'thepublicdispatch.com',
   /** Community Discord invite. Update with your real invite link. */
@@ -26,3 +27,29 @@ export const BRAND = {
   /** Upstream project this fork is based on (credit + AGPL lineage). */
   upstream: 'https://github.com/koala73/worldmonitor',
 } as const;
+
+/** Markup for the crimson-bar TPD lockup. Safe: values are compile-time constants. */
+export function brandLockupHtml(href = '/'): string {
+  return (
+    `<a class="brand-lockup" href="${href}" title="${BRAND.tagline}" aria-label="${BRAND.name}">`
+    + `<span class="logo">${BRAND.shortName}</span>`
+    + `<span class="logo-full">${BRAND.name}</span>`
+    + '</a>'
+  );
+}
+
+export function createBrandLockup(href = '/'): HTMLAnchorElement {
+  const a = document.createElement('a');
+  a.className = 'brand-lockup';
+  a.href = href;
+  a.title = BRAND.tagline;
+  a.setAttribute('aria-label', BRAND.name);
+  const mark = document.createElement('span');
+  mark.className = 'logo';
+  mark.textContent = BRAND.shortName;
+  const full = document.createElement('span');
+  full.className = 'logo-full';
+  full.textContent = BRAND.name;
+  a.append(mark, full);
+  return a;
+}

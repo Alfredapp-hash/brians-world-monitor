@@ -2924,8 +2924,8 @@ a.hub-top-story {
   position: relative;
 }
 .latest-brief-cover-logo {
-  width: 32px;
-  height: 32px;
+  width: 72px;
+  height: 24px;
   opacity: 0.85;
   margin-bottom: 6px;
 }
@@ -3026,8 +3026,8 @@ a.hub-top-story {
   background: var(--panel-bg, #161616);
 }
 .latest-brief-logo {
-  width: 28px;
-  height: 28px;
+  width: 72px;
+  height: 24px;
   margin: 0 auto 12px;
   opacity: 0.6;
   color: var(--text-muted, #888);

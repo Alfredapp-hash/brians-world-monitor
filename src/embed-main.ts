@@ -57,11 +57,19 @@ async function bootEmbed(): Promise<void> {
     });
 
     const attribution = document.createElement('a');
-    attribution.className = 'wm-embed-attribution';
+    attribution.className = 'wm-embed-attribution brand-lockup';
+    attribution.replaceChildren();
+    const mark = document.createElement('span');
+    mark.className = 'logo';
+    mark.textContent = BRAND.shortName;
+    const full = document.createElement('span');
+    full.className = 'logo-full';
+    full.textContent = 'Live map';
+    attribution.append(mark, full);
     attribution.href = buildWorldMonitorAttributionUrl(new URL('/dashboard', window.location.origin).toString(), getReferrerHost());
     attribution.target = '_blank';
     attribution.rel = 'noopener noreferrer';
-    attribution.textContent = `Live map by ${BRAND.name}`;
+    attribution.setAttribute('aria-label', `Live map by ${BRAND.name}`);
     root.appendChild(attribution);
 
     const loader = new EmbedDataLoader(map, params.layerIds);

@@ -92,6 +92,10 @@ describe('isAllowedOrigin — Vercel preview allowlist (this fork\'s deployments
     ['git-branch alias URL', 'https://brians-world-monitor-git-main.vercel.app'],
     ['hash deployment URL', 'https://brians-world-monitor-abc123def456.vercel.app'],
     ['apex production origin', 'https://brians-world-monitor.vercel.app'],
+    ['Public Dispatch apex', 'https://thepublicdispatch.com'],
+    ['Public Dispatch www', 'https://www.thepublicdispatch.com'],
+    ['Public Dispatch Netlify alias', 'https://thepublicsdispatch.netlify.app'],
+    ['Public Dispatch deploy preview', 'https://deploy-preview-1--thepublicsdispatch.netlify.app'],
   ];
 
   const REJECTED = [

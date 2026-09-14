@@ -124,7 +124,8 @@ test.describe('public map embed', () => {
 
     await page.goto(embedPath);
 
-    await expect(page.locator('.wm-embed-attribution')).toHaveText('Live map by World Monitor');
+    await expect(page.locator('.wm-embed-attribution .logo')).toHaveText('TPD');
+    await expect(page.locator('.wm-embed-attribution')).toContainText('Live map');
     await expectCurrentMapRenderer(page);
     await expect(page.locator('.map-controls, .time-slider, .layer-toggles, .map-legend')).toHaveCount(0);
     await expect(page.locator('body')).toHaveAttribute('data-embed-ready', 'true');
@@ -197,7 +198,8 @@ test.describe('public map embed', () => {
       await page.goto(host.url);
 
       const frame = page.frameLocator('#wm');
-      await expect(frame.locator('.wm-embed-attribution')).toHaveText('Live map by World Monitor');
+      await expect(frame.locator('.wm-embed-attribution .logo')).toHaveText('TPD');
+      await expect(frame.locator('.wm-embed-attribution')).toContainText('Live map');
       await expectCurrentMapRendererInFrame(frame, page);
       await expect(frame.locator('.map-controls, .time-slider, .layer-toggles, .map-legend')).toHaveCount(0);
       await expect(frame.locator('body')).toHaveAttribute('data-embed-ready', 'true');

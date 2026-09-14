@@ -61,19 +61,13 @@ const LATEST_BRIEF_ENDPOINT = '/api/latest-brief';
 
 const WM_LOGO_SVG: TrustedHtml = trustedHtml(
   (
-    '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" '
-    + 'stroke-linecap="round" aria-hidden="true">'
-    + '<circle cx="32" cy="32" r="28"/>'
-    + '<ellipse cx="32" cy="32" rx="5" ry="28"/>'
-    + '<ellipse cx="32" cy="32" rx="14" ry="28"/>'
-    + '<ellipse cx="32" cy="32" rx="22" ry="28"/>'
-    + '<ellipse cx="32" cy="32" rx="28" ry="5"/>'
-    + '<ellipse cx="32" cy="32" rx="28" ry="14"/>'
-    + '<path d="M 6 32 L 20 32 L 24 24 L 30 40 L 36 22 L 42 38 L 46 32 L 56 32" stroke-width="2.4"/>'
-    + '<circle cx="57" cy="32" r="1.8" fill="currentColor" stroke="none"/>'
+    '<svg viewBox="0 0 88 24" fill="none" aria-hidden="true">'
+    + '<rect x="0" y="3" width="3" height="18" rx="1" fill="#ff2f45"/>'
+    + '<text x="10" y="18" fill="currentColor" font-size="16" font-weight="750" '
+    + 'font-family="Inter, Segoe UI, system-ui, sans-serif" letter-spacing="0.04em">TPD</text>'
     + '</svg>'
   ),
-  'Static WorldMonitor logo SVG defined in source',
+  'Static TPD lockup SVG defined in source',
 );
 
 // Composing-state poll interval. 60s balances "responsive when the
@@ -344,7 +338,7 @@ export class LatestBriefPanel extends Panel {
         logo,
         h('div', { className: 'latest-brief-empty-title' }, 'Sign in to view your brief.'),
         h('div', { className: 'latest-brief-empty-body' },
-          'Your personalised brief is tied to your WorldMonitor account. Sign in to see today\u2019s issue.',
+          'Sign in to read today\u2019s brief on The Public Dispatch.',
         ),
       ),
     );
@@ -364,7 +358,7 @@ export class LatestBriefPanel extends Panel {
         logo,
         h('div', { className: 'latest-brief-empty-title' }, 'Pro required.'),
         h('div', { className: 'latest-brief-empty-body' },
-          'The WorldMonitor Brief is included with the Pro plan. Upgrade to unlock today\u2019s issue.',
+          'The written brief is included with the Pro plan. Upgrade to unlock today\u2019s issue.',
         ),
       ),
     );
@@ -402,7 +396,7 @@ export class LatestBriefPanel extends Panel {
         logoDiv,
         h('div', { className: 'latest-brief-empty-title' }, 'Your brief is composing.'),
         h('div', { className: 'latest-brief-empty-body' },
-          `The editorial team at WorldMonitor is writing your ${data.issueDate} brief. Check back in a moment.`,
+          `The editorial team is writing your ${data.issueDate} brief. Check back in a moment.`,
         ),
       ),
     );
@@ -442,7 +436,7 @@ export class LatestBriefPanel extends Panel {
       h('div', { className: 'latest-brief-cover' },
         coverLogo,
         h('div', { className: 'latest-brief-cover-issue' }, data.dateLong),
-        h('div', { className: 'latest-brief-cover-title' }, 'WorldMonitor'),
+        h('div', { className: 'latest-brief-cover-title' }, 'The Public Dispatch'),
         h('div', { className: 'latest-brief-cover-title' }, 'Brief.'),
         h('div', { className: 'latest-brief-cover-kicker' }, threadLabel),
       ),
@@ -458,7 +452,7 @@ export class LatestBriefPanel extends Panel {
     const shareBtn = h('button', {
       type: 'button',
       className: 'latest-brief-share',
-      'aria-label': 'Share WorldMonitor — copies a referral link',
+      'aria-label': 'Share The Public Dispatch — copies a referral link',
       disabled: true,
     }, 'Share ↗');
     const shareStatus = h('span', {

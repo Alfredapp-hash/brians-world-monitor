@@ -7,40 +7,47 @@
 <meta name="description" content="A personal real-time intelligence dashboard: world geopolitics, finance, science, and archaeology from hundreds of sources — with a built-in spin filter, talking-point detection, and NCI Engineered Reality scoring powered by local AI." />
 <style>
   :root {
-    --bg: #0a0c10; --surface: #12161e; --border: #262c38;
-    --text: #e9e6df; --dim: #9a958a; --accent: #f0a832; --accent-dim: #b57d16;
+    --bg: #1c1f25; --surface: #000; --border: #2b3037;
+    --text: #f2f4f7; --dim: #9aa1ac; --accent: #ff2f45;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     background: var(--bg); color: var(--text);
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
     line-height: 1.6;
   }
   .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
   header {
-    padding: 96px 0 64px; text-align: center;
-    background:
-      radial-gradient(ellipse 70% 50% at 50% -10%, rgba(240,168,50,0.14), transparent),
-      linear-gradient(180deg, #0d1017, var(--bg));
+    padding: 72px 0 56px; text-align: center;
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
-  .brand {
-    font-size: 13px; letter-spacing: 0.35em; color: var(--accent);
-    text-transform: uppercase; font-weight: 700; margin-bottom: 20px;
+  .brand-lockup {
+    display: inline-flex; align-items: center; gap: 0.55rem;
+    margin-bottom: 20px; text-decoration: none; color: inherit;
   }
-  h1 { font-size: clamp(30px, 5vw, 52px); font-weight: 800; letter-spacing: -0.01em; }
+  .brand-lockup .logo {
+    font-weight: 750; letter-spacing: 0.04em; color: var(--text);
+  }
+  .brand-lockup .logo::before {
+    content: ''; display: inline-block; width: 3px; height: 0.92em;
+    margin-inline-end: 8px; vertical-align: -0.08em; border-radius: 1px;
+    background: linear-gradient(180deg, #ff8a96 0%, #ff2f45 55%, #8d0f1e 100%);
+  }
+  .brand-lockup .logo-full {
+    font-size: 0.82rem; font-weight: 500; letter-spacing: -0.012em; color: #c5cad2;
+  }
+  h1 { font-size: clamp(30px, 5vw, 52px); font-weight: 750; letter-spacing: -0.025em; }
   h1 em { color: var(--accent); font-style: normal; }
   .tagline { color: var(--dim); font-size: clamp(15px, 2vw, 19px); margin: 18px auto 36px; max-width: 640px; }
   .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
   .btn {
-    display: inline-block; padding: 13px 30px; border-radius: 8px;
-    text-decoration: none; font-weight: 700; font-size: 15px;
-    transition: transform 0.15s, box-shadow 0.15s;
+    display: inline-block; padding: 12px 26px; border-radius: 8px;
+    text-decoration: none; font-weight: 600; font-size: 15px;
   }
-  .btn:hover { transform: translateY(-2px); }
-  .btn-primary { background: var(--accent); color: #14100a; box-shadow: 0 6px 24px rgba(240,168,50,0.25); }
+  .btn-primary { background: #f2f4f7; color: #12151a; }
   .btn-ghost { border: 1px solid var(--border); color: var(--text); }
-  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ghost:hover { border-color: #3a4048; }
   section { padding: 72px 0; border-bottom: 1px solid var(--border); }
   h2 { font-size: 26px; margin-bottom: 12px; }
   h2 .k { color: var(--accent); }
@@ -48,9 +55,9 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 18px; }
   .card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 24px;
+    border-radius: 14px; padding: 24px;
   }
-  .card h3 { font-size: 16px; margin-bottom: 8px; color: var(--accent); }
+  .card h3 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
   .card p { font-size: 14px; color: var(--dim); }
   .scale { display: flex; border-radius: 8px; overflow: hidden; margin: 28px 0 10px; border: 1px solid var(--border); }
   .scale div { flex: 1; padding: 10px 6px; text-align: center; font-size: 11px; font-weight: 700; }
@@ -61,15 +68,19 @@
   .s4 { background: rgba(155,29,29,0.32); color: #ff6b6b; }
   .fine { font-size: 12px; color: var(--dim); font-style: italic; }
   footer { padding: 48px 0; text-align: center; color: var(--dim); font-size: 13px; }
-  footer a { color: var(--accent); text-decoration: none; }
+  footer a { color: var(--text); text-decoration: none; }
   footer nav { margin-bottom: 14px; display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; }
+  @media (max-width: 768px) { .brand-lockup .logo-full { display: none; } }
 </style>
 </head>
 <body>
 
 <header>
   <div class="wrap">
-    <div class="brand">The Public Dispatch</div>
+    <a class="brand-lockup" href="/" title="See the news. And see through it." aria-label="The Public Dispatch">
+      <span class="logo">TPD</span>
+      <span class="logo-full">The Public Dispatch</span>
+    </a>
     <h1>See the news.<br /><em>And see through it.</em></h1>
     <p class="tagline">
       A real-time intelligence dashboard for world geopolitics, markets, scientific

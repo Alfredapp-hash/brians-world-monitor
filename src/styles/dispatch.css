@@ -45,25 +45,46 @@
    2 · THE NAMEPLATE — a wordmark on the console header, not a facsimile
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.header .logo,
-.header .logo-mobile,
-.site-footer-name {
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand-lockup .logo,
+.header .logo {
   font-family: var(--font-ui);
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  color: var(--text);
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: var(--wm-ink, var(--text));
   text-transform: none;
   white-space: nowrap;
 }
 
-/* The dispatch mark: a struck crimson tick, the same light the plate rims are
-   lit by. It is the only brand ornament in the chrome. */
-.header .logo::before,
-.header .logo-mobile::before {
+.brand-lockup .logo-full,
+.header .logo-full {
+  display: inline;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The dispatch mark: a struck crimson tick. It is the only brand ornament
+   in the chrome — red elsewhere is reserved for meaning. */
+.brand-lockup .logo::before,
+.header .logo::before {
   content: '';
   display: inline-block;
   width: 3px;
-  height: 0.95em;
+  height: 0.92em;
   margin-inline-end: 8px;
   vertical-align: -0.08em;
   border-radius: 1px;
@@ -73,15 +94,21 @@
     var(--wm-red) 55%,
     var(--wm-red-deep) 100%
   );
-  box-shadow: 0 0 10px -1px var(--wm-red-dim);
 }
 
 /* On the God's Eye stage the crimson is the wrong instrument hue — the mark
    takes the HUD cyan so the wordmark still reads as lit, not as a leftover. */
-html[data-stage-mode='godseye'] .header .logo::before,
-html[data-stage-mode='godseye'] .header .logo-mobile::before {
+html[data-stage-mode='godseye'] .brand-lockup .logo::before,
+html[data-stage-mode='godseye'] .header .logo::before {
   background: var(--ge-hud, #7fd4e8);
   box-shadow: 0 0 10px -1px rgb(127 212 232 / 45%);
+}
+
+@media (max-width: 768px) {
+  .brand-lockup .logo-full,
+  .header .logo-full {
+    display: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -104,75 +131,49 @@ html[data-stage-mode='godseye'] .header .logo-mobile::before {
    4 · THE FRONT PAGE — everyday reader
    ═══════════════════════════════════════════════════════════════════════════
 
-   The lead story is an object on the grey bench, exactly like every panel: the
-   hero carries `.wm-plate` (added in ReaderHero.ts) so it gets the true-black
-   plate, the hairline rim and the slow crimson field from console-2026.css.
-   Nothing here paints a background — it composes what is inside the plate.
-
-   Wide viewports get a real front page rather than one 40rem column and a
-   desert: the lead runs in the main measure, a hairline rule splits the sheet,
-   and the coverage/actions/dateline stack becomes a right-hand rail.
+   Compact lead: header owns the name, the hero is one headline + why + CTAs.
+   Empty rail space used to push the map and news down; this is a kicker now.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* The plate needs air around it, on the same gutter the panel grid uses. */
 html[data-reader-mode='everyday'] #readerHeroMount {
-  padding: clamp(0.75rem, 2vw, 1.5rem) clamp(0.75rem, 2vw, 1.5rem) 0;
+  padding: 0.55rem clamp(0.75rem, 2vw, 1.25rem) 0;
 }
 
 html[data-reader-mode='everyday'] .reader-hero {
-  padding: clamp(1.5rem, 3vw, 2.6rem) clamp(1.35rem, 3vw, 2.6rem)
-    clamp(1.5rem, 2.6vw, 2.2rem);
+  padding: 0.85rem 1.1rem 0.9rem;
 }
 
-/* ---- The masthead line: wordmark, crimson tick, then the rule ---- */
+/* Header lockup owns the name. Keep the hero brand in the tree for a11y. */
 html[data-reader-mode='everyday'] .reader-hero__brand {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  margin: 0;
-  padding-bottom: clamp(0.85rem, 1.6vw, 1.15rem);
-  border-bottom: 1px solid var(--wm-hairline-strong);
-  font-family: var(--font-ui);
-  font-size: clamp(0.9rem, 1.4vw, 1.15rem);
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  line-height: 1;
-  text-transform: uppercase;
-  color: var(--text);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 html[data-reader-mode='everyday'] .reader-hero__brand::before {
-  content: '';
-  flex: 0 0 auto;
-  width: 3px;
-  height: 1.1em;
-  border-radius: 1px;
-  background: linear-gradient(
-    180deg,
-    var(--wm-red-hot) 0%,
-    var(--wm-red) 55%,
-    var(--wm-red-deep) 100%
-  );
-  box-shadow: 0 0 12px -1px var(--wm-red-dim);
+  content: none;
 }
 
-/* ---- The lead. The biggest thing on the page, and the only thing allowed
-   to be. Tight negative tracking is what keeps a 2.6rem sans from reading as
-   a marketing headline. ---- */
 html[data-reader-mode='everyday'] .reader-hero__lead {
   font-family: var(--font-ui);
-  font-size: clamp(1.55rem, 3vw, 2.5rem);
+  font-size: clamp(1.15rem, 2vw, 1.65rem);
   font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.08;
+  letter-spacing: -0.022em;
+  line-height: 1.18;
   color: var(--text);
 }
 
 html[data-reader-mode='everyday'] .reader-hero__why {
   font-family: var(--font-ui);
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 400;
-  line-height: 1.55;
+  line-height: 1.45;
   letter-spacing: -0.003em;
   color: var(--text-secondary);
   max-width: 46rem;
@@ -204,10 +205,10 @@ html[data-reader-mode='everyday'] .reader-hero__meta {
 html[data-reader-mode='everyday'] .reader-hero__cta {
   border-radius: var(--wm-radius-control);
   font-family: var(--font-ui);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 550;
   letter-spacing: -0.006em;
-  min-height: 44px;
+  min-height: 2.5rem;
 }
 
 /* A 1px hover lift is a 2016 tic, and on a plate with a live rim it reads as
@@ -238,80 +239,22 @@ html[data-reader-mode='everyday'] .reader-hero__cta--ghost:hover {
   color: var(--text);
 }
 
-/* ---- Wide: the front page proper ----
-   The copy block becomes a three-track grid — measure, hairline rule, rail —
-   so the width that used to be empty carries the coverage cue, the actions and
-   the dateline. The rule is the grid's own ::after, which keeps it exactly on
-   the column boundary at every width instead of guessing at a border. */
+/* Wide: keep a single measure. A three-column rail left a desert of empty
+   plate that shoved the map and news down the page. */
 @media (min-width: 1080px) {
   html[data-reader-mode='everyday'] .reader-hero__copy {
-    display: grid;
-    max-width: none;
-    align-items: start;
-    column-gap: clamp(1.75rem, 3.5vw, 3.25rem);
-    row-gap: clamp(0.7rem, 1.2vw, 1.1rem);
-    grid-template-columns: minmax(0, 1.7fr) 1px minmax(15rem, 0.85fr);
-    grid-template-areas:
-      'brand  brand   brand'
-      'lead   rule    spin'
-      'why    rule    actions'
-      'why    rule    status'
-      'why    rule    meta';
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 52rem;
   }
 
   html[data-reader-mode='everyday'] .reader-hero__copy::after {
-    content: '';
-    grid-area: rule;
-    width: 1px;
-    justify-self: center;
-    align-self: stretch;
-    background: var(--wm-hairline);
-  }
-
-  html[data-reader-mode='everyday'] .reader-hero__brand {
-    grid-area: brand;
-    margin-bottom: clamp(0.4rem, 0.8vw, 0.8rem);
-  }
-
-  html[data-reader-mode='everyday'] .reader-hero__lead {
-    grid-area: lead;
-  }
-
-  html[data-reader-mode='everyday'] .reader-hero__why {
-    grid-area: why;
-    align-self: start;
-  }
-
-  html[data-reader-mode='everyday'] .reader-hero__spin {
-    grid-area: spin;
-    max-width: none;
+    content: none;
   }
 
   html[data-reader-mode='everyday'] .reader-hero__actions {
-    grid-area: actions;
-    margin-top: 0;
-  }
-
-  html[data-reader-mode='everyday'] .reader-hero__status {
-    grid-area: status;
-  }
-
-  html[data-reader-mode='everyday'] .reader-hero__meta {
-    grid-area: meta;
-    margin-top: 0;
-    max-width: none;
-  }
-
-  /* The rail's CTAs fill their track rather than huddling at its left edge. */
-  html[data-reader-mode='everyday'] .reader-hero__actions .reader-hero__cta {
-    flex: 1 1 auto;
-  }
-
-  /* An empty rail slot must not hold open a grid row. */
-  html[data-reader-mode='everyday'] .reader-hero__spin[hidden],
-  html[data-reader-mode='everyday'] .reader-hero__status[hidden],
-  html[data-reader-mode='everyday'] .reader-hero__meta:empty {
-    display: none !important;
+    margin-top: 0.15rem;
   }
 }
 

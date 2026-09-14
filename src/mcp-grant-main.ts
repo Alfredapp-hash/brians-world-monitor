@@ -126,7 +126,7 @@ function errorCodeToMessage(code: string | undefined): string {
     case 'INVALID_REDIRECT_URI':
       return 'The redirect destination is not allowed. Start over from your MCP client.';
     case 'INSUFFICIENT_TIER':
-      return 'A WorldMonitor Pro subscription is required to authorize MCP clients.';
+      return 'A Public Dispatch Pro subscription is required to authorize MCP clients.';
     case 'CONFIGURATION_ERROR':
       return 'MCP authorization is temporarily unavailable. Please try again later.';
     case 'SERVICE_UNAVAILABLE':
@@ -195,7 +195,12 @@ async function onAuthorizeClick(nonce: string): Promise<void> {
     showErrorView('The authorization service returned an invalid redirect.');
     return;
   }
-  if (target.origin !== 'https://brians-world-monitor.vercel.app') {
+  const allowedGrantOrigins = new Set([
+    'https://thepublicdispatch.com',
+    'https://www.thepublicdispatch.com',
+    'https://brians-world-monitor.vercel.app',
+  ]);
+  if (!allowedGrantOrigins.has(target.origin)) {
     showErrorView('The authorization service returned an unexpected redirect host.');
     return;
   }

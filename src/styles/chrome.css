@@ -19,8 +19,8 @@
 }
 
 .logo,
-.logo-mobile {
-  letter-spacing: 1px;
+.logo-full {
+  letter-spacing: inherit;
   white-space: nowrap;
 }
 

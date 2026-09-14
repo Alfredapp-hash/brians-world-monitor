@@ -236,7 +236,8 @@
       .skeleton-header{display:flex;align-items:center;justify-content:space-between;height:40px;padding:8px 14px;background:#000;border-bottom:1px solid rgba(255,255,255,.09);box-shadow:inset 0 1px 0 0 rgba(255,255,255,.06),0 1px 0 0 rgba(255,47,69,.08);flex-shrink:0}
       .skeleton-header-left{display:flex;align-items:center;gap:12px}
       .skeleton-header-right{display:flex;align-items:center;gap:12px}
-      .skeleton-brand{display:flex;align-items:center;gap:8px;margin:0;color:#f2f4f7;font-size:14px;line-height:1;font-weight:650;letter-spacing:-.01em}
+      .skeleton-brand{display:flex;align-items:center;gap:8px;margin:0;color:#f2f4f7;font-size:15px;line-height:1;font-weight:750;letter-spacing:.04em}
+      .skeleton-brand-full{font-size:12px;font-weight:500;letter-spacing:-.01em;color:#c5cad2}
       /* The dispatch mark: a struck crimson tick, lit like the plate rims. */
       .skeleton-brand-mark{display:inline-block;width:3px;height:14px;font-size:0;color:transparent;border-radius:1px;background:linear-gradient(180deg,#ff8a96 0%,#ff2f45 55%,#8d0f1e 100%);box-shadow:0 0 10px -1px rgba(255,47,69,.45)}
       .skeleton-kicker{color:#9aa1ac;font-size:11px;line-height:1;white-space:nowrap}
@@ -418,7 +419,7 @@
       @media (max-width:768px){
         .skeleton-header{height:40px;padding:6px 10px;gap:8px}
         .skeleton-header-left,.skeleton-header-right{gap:8px;min-width:0}
-        .skeleton-kicker,.skeleton-section-note{display:none}
+        .skeleton-kicker,.skeleton-section-note,.skeleton-brand-full{display:none}
         .skeleton-chip{padding:0 6px;font-size:10px}
         /* Mirror the real full-viewport mobile map (.map-section @ max-width:768px in
            main.css): the skeleton previously reserved 50vh (~422px) while the hydrated
@@ -538,7 +539,7 @@
       <div class="skeleton-shell" aria-busy="true" aria-label="The Public Dispatch loading">
         <div class="skeleton-header">
           <div class="skeleton-header-left">
-            <div class="skeleton-brand"><span class="skeleton-brand-mark" aria-hidden="true"></span><span>The Public Dispatch</span></div>
+            <div class="skeleton-brand"><span class="skeleton-brand-mark" aria-hidden="true"></span><span>TPD</span><span class="skeleton-brand-full">The Public Dispatch</span></div>
             <span class="skeleton-kicker shell-copy--everyday">Today’s brief loading</span>
             <span class="skeleton-kicker shell-copy--analyst">Dashboard loading</span>
             <span class="skeleton-dot" aria-hidden="true"></span>
@@ -558,7 +559,7 @@
             </div>
             <div class="skeleton-map-body">
               <div class="skeleton-map-content">
-                <p class="skeleton-map-eyebrow skeleton-lcp-copy" data-shell-lcp>The Public Dispatch</p>
+                <p class="skeleton-map-eyebrow skeleton-lcp-copy" data-shell-lcp>TPD</p>
                 <h2 class="skeleton-map-title shell-copy--everyday">Loading the top story…</h2>
                 <h2 class="skeleton-map-title shell-copy--analyst">Loading live dashboard…</h2>
                 <p class="skeleton-map-copy shell-copy--everyday">A plain-language look at what matters right now — deeper analysis stays one click away.</p>

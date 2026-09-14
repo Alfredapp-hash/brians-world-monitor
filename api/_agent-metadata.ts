@@ -18,7 +18,7 @@
 // `*.vercel.app`, since that's shared infrastructure other tenants also use.
 // Rejects `evil.com`, `brians-world-monitor.vercel.app.evil.com`, and any
 // host carrying a port.
-const ALLOWED_HOST = /^brians-world-monitor(-[a-z0-9-]+)?\.vercel\.app$/;
+const ALLOWED_HOST = /^(?:brians-world-monitor(-[a-z0-9-]+)?\.vercel\.app|thepublicdispatch\.com|www\.thepublicdispatch\.com|thepublicsdispatch\.netlify\.app|[a-z0-9-]+--thepublicsdispatch\.netlify\.app)$/;
 const FALLBACK_ORIGIN = 'https://brians-world-monitor.vercel.app';
 
 export function resolveMetadataOrigin(req: Request): string {

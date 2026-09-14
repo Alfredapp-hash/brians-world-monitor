@@ -5,19 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Public Dispatch - Offline</title>
   <style>
-    body { background: #0a0f0a; color: #e0e0e0; font-family: system-ui;
+    body { background: #1c1f25; color: #f2f4f7; font-family: Inter, system-ui, sans-serif;
            display: flex; align-items: center; justify-content: center;
            min-height: 100vh; margin: 0; }
     .c { text-align: center; padding: 2rem; }
+    .brand-lockup { display: inline-flex; align-items: center; gap: .55rem; margin-bottom: 1rem; text-decoration: none; color: inherit; }
+    .brand-lockup .logo { font-weight: 750; letter-spacing: .04em; }
+    .brand-lockup .logo::before { content: ''; display: inline-block; width: 3px; height: .92em; margin-inline-end: 8px; vertical-align: -.08em; border-radius: 1px; background: linear-gradient(180deg,#ff8a96 0%,#ff2f45 55%,#8d0f1e 100%); }
+    .brand-lockup .logo-full { font-size: .78rem; font-weight: 500; color: #c5cad2; }
     h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-    p { color: #888; font-size: 0.9rem; }
-    button { margin-top: 1rem; padding: 0.5rem 1.5rem; background: #1a3a1a;
-             color: #4ade80; border: 1px solid #2a5a2a; border-radius: 4px;
+    p { color: #9aa1ac; font-size: 0.9rem; }
+    button { margin-top: 1rem; padding: 0.5rem 1.5rem; background: #14181e;
+             color: #f2f4f7; border: 1px solid #2b3037; border-radius: 8px;
              cursor: pointer; }
   </style>
 </head>
 <body>
   <div class="c">
+    <a class="brand-lockup" href="/" aria-label="The Public Dispatch">
+      <span class="logo">TPD</span>
+      <span class="logo-full">The Public Dispatch</span>
+    </a>
     <h1 id="t-title">You're Offline</h1>
     <p id="t-msg">The Public Dispatch requires an internet connection for real-time intelligence data.</p>
     <button id="t-retry" onclick="location.reload()">Retry</button>

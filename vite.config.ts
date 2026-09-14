@@ -18,6 +18,7 @@ import {
 // (api/rss-proxy.js) so dev and prod agree on allow/deny. Previously a
 // hand-maintained Set here had drifted ~138 domains from prod.
 import { isAllowedDomain } from './api/_rss-allowed-domain-match.js';
+import { SEBUF_PATH_RE, V1_ALIASES } from './server/sebuf-paths';
 
 // Env-dependent constants moved inside defineConfig function
 
@@ -438,130 +439,13 @@ function sebufApiPlugin(): Plugin {
   let cachedCorsMod: any = null;
 
   async function buildRouter() {
-    const [
-      routerMod, corsMod, errorMod,
-      seismologyServerMod, seismologyHandlerMod,
-      wildfireServerMod, wildfireHandlerMod,
-      climateServerMod, climateHandlerMod,
-      predictionServerMod, predictionHandlerMod,
-      displacementServerMod, displacementHandlerMod,
-      aviationServerMod, aviationHandlerMod,
-      researchServerMod, researchHandlerMod,
-      unrestServerMod, unrestHandlerMod,
-      conflictServerMod, conflictHandlerMod,
-      maritimeServerMod, maritimeHandlerMod,
-      cyberServerMod, cyberHandlerMod,
-      economicServerMod, economicHandlerMod,
-      infrastructureServerMod, infrastructureHandlerMod,
-      marketServerMod, marketHandlerMod,
-      newsServerMod, newsHandlerMod,
-      intelligenceServerMod, intelligenceHandlerMod,
-      militaryServerMod, militaryHandlerMod,
-      positiveEventsServerMod, positiveEventsHandlerMod,
-      givingServerMod, givingHandlerMod,
-      tradeServerMod, tradeHandlerMod,
-      supplyChainServerMod, supplyChainHandlerMod,
-      naturalServerMod, naturalHandlerMod,
-      resilienceServerMod, resilienceHandlerMod,
-      leadsServerMod, leadsHandlerMod,
-      scenarioServerMod, scenarioHandlerMod,
-      shippingV2ServerMod, shippingV2HandlerMod,
-      webcamServerMod, webcamHandlerMod,
-    ] = await Promise.all([
-        import('./server/router'),
-        import('./server/cors'),
-        import('./server/error-mapper'),
-        import('./src/generated/server/worldmonitor/seismology/v1/service_server'),
-        import('./server/worldmonitor/seismology/v1/handler'),
-        import('./src/generated/server/worldmonitor/wildfire/v1/service_server'),
-        import('./server/worldmonitor/wildfire/v1/handler'),
-        import('./src/generated/server/worldmonitor/climate/v1/service_server'),
-        import('./server/worldmonitor/climate/v1/handler'),
-        import('./src/generated/server/worldmonitor/prediction/v1/service_server'),
-        import('./server/worldmonitor/prediction/v1/handler'),
-        import('./src/generated/server/worldmonitor/displacement/v1/service_server'),
-        import('./server/worldmonitor/displacement/v1/handler'),
-        import('./src/generated/server/worldmonitor/aviation/v1/service_server'),
-        import('./server/worldmonitor/aviation/v1/handler'),
-        import('./src/generated/server/worldmonitor/research/v1/service_server'),
-        import('./server/worldmonitor/research/v1/handler'),
-        import('./src/generated/server/worldmonitor/unrest/v1/service_server'),
-        import('./server/worldmonitor/unrest/v1/handler'),
-        import('./src/generated/server/worldmonitor/conflict/v1/service_server'),
-        import('./server/worldmonitor/conflict/v1/handler'),
-        import('./src/generated/server/worldmonitor/maritime/v1/service_server'),
-        import('./server/worldmonitor/maritime/v1/handler'),
-        import('./src/generated/server/worldmonitor/cyber/v1/service_server'),
-        import('./server/worldmonitor/cyber/v1/handler'),
-        import('./src/generated/server/worldmonitor/economic/v1/service_server'),
-        import('./server/worldmonitor/economic/v1/handler'),
-        import('./src/generated/server/worldmonitor/infrastructure/v1/service_server'),
-        import('./server/worldmonitor/infrastructure/v1/handler'),
-        import('./src/generated/server/worldmonitor/market/v1/service_server'),
-        import('./server/worldmonitor/market/v1/handler'),
-        import('./src/generated/server/worldmonitor/news/v1/service_server'),
-        import('./server/worldmonitor/news/v1/handler'),
-        import('./src/generated/server/worldmonitor/intelligence/v1/service_server'),
-        import('./server/worldmonitor/intelligence/v1/handler'),
-        import('./src/generated/server/worldmonitor/military/v1/service_server'),
-        import('./server/worldmonitor/military/v1/handler'),
-        import('./src/generated/server/worldmonitor/positive_events/v1/service_server'),
-        import('./server/worldmonitor/positive-events/v1/handler'),
-        import('./src/generated/server/worldmonitor/giving/v1/service_server'),
-        import('./server/worldmonitor/giving/v1/handler'),
-        import('./src/generated/server/worldmonitor/trade/v1/service_server'),
-        import('./server/worldmonitor/trade/v1/handler'),
-        import('./src/generated/server/worldmonitor/supply_chain/v1/service_server'),
-        import('./server/worldmonitor/supply-chain/v1/handler'),
-        import('./src/generated/server/worldmonitor/natural/v1/service_server'),
-        import('./server/worldmonitor/natural/v1/handler'),
-        import('./src/generated/server/worldmonitor/resilience/v1/service_server'),
-        import('./server/worldmonitor/resilience/v1/handler'),
-        import('./src/generated/server/worldmonitor/leads/v1/service_server'),
-        import('./server/worldmonitor/leads/v1/handler'),
-        import('./src/generated/server/worldmonitor/scenario/v1/service_server'),
-        import('./server/worldmonitor/scenario/v1/handler'),
-        import('./src/generated/server/worldmonitor/shipping/v2/service_server'),
-        import('./server/worldmonitor/shipping/v2/handler'),
-        // WebcamService was live on Vercel (api/webcam/v1/[rpc].ts) but absent
-        // here, so the camera layer 404'd under `npm run dev` and could only be
-        // exercised in production.
-        import('./src/generated/server/worldmonitor/webcam/v1/service_server'),
-        import('./server/worldmonitor/webcam/v1/handler'),
-      ]);
-
-    const serverOptions = { onError: errorMod.mapErrorToResponse };
-    const allRoutes = [
-      ...seismologyServerMod.createSeismologyServiceRoutes(seismologyHandlerMod.seismologyHandler, serverOptions),
-      ...wildfireServerMod.createWildfireServiceRoutes(wildfireHandlerMod.wildfireHandler, serverOptions),
-      ...climateServerMod.createClimateServiceRoutes(climateHandlerMod.climateHandler, serverOptions),
-      ...predictionServerMod.createPredictionServiceRoutes(predictionHandlerMod.predictionHandler, serverOptions),
-      ...displacementServerMod.createDisplacementServiceRoutes(displacementHandlerMod.displacementHandler, serverOptions),
-      ...aviationServerMod.createAviationServiceRoutes(aviationHandlerMod.aviationHandler, serverOptions),
-      ...researchServerMod.createResearchServiceRoutes(researchHandlerMod.researchHandler, serverOptions),
-      ...unrestServerMod.createUnrestServiceRoutes(unrestHandlerMod.unrestHandler, serverOptions),
-      ...conflictServerMod.createConflictServiceRoutes(conflictHandlerMod.conflictHandler, serverOptions),
-      ...maritimeServerMod.createMaritimeServiceRoutes(maritimeHandlerMod.maritimeHandler, serverOptions),
-      ...cyberServerMod.createCyberServiceRoutes(cyberHandlerMod.cyberHandler, serverOptions),
-      ...economicServerMod.createEconomicServiceRoutes(economicHandlerMod.economicHandler, serverOptions),
-      ...infrastructureServerMod.createInfrastructureServiceRoutes(infrastructureHandlerMod.infrastructureHandler, serverOptions),
-      ...marketServerMod.createMarketServiceRoutes(marketHandlerMod.marketHandler, serverOptions),
-      ...newsServerMod.createNewsServiceRoutes(newsHandlerMod.newsHandler, serverOptions),
-      ...intelligenceServerMod.createIntelligenceServiceRoutes(intelligenceHandlerMod.intelligenceHandler, serverOptions),
-      ...militaryServerMod.createMilitaryServiceRoutes(militaryHandlerMod.militaryHandler, serverOptions),
-      ...positiveEventsServerMod.createPositiveEventsServiceRoutes(positiveEventsHandlerMod.positiveEventsHandler, serverOptions),
-      ...givingServerMod.createGivingServiceRoutes(givingHandlerMod.givingHandler, serverOptions),
-      ...tradeServerMod.createTradeServiceRoutes(tradeHandlerMod.tradeHandler, serverOptions),
-      ...supplyChainServerMod.createSupplyChainServiceRoutes(supplyChainHandlerMod.supplyChainHandler, serverOptions),
-      ...naturalServerMod.createNaturalServiceRoutes(naturalHandlerMod.naturalHandler, serverOptions),
-      ...resilienceServerMod.createResilienceServiceRoutes(resilienceHandlerMod.resilienceHandler, serverOptions),
-      ...leadsServerMod.createLeadsServiceRoutes(leadsHandlerMod.leadsHandler, serverOptions),
-      ...scenarioServerMod.createScenarioServiceRoutes(scenarioHandlerMod.scenarioHandler, serverOptions),
-      ...shippingV2ServerMod.createShippingV2ServiceRoutes(shippingV2HandlerMod.shippingV2Handler, serverOptions),
-      ...webcamServerMod.createWebcamServiceRoutes(webcamHandlerMod.webcamHandler, serverOptions),
-    ];
+    const [routerMod, corsMod, sebufMod] = await Promise.all([
+      import('./server/router'),
+      import('./server/cors'),
+      import('./server/sebuf-all-routes'),
+    ]);
     cachedCorsMod = corsMod;
-    return routerMod.createRouter(allRoutes);
+    return routerMod.createRouter(sebufMod.loadSebufRoutes());
   }
 
   return {
@@ -574,25 +458,16 @@ function sebufApiPlugin(): Plugin {
         }
       });
 
-      // Legacy v1 URL aliases → new sebuf RPC paths (mirror of the alias files
-      // in api/scenario/v1/ + api/supply-chain/v1/). Vercel serves the alias
-      // files directly; vite dev has no file-based routing for api/, so we
-      // rewrite the pathname here before the router lookup.
-      const V1_ALIASES: Record<string, string> = {
-        '/api/scenario/v1/run': '/api/scenario/v1/run-scenario',
-        '/api/scenario/v1/status': '/api/scenario/v1/get-scenario-status',
-        '/api/scenario/v1/templates': '/api/scenario/v1/list-scenario-templates',
-        '/api/supply-chain/v1/country-products': '/api/supply-chain/v1/get-country-products',
-        '/api/supply-chain/v1/multi-sector-cost-shock': '/api/supply-chain/v1/get-multi-sector-cost-shock',
-      };
-
+      // Legacy v1 URL aliases → new sebuf RPC paths (from sebuf-paths.ts, no
+      // handlers). Vercel serves the alias files directly; vite dev has no
+      // file-based routing for api/, so we rewrite before the router lookup.
       server.middlewares.use(async (req, res, next) => {
         // Intercept sebuf routes in two forms:
         //  - standard /api/{domain}/v{N}/* (domain-first, e.g. /api/market/v1/...)
         //  - partner-URL-preservation /api/v{N}/{domain}/* (version-first, e.g.
         //    /api/v2/shipping/...). Only the second form applies when the
         //    external contract already uses a reversed layout.
-        if (!req.url || !/^\/api\/(?:[a-z][a-z0-9-]*\/v\d+|v\d+\/[a-z][a-z0-9-]*)\//.test(req.url)) {
+        if (!req.url || !SEBUF_PATH_RE.test(req.url)) {
           return next();
         }
 

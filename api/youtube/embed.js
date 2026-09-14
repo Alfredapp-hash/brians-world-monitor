@@ -11,9 +11,11 @@ function sanitizeVideoId(value) {
 }
 
 const ALLOWED_ORIGINS = [
-  // JSA's Monitor fork deployment(s): this project's own Vercel domains.
   // Tight on purpose: never a bare *.vercel.app (this is a security allowlist).
   /^https:\/\/brians-world-monitor(-[a-z0-9-]+)?\.vercel\.app$/,
+  /^https:\/\/(www\.)?thepublicdispatch\.com$/,
+  /^https:\/\/thepublicsdispatch\.netlify\.app$/,
+  /^https:\/\/[a-z0-9-]+--thepublicsdispatch\.netlify\.app$/,
   /^https?:\/\/localhost(:\d+)?$/,
   /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
   /^tauri:\/\/localhost$/,
@@ -40,7 +42,7 @@ function sanitizeAllowedOrigin(raw, fallback, allowList = ALLOWED_ORIGINS) {
 }
 
 function sanitizeOrigin(raw) {
-  return sanitizeAllowedOrigin(raw, 'https://brians-world-monitor.vercel.app', ALLOWED_ORIGINS);
+  return sanitizeAllowedOrigin(raw, 'https://thepublicdispatch.com', ALLOWED_ORIGINS);
 }
 
 function sanitizeParentOrigin(raw, fallback) {
