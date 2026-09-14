@@ -266,7 +266,7 @@
 
 .cdp-china-summary-group--partial,
 .cdp-china-summary-group--stale {
-  border-color: color-mix(in srgb, var(--semantic-warning, #f59e0b) 50%, var(--border-subtle));
+  border-color: color-mix(in srgb, var(--semantic-warning) 50%, var(--border-subtle));
 }
 
 .cdp-china-summary-group--unavailable {
@@ -305,7 +305,7 @@
 }
 
 .cdp-china-summary-signal[data-stale="true"] .cdp-china-summary-signal-value {
-  color: var(--semantic-warning, #f59e0b);
+  color: var(--semantic-warning);
 }
 
 .cdp-china-summary-signal-value {
@@ -1110,7 +1110,7 @@
 }
 
 .resilience-widget__dimension-cell--partial .resilience-widget__dimension-bar-fill {
-  background: #eab308;
+  background: var(--status-watch);
 }
 
 .resilience-widget__dimension-cell--imputed .resilience-widget__dimension-bar-fill {
@@ -1150,7 +1150,7 @@
 }
 
 .resilience-widget__dimension-imputation--stable-absence { color: #84cc16; }
-.resilience-widget__dimension-imputation--unmonitored { color: #eab308; }
+.resilience-widget__dimension-imputation--unmonitored { color: var(--status-watch); }
 .resilience-widget__dimension-imputation--source-failure { color: #ef4444; }
 .resilience-widget__dimension-imputation--not-applicable { color: var(--text-faint); }
 
@@ -1166,7 +1166,7 @@
 }
 
 .resilience-widget__dimension-freshness--fresh { color: #22c55e; }
-.resilience-widget__dimension-freshness--aging { color: #eab308; }
+.resilience-widget__dimension-freshness--aging { color: var(--status-watch); }
 .resilience-widget__dimension-freshness--stale { color: #ef4444; }
 
 .resilience-widget__footer {
@@ -1640,7 +1640,7 @@
 }
 
 .cdp-product-share-bar.cdp-product-share-high {
-  background: var(--warning, #f59e0b);
+  background: var(--warning);
 }
 
 .cdp-product-val {
@@ -1730,7 +1730,7 @@
 .cdp-cost-shock-calc-tier {
   padding: 2px 8px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--warning, #f59e0b) 20%, transparent);
+  background: color-mix(in srgb, var(--warning) 20%, transparent);
   color: var(--warning, #fb923c);
   font-weight: 500;
 }

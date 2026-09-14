@@ -3414,19 +3414,19 @@ a.hub-top-story {
 .cc-local-result { margin-top: 4px; }
 .cc-nci-score { border: none; cursor: pointer; font-family: inherit; padding: 0 4px; }
 .cc-nci-score:hover { outline: 1px solid rgba(255,255,255,0.25); }
-.cc-nci-src-manual { color: #2ecc71; background: rgba(46,204,113,0.12); font-weight: 700; }
+.cc-nci-src-manual { color: var(--status-good, #56b273); background: var(--status-good-bg, rgba(86,178,115,0.12)); font-weight: 700; }
 
 /* Coverage Compare — sprint: AI status, 7-tile stats */
 .cc-toolbar { align-items: center; justify-content: space-between; }
 .cc-ai-status { font-size: 10px; letter-spacing: 0.02em; }
-.cc-ai-status-ok { color: #2ecc71; }
-.cc-ai-status-down { color: #e74c3c; }
+.cc-ai-status-ok { color: var(--status-good, #56b273); }
+.cc-ai-status-down { color: var(--status-alert, #e05252); }
 .cc-ai-status-none { color: var(--text-dim, #a9a49b); }
 .cc-stats { grid-template-columns: repeat(6, 1fr); }
 @media (max-width: 760px) { .cc-stats { grid-template-columns: repeat(4, 1fr); } }
 
 /* Coverage Compare — live pipeline */
-.cc-flag-live { background: rgba(46,204,113,0.15); color: #2ecc71; font-weight: 700; animation: cc-live-pulse 2s ease-in-out infinite; }
+.cc-flag-live { background: var(--status-good-bg, rgba(86,178,115,0.15)); color: var(--status-good, #56b273); font-weight: 700; animation: cc-live-pulse 2s ease-in-out infinite; }
 @keyframes cc-live-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
 
 /* Coverage Compare — Discord alerts + sparkline */
@@ -3448,13 +3448,13 @@ a.hub-top-story {
   font-family: inherit;
 }
 .cc-alerts-status { font-size: 10.5px; color: var(--text-dim, #a9a49b); }
-.cc-alerts-ok { color: #2ecc71; }
-.cc-alerts-err { color: #e74c3c; }
+.cc-alerts-ok { color: var(--status-good, #56b273); }
+.cc-alerts-err { color: var(--status-alert, #e05252); }
 .cc-nci-spark { display: inline-flex; align-items: center; }
 
 /* Coverage Compare — story detail modal */
 .cc-modal-overlay {
-  position: fixed; inset: 0; z-index: 10000;
+  position: fixed; inset: 0; z-index: var(--z-modal, 10000);
   background: rgba(6, 8, 12, 0.82); backdrop-filter: blur(3px);
   display: flex; align-items: center; justify-content: center; padding: 3vh 3vw;
 }
@@ -3501,11 +3501,11 @@ a.hub-top-story {
 
 /* Coverage Compare — expert-review pass: hierarchy, a11y, states */
 /* Tier-colored left stripe so suspicious stories pop from the list (P1) */
-.cc-tier-l0 { border-left: 3px solid #2ecc71; }
-.cc-tier-l1 { border-left: 3px solid #f1c40f; }
-.cc-tier-l2 { border-left: 3px solid #e67e22; }
-.cc-tier-l3 { border-left: 3px solid #e74c3c; }
-.cc-tier-l4 { border-left: 3px solid #ff6b5c; }
+.cc-tier-l0 { border-left: 3px solid var(--text-dim-safe, #a9a49b); }
+.cc-tier-l1 { border-left: 3px solid var(--status-watch, #d9b64a); }
+.cc-tier-l2 { border-left: 3px solid var(--status-warn, #e08a3c); }
+.cc-tier-l3 { border-left: 3px solid var(--status-alert, #e05252); }
+.cc-tier-l4 { border-left: 3px solid var(--status-alert-strong, #ff6b5c); }
 /* Action buttons row (moved out of <summary> for valid a11y semantics) */
 .cc-card-actions { display: flex; gap: 6px; justify-content: flex-end; padding: 4px 0 2px; }
 /* Always-visible epistemic disclaimer under the status line (P4) */
@@ -3543,8 +3543,16 @@ a.hub-top-story {
 }
 
 /* ── Workstream D: overlay stacking ladder.
-   Legacy stacking in main.css runs popover 5000 < modals 9999–10020; the
-   command palette must render above ALL of them (⌘K previously opened at
-   2000, underneath the auto-opened workspace picker). 10050 clears every
-   modal while staying under the 100000 critical overlay. ── */
-.search-overlay { z-index: 10050; }
+   --z-palette sits above --z-modal so ⌘K replaces the auto-opened
+   workspace picker instead of rendering underneath it. ── */
+.search-overlay { z-index: var(--z-palette); }
+
+/* Flagship actions share the .btn system; keep compact panel sizing so
+   adding the shared class is a visual drop-in, not a 13px restyle. */
+.btn.cc-refresh-btn,
+.btn.cc-ai-btn,
+.btn.cc-local-btn,
+.btn.cc-copy-btn {
+  padding: var(--space-1, 4px) var(--space-3, 12px);
+  font-size: var(--text-md, 11px);
+}

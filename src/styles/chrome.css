@@ -644,3 +644,68 @@
   opacity: 1;
   transform: translateX(0);
 }
+
+/* ============================================================
+   6. Workspace / mission picker — scrim + stacking ladder
+   The picker auto-opens on first visit with no backdrop, so ⌘K
+   used to render underneath it. Scrim + --z-modal, palette above.
+   ============================================================ */
+
+.mission-preset-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: color-mix(in srgb, #04060a 56%, transparent);
+  backdrop-filter: blur(4px) saturate(110%);
+}
+
+.mission-preset-popover {
+  z-index: calc(var(--z-modal) + 1);
+}
+
+/* Demote the leftover upstream green on the mission control so chrome
+   stays on Console 2026 materials (hairline + ink, crimson only as the
+   "suggested" hint — never a second accent system). */
+.mission-preset-button:hover,
+.mission-preset-button[aria-expanded="true"] {
+  color: var(--text);
+  border-color: var(--wm-hairline-strong, var(--border));
+  background: var(--overlay-subtle);
+}
+
+.mission-preset-button--active {
+  color: var(--text);
+}
+
+.mission-preset-button--suggested {
+  border-color: color-mix(in srgb, var(--wm-red, #ff2f45) 40%, var(--border));
+}
+
+.mission-preset-button__icon {
+  background: var(--overlay-medium);
+  color: var(--text-secondary);
+}
+
+/* ⌘K owns the screen — token, not a magic 10050. */
+.search-overlay {
+  z-index: var(--z-palette);
+}
+
+/* Zoom-hidden layer chips: line-icon plus instead of the 🔍+ glyph. */
+.deckgl-layer-toggles .layer-toggle.zoom-hidden::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  top: 1px;
+  right: 2px;
+  background: currentColor;
+  opacity: 0.65;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='none' stroke='black' stroke-width='1.4' d='M4 1.2v5.6M1.2 4h5.6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='none' stroke='black' stroke-width='1.4' d='M4 1.2v5.6M1.2 4h5.6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.cc-alerts-btn svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
