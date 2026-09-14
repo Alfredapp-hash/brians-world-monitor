@@ -1,9 +1,13 @@
 import { Panel } from './Panel';
 import { h, replaceChildren } from '@/utils/dom-utils';
 import { sanitizeUrl } from '@/utils/sanitize';
-import type { OsintCatalog, OsintTool } from '@/osint/catalog.types';
-import { loadOsintCatalog } from '@/osint/load-catalog';
+import type { OsintCatalog, OsintTool, OsintToolDetails } from '@/osint/catalog.types';
+import { applyToolDetails, loadOsintCatalog, loadOsintCatalogDetails } from '@/osint/load-catalog';
 import { categoriesForSelect, filterOsintCatalog, toolById } from '@/osint/search-catalog';
+
+function toolNeedsLazyDetails(tool: OsintTool): boolean {
+  return !tool.detail.trim() || tool.howTo.length === 0;
+}
 
 export class OsintCatalogPanel extends Panel {
   private catalog: OsintCatalog | null = null;
@@ -15,6 +19,10 @@ export class OsintCatalogPanel extends Panel {
   private categorySelect: HTMLSelectElement | null = null;
   private listEl: HTMLElement | null = null;
   private statusEl: HTMLElement | null = null;
+  private detailsById: Map<string, OsintToolDetails> | null = null;
+  private detailsPromise: Promise<Map<string, OsintToolDetails>> | null = null;
+  private expandedIds = new Set<string>();
+  private detailsLoadingIds = new Set<string>();
 
   constructor() {
     super({
@@ -22,7 +30,7 @@ export class OsintCatalogPanel extends Panel {
       title: 'OSINT Tools',
       showCount: true,
       infoTooltip:
-        'Portable OSINT4ALL catalog. Browse public investigation tools by category. External links open in a new tab.',
+        'Portable OSINT4ALL catalog from /osint/catalog.meta.json plus numbered tool shards. Expand a card for more. External links open in a new tab.',
     });
     this.element.classList.add('panel-tall');
     this.content.addEventListener('input', (event) => {
@@ -39,6 +47,23 @@ export class OsintCatalogPanel extends Panel {
       this.categoryId = select.value || 'all';
       this.paintResults();
     });
+    this.content.addEventListener(
+      'toggle',
+      (event) => {
+        const details = event.target;
+        if (!(details instanceof HTMLDetailsElement)) return;
+        const card = details.closest<HTMLElement>('[data-tool-id]');
+        const toolId = card?.dataset.toolId;
+        if (!toolId) return;
+        if (!details.open) {
+          this.expandedIds.delete(toolId);
+          return;
+        }
+        this.expandedIds.add(toolId);
+        void this.mergeDetailsOnExpand(toolId);
+      },
+      true,
+    );
     void this.load();
   }
 
@@ -63,7 +88,7 @@ export class OsintCatalogPanel extends Panel {
       this.error =
         err instanceof Error
           ? err.message
-          : 'WAITING ON catalog shards — could not load catalog.meta.json + tools.a/b.';
+          : 'WAITING ON catalog shards — could not load catalog.meta.json + toolShardFiles.';
     }
     this.loading = false;
     this.render();
@@ -85,7 +110,10 @@ export class OsintCatalogPanel extends Panel {
 
     if (this.error || !this.catalog) {
       this.resetChrome();
-      this.showError(this.error || 'WAITING ON catalog.json commit.', () => this.refresh());
+      this.showError(
+        this.error || 'WAITING ON catalog shards — catalog.meta.json or a tool shard is not available yet.',
+        () => this.refresh(),
+      );
       return;
     }
 
@@ -153,6 +181,27 @@ export class OsintCatalogPanel extends Panel {
     this.categorySelect = select;
     this.statusEl = status;
     this.listEl = list;
+  }
+
+  private async mergeDetailsOnExpand(toolId: string): Promise<void> {
+    if (!this.catalog) return;
+    const index = this.catalog.tools.findIndex((tool) => tool.id === toolId);
+    if (index < 0) return;
+    const tool = this.catalog.tools[index];
+    if (!tool || !toolNeedsLazyDetails(tool)) return;
+
+    this.detailsLoadingIds.add(toolId);
+    this.paintResults();
+    try {
+      this.detailsPromise ??= loadOsintCatalogDetails();
+      this.detailsById ??= await this.detailsPromise;
+      if (!this.element?.isConnected || !this.catalog) return;
+      const merged = applyToolDetails(tool, this.detailsById.get(toolId));
+      this.catalog.tools[index] = merged;
+    } finally {
+      this.detailsLoadingIds.delete(toolId);
+      if (this.element?.isConnected) this.paintResults();
+    }
   }
 
   private paintResults(): void {
@@ -229,7 +278,19 @@ export class OsintCatalogPanel extends Panel {
       );
     }
 
-    return h('article', { className: 'osint-catalog-card' },
+    const expand = h('details', { className: 'osint-catalog-expand' },
+      h('summary', null, 'Details'),
+      detail,
+    ) as HTMLDetailsElement;
+    if (this.expandedIds.has(tool.id)) expand.open = true;
+    if (this.detailsLoadingIds.has(tool.id)) {
+      detail.append(h('p', { className: 'osint-catalog-detail-copy' }, 'Loading details…'));
+    }
+
+    return h('article', {
+      className: 'osint-catalog-card',
+      dataset: { toolId: tool.id },
+    },
       h('header', { className: 'osint-catalog-card-head' },
         h('h3', { className: 'osint-catalog-name' }, tool.name),
         h('div', { className: 'osint-catalog-host' }, tool.hostname),
@@ -237,10 +298,7 @@ export class OsintCatalogPanel extends Panel {
       h('p', { className: 'osint-catalog-summary' }, tool.summary),
       tags,
       actions,
-      h('details', { className: 'osint-catalog-expand' },
-        h('summary', null, 'Details'),
-        detail,
-      ),
+      expand,
     );
   }
 }

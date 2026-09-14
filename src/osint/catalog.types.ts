@@ -36,6 +36,16 @@ export interface OsintTool {
   agentTool: string;
 }
 
+/** Optional lazy-expand overlay from catalog.details-{0,1,2}.json */
+export interface OsintToolDetails {
+  detail?: string;
+  howTo?: string[];
+  proTip?: string | null;
+  alternatives?: string[];
+}
+
+export type OsintDetailsShard = Record<string, OsintToolDetails>;
+
 export interface OsintCatalog {
   source: "osint4all-native";
   sourceFiles: string[];
@@ -48,4 +58,6 @@ export interface OsintCatalog {
   synonyms: string[][];
   categories: OsintCategory[];
   tools: OsintTool[];
+  /** Basenames under /osint/ — each file is a JSON array of tools. */
+  toolShardFiles?: string[];
 }
