@@ -38,6 +38,19 @@ function compareWithCharCodeCount(
   }
 }
 
+describe('client-IP Netlify platform header', () => {
+  it('uses x-nf-client-connection-ip when x-real-ip is absent in both mirrors', () => {
+    const request = new Request('https://thepublicdispatch.com/api/test', {
+      headers: {
+        'x-nf-client-connection-ip': '203.0.113.44',
+        'x-forwarded-for': '198.51.100.8',
+      },
+    });
+    assert.equal(getServerClientIp(request), '203.0.113.44');
+    assert.equal(getApiClientIp(request), '203.0.113.44');
+  });
+});
+
 describe('client-IP edge-proof comparison (#5239)', () => {
   it('uses the secret length for short and long invalid proofs in both sync mirrors', () => {
     const secret = 'edge-secret-xyz';

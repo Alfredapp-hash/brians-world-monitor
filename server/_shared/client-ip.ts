@@ -47,14 +47,16 @@ export function getClientIp(request: Request): string {
   // direct-to-origin hit (bypassing CF) cf-connecting-ip is fully client-
   // controlled, so a caller sending a fresh value per request rotates the
   // per-IP window and neutralises the limit (GHSA-c267). Trust it only with
-  // proof of CF transit. Otherwise fall back to x-real-ip (the real peer IP)
-  // then the UNKNOWN_CLIENT_IP sentinel — the spoofable cf-connecting-ip and
-  // the client-settable x-forwarded-for (#3531) are deliberately NOT fallbacks.
+  // proof of CF transit. Otherwise fall back to x-real-ip (Vercel peer IP) or
+  // x-nf-client-connection-ip (Netlify peer IP) then the UNKNOWN_CLIENT_IP
+  // sentinel — the spoofable cf-connecting-ip and the client-settable
+  // x-forwarded-for (#3531) are deliberately NOT fallbacks.
   //
   // Trim each header value before falling through — a whitespace-only
   // cf-connecting-ip would otherwise short-circuit past x-real-ip.
   const cf = (request.headers.get('cf-connecting-ip') ?? '').trim();
   const xr = (request.headers.get('x-real-ip') ?? '').trim();
+  const nf = (request.headers.get('x-nf-client-connection-ip') ?? '').trim();
   if (cf && hasCloudflareTransitProof(request)) return cf;
-  return xr || UNKNOWN_CLIENT_IP;
+  return xr || nf || UNKNOWN_CLIENT_IP;
 }

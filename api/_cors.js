@@ -1,4 +1,19 @@
+const LIVE_ORIGIN = 'https://thepublicdispatch.com';
+
+function exactHttpsOriginPattern(value) {
+  if (!value || typeof value !== 'string') return null;
+  try {
+    const origin = new URL(value).origin;
+    if (!origin.startsWith('https://')) return null;
+    return new RegExp(`^${origin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+  } catch {
+    return null;
+  }
+}
+
 const ALLOWED_ORIGIN_PATTERNS = [
+  // Live paper host (Netlify). Apex + www only — no bare *.netlify.app.
+  /^https:\/\/(www\.)?thepublicdispatch\.com$/,
   // JSA's Monitor fork deployment(s): this project's own Vercel domains.
   // Tight on purpose: never a bare *.vercel.app (this is a security allowlist).
   // worldmonitor.app (and the "eliewm" Vercel team's preview scope) is a
@@ -8,6 +23,10 @@ const ALLOWED_ORIGIN_PATTERNS = [
   ...(process.env.ALLOWED_ORIGIN
     ? [new RegExp('^' + process.env.ALLOWED_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$')]
     : []),
+  // Current Netlify deploy URLs (preview / branch / prod). Platform-set only.
+  ...[process.env.URL, process.env.DEPLOY_PRIME_URL, process.env.DEPLOY_URL]
+    .map(exactHttpsOriginPattern)
+    .filter(Boolean),
   /^https?:\/\/tauri\.localhost(:\d+)?$/,
   /^https?:\/\/[a-z0-9-]+\.tauri\.localhost(:\d+)?$/i,
   /^tauri:\/\/localhost$/,
@@ -65,7 +84,7 @@ function isAllowedOrigin(origin) {
 
 export function getCorsHeaders(req, methods = 'GET, OPTIONS') {
   const origin = req.headers.get('origin') || '';
-  const allowOrigin = isAllowedOrigin(origin) ? origin : (process.env.ALLOWED_ORIGIN || 'https://brians-world-monitor.vercel.app');
+  const allowOrigin = isAllowedOrigin(origin) ? origin : (process.env.ALLOWED_ORIGIN || LIVE_ORIGIN);
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Credentials': 'true',

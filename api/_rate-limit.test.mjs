@@ -53,6 +53,22 @@ describe('api/_rate-limit getClientIp (#3531)', () => {
     assert.equal(getClientIp(req), UNKNOWN_CLIENT_IP);
     assert.equal(getClientIp(req), 'unknown');
   });
+
+  it('uses Netlify platform client IP when Vercel x-real-ip is absent', () => {
+    const req = makeRequest({
+      'x-nf-client-connection-ip': '203.0.113.44',
+      'x-forwarded-for': '198.51.100.8',
+    });
+    assert.equal(getClientIp(req), '203.0.113.44');
+  });
+
+  it('prefers Vercel x-real-ip over Netlify client IP', () => {
+    const req = makeRequest({
+      'x-real-ip': '192.0.2.5',
+      'x-nf-client-connection-ip': '203.0.113.44',
+    });
+    assert.equal(getClientIp(req), '192.0.2.5');
+  });
 });
 
 describe('api/_rate-limit getClientIp — Cloudflare edge-proof (GHSA-c267)', () => {
