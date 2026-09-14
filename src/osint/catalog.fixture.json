@@ -1,0 +1,88 @@
+{
+  "source": "osint4all-native",
+  "sourceFiles": ["tests/osint-catalog.fixture"],
+  "generatedAt": "2026-09-14T00:00:00.000Z",
+  "version": 2,
+  "toolCount": 3,
+  "categoryCount": 2,
+  "tags": ["web", "cli", "free"],
+  "searchHints": ["archive", "wayback", "whois", "certificate"],
+  "synonyms": [
+    ["archive", "wayback", "snapshot"],
+    ["whois", "domain registration"]
+  ],
+  "categories": [
+    {
+      "id": "archives",
+      "label": "Archives",
+      "icon": "archivebox",
+      "description": "Historical snapshots of public pages.",
+      "toolIds": ["wayback", "archive-today"]
+    },
+    {
+      "id": "domain-dns",
+      "label": "Domain & DNS",
+      "icon": "globe",
+      "description": "Hostnames, certificates, and registration records.",
+      "toolIds": ["crtsh"]
+    }
+  ],
+  "tools": [
+    {
+      "id": "wayback",
+      "name": "Internet Archive Wayback Machine",
+      "url": "https://web.archive.org/",
+      "hostname": "web.archive.org",
+      "summary": "Historical snapshots of public web pages.",
+      "detail": "Search a URL to see dated captures. Use this when a page changed or disappeared.",
+      "howTo": [
+        "Paste the original URL into the Wayback search box.",
+        "Pick a capture date from the calendar.",
+        "Save the capture URL as the citation."
+      ],
+      "proTip": "Add id_ to a capture URL to load the raw page without the Wayback toolbar.",
+      "alternatives": ["archive-today"],
+      "tags": ["web", "free"],
+      "installCommand": null,
+      "categoryIds": ["archives"],
+      "agentTool": "none"
+    },
+    {
+      "id": "archive-today",
+      "name": "archive.today",
+      "url": "https://archive.today/",
+      "hostname": "archive.today",
+      "summary": "On-demand snapshot of a live URL.",
+      "detail": "Creates a static capture of a page that may change during an investigation.",
+      "howTo": [
+        "Paste the live URL.",
+        "Wait for the snapshot to finish.",
+        "Keep the archive.today short link."
+      ],
+      "proTip": null,
+      "alternatives": ["wayback"],
+      "tags": ["web", "free"],
+      "installCommand": null,
+      "categoryIds": ["archives"],
+      "agentTool": "none"
+    },
+    {
+      "id": "crtsh",
+      "name": "crt.sh",
+      "url": "https://crt.sh/",
+      "hostname": "crt.sh",
+      "summary": "Certificate Transparency search.",
+      "detail": "Lists hostnames a domain has requested certificates for.",
+      "howTo": [
+        "Search %.example.com to list issued certificates.",
+        "Open a row to inspect SANs and validity."
+      ],
+      "proTip": "Pair with a whois lookup when a new hostname appears.",
+      "alternatives": [],
+      "tags": ["web", "free"],
+      "installCommand": "curl \"https://crt.sh/?q=%.example.com&output=json\"",
+      "categoryIds": ["domain-dns"],
+      "agentTool": "none"
+    }
+  ]
+}

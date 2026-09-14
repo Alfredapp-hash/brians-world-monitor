@@ -2268,6 +2268,8 @@ export class PanelLayoutManager implements AppModule {
       _lockPanels ? [t('premium.features.telegramIntel1'), t('premium.features.telegramIntel2')] : undefined,
     );
 
+    this.lazyDefaultPanel('osint-catalog', () => import('@/components/OsintCatalogPanel'), 'OsintCatalogPanel');
+
     this.lazyPanel('gcc-investments', async () => {
       const { focusInvestmentOnMap } = await import('@/services/investments-focus');
       return this.importPanel('gcc-investments', () => import('@/components/InvestmentsPanel'), 'InvestmentsPanel', (InvestmentsPanel) =>
