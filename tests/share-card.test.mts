@@ -12,7 +12,8 @@ describe('share-card', () => {
   it('leads with the talking-point signal when flagged', () => {
     const t = buildTweetText(story({ talkingPoint: true, topPhrase: 'unprecedented security threat', phraseSources: ['A', 'B', 'C'] }));
     assert.ok(t.startsWith('⚠ SYNCHRONIZED TALKING POINT'));
-    assert.ok(t.includes('@JSAsmonitor'));
+    assert.ok(t.includes('The Public Dispatch'));
+    assert.ok(!t.includes('@JSAsmonitor'));
     assert.ok(t.includes('5 outlets'));
   });
 

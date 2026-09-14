@@ -1078,16 +1078,16 @@ export class PanelLayoutManager implements AppModule {
           <span class="mobile-menu-item-icon">♥</span>
           <span class="mobile-menu-item-label">Pro &amp; support</span>
         </button>
-        <a class="mobile-menu-item" href="${BRAND.x}" target="_blank" rel="noopener">
+        ${BRAND.x ? `<a class="mobile-menu-item" href="${BRAND.x}" target="_blank" rel="noopener">
           <span class="mobile-menu-item-icon"><svg class="x-logo" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
-          <span class="mobile-menu-item-label">@JSAsmonitor</span>
-        </a>
+          <span class="mobile-menu-item-label">X</span>
+        </a>` : ''}
         <div class="mobile-menu-divider"></div>
         <div class="mobile-menu-footer-links">
           <a href="${BRAND.about}" target="_blank" rel="noopener">About</a>
           <a href="${BRAND.osint4all}" target="_blank" rel="noopener">OSINT4ALL</a>
           <a href="${BRAND.github}" target="_blank" rel="noopener">GitHub</a>
-          <a href="${BRAND.discordInvite}" target="_blank" rel="noopener">Discord</a>
+          ${BRAND.discordInvite ? `<a href="${BRAND.discordInvite}" target="_blank" rel="noopener">Discord</a>` : ''}
           <a href="${getDonateUrl()}" target="_blank" rel="noopener">Donate</a>
         </div>
         <div class="mobile-menu-version">v${__APP_VERSION__}</div>
@@ -1163,15 +1163,15 @@ export class PanelLayoutManager implements AppModule {
           <img src="/favico/android-chrome-96x96.png" alt="" width="28" height="28" loading="lazy" decoding="async" class="site-footer-icon" />
           <div class="site-footer-brand-text">
             <span class="site-footer-name">${BRAND.name}</span>
-            <span class="site-footer-sub">v${__APP_VERSION__} &middot; <a href="${BRAND.x}" target="_blank" rel="noopener" class="site-footer-credit">@JSAsmonitor</a></span>
+            <span class="site-footer-sub">v${__APP_VERSION__}</span>
           </div>
         </div>
         <nav>
           <a href="${BRAND.about}" target="_blank" rel="noopener">About</a>
           <a href="${BRAND.osint4all}" target="_blank" rel="noopener">OSINT4ALL</a>
           <a href="${BRAND.github}" target="_blank" rel="noopener">GitHub</a>
-          <a href="${BRAND.discordInvite}" target="_blank" rel="noopener">Discord</a>
-          <a href="${BRAND.x}" target="_blank" rel="noopener">X</a>
+          ${BRAND.discordInvite ? `<a href="${BRAND.discordInvite}" target="_blank" rel="noopener">Discord</a>` : ''}
+          ${BRAND.x ? `<a href="${BRAND.x}" target="_blank" rel="noopener">X</a>` : ''}
         </nav>
         <span class="site-footer-copy">&copy; ${new Date().getFullYear()} ${BRAND.name}</span>
       </footer>
