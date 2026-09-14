@@ -3,7 +3,7 @@
  *
  * Builds a concise, credible tweet from a story's Coverage Compare analysis
  * and opens the X web intent. Keeps within 280 chars, leads with the signal
- * (talking point / NCI), names the outlet count, and attributes the handle.
+ * (talking point / NCI), names the outlet count, and attributes the paper.
  */
 
 export interface ShareStory {
@@ -17,7 +17,7 @@ export interface ShareStory {
   phraseSources?: string[];
 }
 
-const HANDLE = '@JSAsmonitor';
+const ATTRIBUTION = 'The Public Dispatch';
 const MAX = 275; // leave headroom under 280
 
 function truncate(s: string, n: number): string {
@@ -40,7 +40,7 @@ export function buildTweetText(story: ShareStory): string {
     detail.push(`identical phrasing "${truncate(story.topPhrase, 40)}" across ${story.phraseSources.length}`);
   }
   parts.push(detail.join(' · '));
-  parts.push(`Spin filter via ${HANDLE}`);
+  parts.push(`Spin filter via ${ATTRIBUTION}`);
 
   let text = parts.join('\n');
   if (text.length > MAX) {

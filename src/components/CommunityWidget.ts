@@ -8,6 +8,8 @@ const DISMISSED_KEY = 'wm-community-dismissed-v2';
 const DISCUSSION_URL = BRAND.discordInvite;
 
 export function mountCommunityWidget(): void {
+  // Site-only until a real community channel exists. Do not invent a URL.
+  if (!DISCUSSION_URL) return;
   if (getDismissed(DISMISSED_KEY)) return;
   if (document.querySelector('.community-widget')) return;
 
