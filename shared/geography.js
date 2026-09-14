@@ -20,7 +20,9 @@
 // Country and corridor criticality weights match the formulas in
 // docs/internal/pro-regional-intelligence-appendix-scoring.md.
 
-import iso2ToRegionData from './iso2-to-region.json' with { type: 'json' };
+// Edge Functions (Vercel nsfs bundler) cannot parse `import … with { type: 'json' }`.
+// Bare JSON import matches the rest of server/ and is understood by tsx, Vite, and Edge esbuild.
+import iso2ToRegionData from './iso2-to-region.json';
 
 /** @type {import('./regions.types.js').RegionId[]} */
 export const REGION_IDS = [

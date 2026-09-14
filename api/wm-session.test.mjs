@@ -283,7 +283,7 @@ test('POST fail-closed limiter receives Vercel ctx for degraded telemetry', () =
   const match = src.match(/checkRateLimit\(req,\s*cors,\s*\{([\s\S]*?)\}\);/);
   assert.ok(match, 'expected one checkRateLimit(req, cors, {...}) call');
   const opts = match[1];
-  assert.match(opts, /failClosed:\s*true/, 'rate limiter must be fail-closed');
+  assert.match(opts, /failClosed:\s*false/, 'rate limiter must fail-open when Redis is degraded');
   assert.match(opts, /ctx,/, 'must pass Vercel ctx for waitUntil/Sentry telemetry');
   assert.match(opts, /scope:\s*SESSION_RATE_LIMIT_SCOPE/, 'must scope to wm-session');
   assert.match(opts, /limit:\s*SESSION_RATE_LIMIT_PER_MINUTE/, 'must use production limit constant');
@@ -308,20 +308,16 @@ test('No origin (curl) is allowed (rate limit + token TTL are the throttles)', a
   assert.match(cookieValue(setCookies(resp), 'wm-session'), /^wms_/);
 });
 
-test('POST returns degraded 503 without issuing a token when Redis limiter config is missing', async () => {
+test('POST still issues a session token when Redis limiter config is missing', async () => {
   delete process.env.UPSTASH_REDIS_REST_URL;
   delete process.env.UPSTASH_REDIS_REST_TOKEN;
   __resetRateLimitForTest();
 
   const resp = await handler(makeReq('POST', { origin: 'https://thepublicdispatch.com' }));
 
-  assert.equal(resp.status, 503);
-  assert.equal(resp.headers.get('X-RateLimit-Mode'), 'degraded');
-  assert.equal(resp.headers.get('Retry-After'), '5');
+  assert.equal(resp.status, 200);
   assert.equal(resp.headers.get('access-control-allow-origin'), 'https://thepublicdispatch.com');
-  assert.equal(cookieValue(setCookies(resp), 'wm-session'), '');
-  const body = await resp.json();
-  assert.match(body.error, /rate-limit service temporarily unavailable/i);
+  assert.match(cookieValue(setCookies(resp), 'wm-session'), /^wms_/);
 });
 
 test('POST returns 429 without issuing a token when the wm-session issuance budget is exhausted', async () => {

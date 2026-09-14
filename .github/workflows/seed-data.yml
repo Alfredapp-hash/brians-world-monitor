@@ -26,10 +26,11 @@ name: Seed Data
 # seeders comfortably fit inside timeout-minutes below. It requires bash
 # (invoked explicitly below, not `sh`) for `wait -n`.
 #
-# Triggers: every 30 min, on manual dispatch, and once on push of this file.
+# Triggers: twice a day (06:00 and 18:00 UTC). Seeder fan-out is the other
+# Redis-command hog besides dashboard polls; 12 runs/day blew past Free.
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '0 6,18 * * *'
   workflow_dispatch:
   push:
     branches: [main]

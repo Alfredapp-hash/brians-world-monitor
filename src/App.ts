@@ -160,7 +160,8 @@ import { captureReferralFromUrl } from '@/services/referral-capture';
 // referenced via the inline `import(...)` type in app-context.ts (erased at build).
 import type { CorrelationPanel } from '@/components/CorrelationPanel';
 
-const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
+// Operator fork: cyber layer ships on unless explicitly disabled.
+const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER !== 'false';
 const FREE_MAP_PANEL_ACCESS_KEY = 'worldmonitor-free-map-panel-access-v1';
 type SignalModalInstance = import('@/components/SignalModal').SignalModal;
 
@@ -955,6 +956,34 @@ export class App {
           console.log('[App] Applied layout reset migration (v2.5): cleared panel order/spans');
         }
         localStorage.setItem(LAYOUT_RESET_MIGRATION_KEY, 'done');
+      }
+
+      // One-time: undo the free-tier 40-panel clamp and paint live map
+      // layers whose feeds already hydrate. Returning visitors otherwise
+      // keep the clamped-off localStorage set forever. v4 adds regional
+      // intelligence, WSB, procurement, and trade-policy (Redis, no LLM).
+      const JSAM_LIVE_DISPLAY_KEY = 'jsam-live-display-v4';
+      if (!localStorage.getItem(JSAM_LIVE_DISPLAY_KEY)) {
+        const variantKeys = VARIANT_DEFAULTS[currentVariant] ?? [];
+        for (const key of variantKeys) {
+          const config = getEffectivePanelConfig(key, currentVariant);
+          if (!config.enabled) continue;
+          const prev = panelSettings[key];
+          panelSettings[key] = { ...(prev ?? config), ...config, enabled: true };
+        }
+        if (currentVariant === 'full') {
+          const nextLayers: MapLayers = { ...mapLayers };
+          for (const [key, on] of Object.entries(defaultLayers) as Array<[keyof MapLayers, boolean]>) {
+            if (on) nextLayers[key] = true;
+          }
+          mapLayers = normalizeExclusiveChoropleths(
+            sanitizeLayersForVariant(nextLayers, currentVariant as MapVariant),
+            null,
+          );
+          saveToStorage(STORAGE_KEYS.mapLayers, mapLayers);
+        }
+        saveToStorage(STORAGE_KEYS.panels, panelSettings);
+        localStorage.setItem(JSAM_LIVE_DISPLAY_KEY, 'done');
       }
     }
 

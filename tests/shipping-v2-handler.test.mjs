@@ -80,11 +80,11 @@ describe('ShippingV2Service handlers', () => {
   });
 
   describe('routeIntelligence', () => {
-    it('rejects non-PRO callers with 403', async () => {
-      await assert.rejects(
-        () => routeIntelligence(makeCtx(), { fromIso2: 'AE', toIso2: 'NL', cargoType: '', hs2: '' }),
-        (err) => err instanceof ApiError && err.statusCode === 403,
-      );
+    it('serves Redis route intelligence without a Pro key on this fork', async () => {
+      stubChokepointStatus(null);
+      const res = await routeIntelligence(makeCtx(), { fromIso2: 'AE', toIso2: 'NL', cargoType: '', hs2: '' });
+      assert.equal(res.fromIso2, 'AE');
+      assert.equal(res.toIso2, 'NL');
     });
 
     it('rejects malformed fromIso2 with ValidationError', async () => {

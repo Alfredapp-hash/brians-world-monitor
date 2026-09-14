@@ -48,6 +48,7 @@ const PERMISSIVE_UNATTRIBUTED_EVENT_TYPES = new Set([
   'hotspot_escalation',
   'military_surge',
   'watchlist_story_alert',
+  'telegram_osint',
 ]);
 
 function isPermissiveUnattributedEvent(event) {
@@ -205,6 +206,11 @@ describe('notification-relay eventMatchesCountryScope — behavioural', () => {
 
   it("rule.countries=['US'] + rss_alert with NO country attribution → true (RSS remains permissive until attribution exists)", () => {
     const event = { eventType: 'rss_alert', payload: { title: 'something' } };
+    assert.equal(eventMatchesCountryScope(event, { countries: ['US'] }), true);
+  });
+
+  it("rule.countries=['US'] + telegram_osint with NO country attribution → true", () => {
+    const event = { eventType: 'telegram_osint', payload: { title: 'something' } };
     assert.equal(eventMatchesCountryScope(event, { countries: ['US'] }), true);
   });
 

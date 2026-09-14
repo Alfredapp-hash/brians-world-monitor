@@ -12,9 +12,9 @@ import { escapeHtml } from '@/utils/sanitize';
 import { BOARD_REGIONS, DEFAULT_REGION_ID, buildBoardHtml, buildRegimeHistoryBlock, buildWeeklyBriefBlock, isLatestSequence } from './regional-intelligence-board-utils';
 import { IntelligenceServiceClient } from '@/services/generated-rpc-clients';
 
-// get-regional-snapshot + get-regime-history + get-regional-brief are
-// premium-gated. Plain globalThis.fetch skips Clerk/tester/api-key injection
-// and returns 401 for pro users — premiumFetch is the correct fetcher here.
+// Redis-read intelligence RPCs. premiumFetch is a no-op injector on these
+// paths (they are not in PREMIUM_RPC_PATHS) and still attaches the wms_
+// session via the runtime fetch wrapper.
 const getIntelligenceClient = createLazyClient(() => new IntelligenceServiceClient(getRpcBaseUrl(), { fetch: premiumFetch }));
 
 /**
@@ -78,7 +78,6 @@ export class RegionalIntelligenceBoard extends Panel {
       title: 'Regional Intelligence',
       infoTooltip:
         'Canonical regional intelligence brief: regime label, 7-axis balance vector, top actors, scenario lanes, transmission paths, and watchlist. One snapshot per region, refreshed every 6 hours.',
-      premium: 'locked',
     });
 
     this.selector = h('select', {
@@ -164,17 +163,6 @@ export class RegionalIntelligenceBoard extends Panel {
     // already handles "no data" cases visually; short-circuiting here keeps
     // the /pro console and Sentry quiet from these expected failures.
     if (IS_EMBEDDED_PREVIEW) {
-      this.renderEmpty();
-      return;
-    }
-
-    // Skip premium RPCs for anonymous/free users. Without this the panel
-    // fires get-regional-snapshot on every page load for every visitor and
-    // gets a 401 in the browser console. The panel's `premium: 'locked'`
-    // config + apiKeyPanels entry already keeps it visually hidden until
-    // the user is PRO — this just stops the RPC from firing during the
-    // constructor's `void this.loadCurrent()` before Clerk auth resolves.
-    if (!hasPremiumAccess()) {
       this.renderEmpty();
       return;
     }

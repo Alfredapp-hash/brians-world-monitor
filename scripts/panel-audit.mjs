@@ -6,14 +6,15 @@
  */
 import { chromium } from 'playwright-core';
 
-const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+const launchOptions = {
   args: ['--no-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors'],
-  // Sandbox egress requires the proxy for external hosts; localhost bypasses it.
   ...(process.env.https_proxy && process.env.SMOKE_URL
     ? { proxy: { server: process.env.https_proxy } }
     : {}),
-});
+};
+if (process.env.CHROMIUM_PATH) launchOptions.executablePath = process.env.CHROMIUM_PATH;
+
+const browser = await chromium.launch(launchOptions);
 const page = await browser.newPage({ viewport: { width: 1720, height: 1100 } });
 page.on('console', () => {});
 await page.goto(process.env.SMOKE_URL || 'http://localhost:3000/', { waitUntil: 'domcontentloaded', timeout: 60_000 });

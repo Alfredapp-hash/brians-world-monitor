@@ -444,16 +444,11 @@ describe('intelligence handler registration', () => {
 });
 
 describe('security wiring', () => {
-  it('adds the endpoint to PREMIUM_RPC_PATHS', () => {
-    assert.match(premiumPathsSrc, /'\/api\/intelligence\/v1\/get-regional-snapshot'/);
+  it('is a public Redis-read RPC on this fork (not in PREMIUM_RPC_PATHS)', () => {
+    assert.doesNotMatch(premiumPathsSrc, /'\/api\/intelligence\/v1\/get-regional-snapshot'/);
   });
 
-  it('has a RPC_CACHE_TIER entry for route-parity (even though premium paths bypass it)', () => {
-    // At runtime the gateway checks PREMIUM_RPC_PATHS first and short-circuits
-    // to 'slow-browser' regardless of RPC_CACHE_TIER. The entry exists to satisfy
-    // tests/route-cache-tier.test.mjs which enforces that every generated GET
-    // route has an explicit tier, and documents the intended tier if the endpoint
-    // ever becomes non-premium.
+  it('has a RPC_CACHE_TIER entry for route-parity', () => {
     assert.match(gatewaySrc, /'\/api\/intelligence\/v1\/get-regional-snapshot':\s*'slow'/);
   });
 });

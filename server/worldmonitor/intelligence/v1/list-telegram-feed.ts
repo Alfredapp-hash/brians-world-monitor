@@ -70,7 +70,7 @@ export const listTelegramFeed: IntelligenceServiceHandler['listTelegramFeed'] = 
   }
 
   const params = new URLSearchParams();
-  const limit = Math.max(1, Math.min(200, req.limit || 50));
+  const limit = Math.max(1, Math.min(200, req.limit || 200));
   params.set('limit', String(limit));
   if (req.topic) params.set('topic', req.topic);
   if (req.channel) params.set('channel', req.channel);

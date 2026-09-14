@@ -417,14 +417,15 @@ describe('OpenAPI security contract', () => {
 
   it('parses the bearer-auth and entitlement path sources from gateway-adjacent code', () => {
     assert.ok(BEARER_AUTH_PATHS.size > 0, 'expected at least one bearer-auth path');
-    assert.ok(ENDPOINT_ENTITLEMENTS.size >= 18, 'expected issue-scoped entitlement-gated paths');
+    assert.ok(ENDPOINT_ENTITLEMENTS.size >= 8, 'expected remaining LLM/mutation entitlement-gated paths');
     assert.equal(ENDPOINT_ENTITLEMENTS.get('/api/market/v1/analyze-stock'), 1, 'expected tier-gated market path');
-    assert.equal(ENDPOINT_ENTITLEMENTS.get('/api/sanctions/v1/list-sanctions-pressure'), 1, 'expected sanctions pressure path');
-    assert.equal(ENDPOINT_ENTITLEMENTS.get('/api/trade/v1/list-comtrade-flows'), 1, 'expected Comtrade path');
+    assert.equal(ENDPOINT_ENTITLEMENTS.get('/api/sanctions/v1/list-sanctions-pressure'), undefined, 'sanctions pressure is a public Redis read on this fork');
+    assert.equal(ENDPOINT_ENTITLEMENTS.get('/api/trade/v1/list-comtrade-flows'), undefined, 'Comtrade is a public Redis read on this fork');
     assert.ok(PUBLIC_FORBIDDEN_GATES.has('/api/leads/v1/submit-contact'), 'expected Leads Turnstile 403 path');
     assert.ok(PUBLIC_FORBIDDEN_GATES.has('/api/leads/v1/register-interest'), 'expected Leads register-interest 403 gate');
-    assert.ok(BEARER_AUTH_PATHS.has('/api/intelligence/v1/get-regional-brief'), 'expected legacy premium path');
-    assert.ok(PREMIUM_ONLY_PATHS.has('/api/intelligence/v1/get-regional-brief'), 'expected legacy premium-only path (not entitlement-gated)');
+    assert.equal(BEARER_AUTH_PATHS.has('/api/intelligence/v1/get-regional-brief'), false, 'regional brief is a public Redis read on this fork');
+    assert.equal(PREMIUM_ONLY_PATHS.has('/api/intelligence/v1/get-regional-brief'), false, 'regional brief is not premium-gated on this fork');
+    assert.ok(PREMIUM_ONLY_PATHS.has('/api/chat-analyst'), 'expected LLM chat-analyst as premium-only');
     assert.ok(!PREMIUM_ONLY_PATHS.has('/api/market/v1/analyze-stock'), 'entitlement-gated path must not be treated as premium-only');
   });
 

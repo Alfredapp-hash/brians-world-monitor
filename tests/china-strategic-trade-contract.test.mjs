@@ -164,10 +164,10 @@ describe('China reporter coverage gate', () => {
 });
 
 describe('existing access and China freight paths', () => {
-  it('keeps detailed bilateral data behind the current premium gate', () => {
+  it('serves detailed bilateral data as a public Redis read on this fork', () => {
     const handler = read('../server/worldmonitor/supply-chain/v1/get-country-products.ts');
-    assert.match(handler, /isCallerPremium\(ctx\.request\)/);
-    assert.match(handler, /if \(!isPro\) return empty/);
+    assert.doesNotMatch(handler, /isCallerPremium\(ctx\.request\)/);
+    assert.doesNotMatch(handler, /if \(!isPro\) return empty/);
   });
 
   it('keeps CCFI available through the existing supply-chain seeder', () => {

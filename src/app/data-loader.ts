@@ -74,7 +74,7 @@ import {
   mergeStockAnalysisHistory,
   type StockAnalysisHistory,
 } from '@/services/stock-analysis-history';
-import { checkBatchForBreakingAlerts, dispatchOrefBreakingAlert } from '@/services/breaking-news-alerts';
+import { checkBatchForBreakingAlerts, dispatchOrefBreakingAlert, dispatchTelegramBreakingAlert } from '@/services/breaking-news-alerts';
 import { displayPubDateMs, effectivePubDateMs } from '@/services/feed-date';
 import { mlWorker } from '@/services/ml-worker';
 import { clusterNewsHybrid } from '@/services/clustering';
@@ -234,7 +234,8 @@ function protoItemToNewsItem(p: ProtoNewsItem): NewsItem {
   };
 }
 
-const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
+// Operator fork: cyber layer ships on unless explicitly disabled.
+const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER !== 'false';
 // Iran-events domain sunset (war ended 2026-07). Default OFF: no fetch, even the
 // CII/risk-scoring path. Set VITE_ENABLE_IRAN_ATTACKS=true to restore. Mirrors CYBER_LAYER_ENABLED.
 const IRAN_ATTACKS_ENABLED = import.meta.env.VITE_ENABLE_IRAN_ATTACKS === 'true';
@@ -3973,6 +3974,7 @@ export class DataLoaderManager implements AppModule {
     try {
       const result = await fetchTelegramFeed();
       this.callPanel('telegram-intel', 'setData', result);
+      dispatchTelegramBreakingAlert(result.items || []);
     } catch (error) {
       console.error('[App] Telegram intel fetch failed:', error);
       this.callPanel('telegram-intel', 'setData', {

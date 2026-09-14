@@ -6,7 +6,6 @@ import type {
   WarRiskTier,
 } from '../../../../src/generated/server/worldmonitor/supply_chain/v1/service_server';
 
-import { isCallerPremium } from '../../../_shared/premium-check';
 import { cachedFetchJson, getCachedJson } from '../../../_shared/redis';
 import { CHOKEPOINT_REGISTRY } from '../../../../src/config/chokepoint-registry';
 import { computeEnergyShockScenario } from '../../intelligence/v1/compute-energy-shock';
@@ -17,7 +16,6 @@ export async function getCountryCostShock(
   ctx: ServerContext,
   req: GetCountryCostShockRequest,
 ): Promise<GetCountryCostShockResponse> {
-  const isPro = await isCallerPremium(ctx.request);
   const empty: GetCountryCostShockResponse = {
     iso2: req.iso2,
     chokepointId: req.chokepointId,
@@ -30,7 +28,6 @@ export async function getCountryCostShock(
     unavailableReason: '',
     fetchedAt: new Date().toISOString(),
   };
-  if (!isPro) return empty;
 
   const iso2 = req.iso2?.trim().toUpperCase();
   const chokepointId = req.chokepointId?.trim().toLowerCase();

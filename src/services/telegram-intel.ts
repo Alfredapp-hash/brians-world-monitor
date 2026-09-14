@@ -44,7 +44,7 @@ function telegramFeedUrl(limit: number): string {
   return isDesktopRuntime() ? proxyUrl(path) : toApiUrl(path);
 }
 
-export async function fetchTelegramFeed(limit = 50): Promise<TelegramFeedResponse> {
+export async function fetchTelegramFeed(limit = 200): Promise<TelegramFeedResponse> {
   if (cachedResponse && Date.now() - cachedAt < CACHE_TTL) return cachedResponse;
 
   const res = await fetch(telegramFeedUrl(limit));

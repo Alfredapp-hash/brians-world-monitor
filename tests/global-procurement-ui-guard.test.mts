@@ -18,7 +18,7 @@ const docs = readFileSync(resolve(import.meta.dirname, '../docs/global-procureme
 
 test('dedicated procurement panel supports discovery controls, pagination, and safe official links', () => {
   assert.match(panel, /id: 'global-procurement'/);
-  assert.match(panel, /premium: 'locked'/);
+  assert.doesNotMatch(panel, /premium: 'locked'/);
   assert.match(panel, /data-procurement-query/);
   assert.match(panel, /data-procurement-country/);
   assert.match(panel, /data-procurement-source/);
@@ -45,13 +45,13 @@ test('procurement keeps the complete canonical feed behind the paginated RPC', (
   assert.match(service, /client\.listGlobalTenders\(request/);
 });
 
-test('procurement is Pro-enforced and free clients neither fetch nor retain its data', () => {
-  assert.match(premiumPaths, /'\/api\/economic\/v1\/list-global-tenders'/);
-  assert.match(entitlementCheck, /'\/api\/economic\/v1\/list-global-tenders': 1/);
+test('procurement is operator-ungated on this fork (Redis seed, no LLM)', () => {
+  assert.doesNotMatch(premiumPaths, /'\/api\/economic\/v1\/list-global-tenders'/);
+  assert.doesNotMatch(entitlementCheck, /'\/api\/economic\/v1\/list-global-tenders': 1/);
 
-  assert.match(panelConfig, /'global-procurement': \{ name: 'Global Procurement', enabled: true, priority: 1, premium: 'locked'/);
-  assert.match(panelConfig, /apiKeyPanels = \[[^\]]*'global-procurement'/s);
-  assert.match(panelLayout, /WEB_PREMIUM_PANELS = new Set\(\[[^\]]*'global-procurement'/s);
+  assert.match(panelConfig, /'global-procurement': \{ name: 'Global Procurement', enabled: true, priority: 1 \}/);
+  assert.doesNotMatch(panelConfig, /apiKeyPanels = \[[^\]]*'global-procurement'/s);
+  assert.doesNotMatch(panelLayout, /WEB_PREMIUM_PANELS = new Set\(\[[^\]]*'global-procurement'/s);
   assert.match(panelLayout, /lazyDefaultPanel\('global-procurement'.*GlobalProcurementPanel/s);
 
   assert.match(loader, /if \(!hasPremiumAccess\(\)\) \{\s*procurementPanel\?\.clear\(\);\s*return;\s*\}/);

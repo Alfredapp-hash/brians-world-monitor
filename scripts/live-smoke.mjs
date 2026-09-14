@@ -6,12 +6,15 @@
  * live analysis. Saves a screenshot for visual confirmation.
  */
 import { chromium } from 'playwright-core';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const URL = process.env.SMOKE_URL || 'http://localhost:3000/';
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium',
+const launchOptions = {
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
-});
+};
+if (process.env.CHROMIUM_PATH) launchOptions.executablePath = process.env.CHROMIUM_PATH;
+const browser = await chromium.launch(launchOptions);
 const page = await browser.newPage({ viewport: { width: 1720, height: 1100 } });
 
 const consoleErrors = [];
@@ -65,12 +68,13 @@ if (await ccBtn.count() > 0 && result['coverage-compare']?.stories === 0) {
   };
 }
 
-await page.screenshot({ path: '/tmp/live-smoke-top.png' });
+const outDir = process.env.SMOKE_OUT || tmpdir();
+await page.screenshot({ path: join(outDir, 'live-smoke-top.png') });
 const cc = page.locator('[data-panel="coverage-compare"]');
 if (await cc.count() > 0) {
   await cc.first().scrollIntoViewIfNeeded().catch(() => {});
   await page.waitForTimeout(1000);
-  await cc.first().screenshot({ path: '/tmp/live-smoke-cc.png' }).catch(() => {});
+  await cc.first().screenshot({ path: join(outDir, 'live-smoke-cc.png') }).catch(() => {});
 }
 
 console.log('\n=== RESULTS ===');

@@ -64,6 +64,7 @@ function runtime).
 
 **Live with free API keys (add in Vercel → Project → Settings → Environment
 Variables):**
+
 - `FINNHUB_API_KEY` (finnhub.io) → richer Markets/Heatmap/Breadth
 - `FRED_API_KEY` (fred.stlouisfed.org) → Macro Stress, Yield Curve
 - `EIA_API_KEY` (eia.gov/opendata) → Oil Inventories, Energy Complex
@@ -75,14 +76,64 @@ Variables):**
   Watch, Pipeline Status, Storage Atlas, Fuel Shortages, Energy Disruptions,
   Security Advisories) after running `./scripts/run-seeders.sh`
 
-`scripts/panel-audit.mjs` re-runs the audit against any URL
+Windows: `npx playwright install chromium` once, then:
+
+```
+SMOKE_URL=https://brians-world-monitor.vercel.app/dashboard node scripts/operator-no-llm-smoke.mjs
+```
+
+`scripts/panel-audit.mjs` walks every rendered panel against any URL
 (`SMOKE_URL=https://your-app.vercel.app node scripts/panel-audit.mjs`).
+
+## Operator live display (2026-08-27)
+
+This fork is a personal dashboard, not the upstream SaaS free tier.
+
+- `OPERATOR_UNLIMITED_PANELS` lifts the 40-panel ceiling so default-on
+  live panels (fires, UCDP, climate, radiation, energy logs, etc.) are
+  not auto-disabled. Custom widgets (`cw-*`) stay pro-only.
+- Full-variant map defaults now paint already-hydrated feeds: protests,
+  GPS jamming, UCDP, climate, displacement, fires, CII choropleth,
+  disease outbreaks, radiation, cables, pipelines, storage, fuel
+  shortages, AIS, flights, trade routes, minerals, webcams, cyber
+  threats, satellites, day/night, datacenters, spaceports, and
+  irradiators. Mobile stays lighter (protests, fires, flights, day/night).
+- Full variant also shows Internet Disruptions, Service Status,
+  Chokepoint Status, Climate News, Energy Risk Overview, Gulf Economies,
+  Consumer Prices, grocery/Big Mac/fuel/FAO indexes, calendars, AAII,
+  FSI, yield curve, COT, giving, geo hubs, Windy cams, and tech hubs.
+- Regional Intelligence, Global Procurement, Trade Policy, and WSB
+  Ticker Scanner are default-on Redis reads (no LLM spend). Resilience
+  choropleth is unlocked as a toggle (conflicts with CII, so stays
+  default-off). LLM surfaces stay gated: stock analysis/backtest,
+  daily market brief, market implications, deduction, chat-analyst,
+  latest-brief, classify-event, scenario run, MCP proxy.
+- Returning browsers pick this up once via `jsam-live-display-v4`.
+  After deploy, hard-refresh. If an old layout is still stuck, clear
+  site data for the app origin.
+- `/api/wm-session` fail-opens if Upstash rate-limit Redis is exhausted so
+  a free-tier 500k-command cap cannot 503 the whole dashboard.
+- Dashboard **loads Redis data once per page load**. Refresh the browser
+  (F5) to update Redis-backed panels. Redis-backed API rate limits are
+  skipped on this fork (one operator). Seeders run twice a day (06:00 and
+  18:00 UTC). Together that is what keeps command count near Free.
+- **Telegram Intel ticks every 60s** while the tab is visible (Railway
+  relay, not Redis). OSINT, Middle East, cyber, conflict, breaking, and
+  geopolitics are client-side tabs on that same feed (up to 200 posts).
+  Fresh breaking/conflict/Middle East posts (last 15 min) also raise the
+  breaking-news banner. The default `full` poll set includes the 8
+  tech/cyber channels.
+- **Israel Sirens** polls Railway every 60s on its own loop (not Redis).
+- Polymarket stays F5-only: `listPredictionMarkets` reads Redis bootstrap.
+  Do not add AIS, predictions, or other Redis surfaces to
+  `OPERATOR_LIVE_TICK_PANELS`.
 
 ## Seeded panels — Upstash Redis + scheduled seeders (full activation)
 
 Many panels render from a Redis cache that a background job fills. Two pieces:
 
 **1. Upstash Redis (free) — the cache.**
+
 - Sign up at https://upstash.com → Create Database → Redis → pick a region →
   copy the **REST URL** and **REST TOKEN** (the "REST API" section, not the
   redis:// URL).
