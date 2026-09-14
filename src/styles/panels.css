@@ -3,6 +3,7 @@
    Extracted from inline <style> blocks to avoid CSSOM recalc
    on every panel refresh (PERF-012).
    ========================================================== */
+@import './osint-catalog.css';
 
 /* ----------------------------------------------------------
    Shared Panel Tabs (gold standard: Telegram Intel style)

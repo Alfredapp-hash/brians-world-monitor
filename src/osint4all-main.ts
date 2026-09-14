@@ -94,9 +94,11 @@ function boot(): void {
   const nav = el('nav', 'o4a-nav');
   const about = el('a', '', 'About');
   about.href = BRAND.about;
+  const dispatch = el('a', '', 'OSINTDispatch');
+  dispatch.href = BRAND.osintDispatch;
   const dash = el('a', '', 'Open the dashboard');
   dash.href = '/';
-  nav.append(about, dash);
+  nav.append(about, dispatch, dash);
   page.append(nav);
   root.replaceChildren(page);
 

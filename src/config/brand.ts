@@ -23,6 +23,8 @@ export const BRAND = {
   methodology: '/methodology.html',
   /** Public OSINT tools directory. */
   osint4all: '/osint4all.html',
+  /** First-class OSINTDispatch catalog surface. */
+  osintDispatch: '/OSINTDispatch',
   /** Upstream project this fork is based on (credit + AGPL lineage). */
   upstream: 'https://github.com/koala73/worldmonitor',
 } as const;
