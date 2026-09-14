@@ -5,7 +5,8 @@
  *
  * Design intent: a dashboard with APIs down should look intentional, not
  * crashed. Degraded states are dim, calm and neutral — never red walls.
- * Amber (--status-warn / --accent) is the single accent for "actionable".
+ * Actionable dots use the watch hue (--status-watch), never brand crimson
+ * and never --accent (near-white after Console 2026).
  */
 
 /* ------------------------------------------------------------------ */
@@ -87,11 +88,11 @@
 }
 
 .panel-error-radar .panel-radar-sweep {
-  background: linear-gradient(90deg, transparent, var(--status-warn, var(--accent, #f0a832)));
+  background: linear-gradient(90deg, transparent, var(--status-watch));
 }
 
 .panel-error-radar .panel-radar-dot.error {
-  background: var(--status-warn, var(--accent, #f0a832));
+  background: var(--status-watch);
   box-shadow: 0 0 6px var(--status-warn-bg, rgba(240, 168, 50, 0.35));
 }
 
@@ -131,7 +132,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--status-warn, var(--accent, #f0a832));
+  background: var(--status-watch);
   transform: translateY(-50%);
 }
 
@@ -141,7 +142,7 @@
 }
 
 .status-indicator--unavailable .status-dot {
-  background: var(--status-warn, var(--accent, #f0a832));
+  background: var(--status-watch);
 }
 
 .cached-mode-banner--unavailable {
@@ -150,8 +151,8 @@
 }
 
 .cached-mode-banner--unavailable .cached-mode-banner__badge {
-  border-color: var(--status-warn, var(--accent, #f0a832));
-  color: var(--status-warn, var(--accent, #f0a832));
+  border-color: var(--status-watch);
+  color: var(--status-watch);
 }
 
 /* ------------------------------------------------------------------ */
@@ -254,13 +255,13 @@
 .webcam-preview-play:hover,
 .webcam-preview-tile:hover .webcam-preview-play {
   background: var(--status-warn-bg, rgba(240, 168, 50, 0.12));
-  border-color: var(--status-warn, var(--accent, #f0a832));
-  color: var(--status-warn, var(--accent, #f0a832));
+  border-color: var(--status-watch);
+  color: var(--status-watch);
 }
 
 .live-media-shell .offline-retry:focus-visible,
 .webcam-preview-play:focus-visible {
-  outline: 2px solid var(--status-warn, var(--accent, #f0a832));
+  outline: 2px solid var(--status-watch);
   outline-offset: 2px;
 }
 
@@ -269,7 +270,7 @@
 .live-media-shell-dot,
 .live-media-shell-dot::before,
 .webcam-preview-tile .webcam-live-dot {
-  background: var(--status-warn, var(--accent, #f0a832));
+  background: var(--status-watch);
 }
 
 /* Paused placeholder centers in the well like every other calm state. */

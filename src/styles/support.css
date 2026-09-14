@@ -38,7 +38,7 @@
 }
 
 .support-btn:focus-visible {
-  outline: 2px solid var(--text-dim);
+  outline: 2px solid var(--wm-red-dim);
   outline-offset: 2px;
 }
 

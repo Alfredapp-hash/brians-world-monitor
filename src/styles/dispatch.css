@@ -207,7 +207,7 @@ html[data-reader-mode='everyday'] .reader-hero__cta {
   font-size: 0.85rem;
   font-weight: 550;
   letter-spacing: -0.006em;
-  min-height: 2.5rem;
+  min-height: 44px;
 }
 
 /* A 1px hover lift is a 2016 tic, and on a plate with a live rim it reads as
@@ -223,7 +223,7 @@ html[data-reader-mode='everyday'] .reader-hero__cta--primary {
 }
 
 html[data-reader-mode='everyday'] .reader-hero__cta--primary:hover {
-  background: #ffffff;
+  background: var(--wm-accent-hover);
 }
 
 html[data-reader-mode='everyday'] .reader-hero__cta--ghost {
@@ -363,5 +363,16 @@ html[data-reader-mode='everyday'] .hamburger-btn--everyday {
 html[data-reader-mode='everyday'] .hamburger-btn:hover {
   background: var(--surface-hover);
   border-color: var(--wm-hairline-strong);
+  color: var(--text);
+}
+
+/* Footer is a record lockup, not a mono instrument strip. */
+.site-footer-sub,
+.site-footer nav a,
+.site-footer-copy {
+  font-family: var(--font-ui);
+}
+
+.site-footer a:hover {
   color: var(--text);
 }

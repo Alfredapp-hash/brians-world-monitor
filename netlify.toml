@@ -50,6 +50,11 @@
   status = 200
 
 [[redirects]]
+  from = "/osint4all"
+  to = "/osint4all.html"
+  status = 200
+
+[[redirects]]
   from = "/pro"
   to = "/pro/index.html"
   status = 200

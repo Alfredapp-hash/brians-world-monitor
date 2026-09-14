@@ -5206,6 +5206,23 @@ body.playback-mode .status-dot {
   height: 100%;
 }
 
+/* The SVG renderer over a satellite backdrop (Map.renderSatelliteBackdrop).
+   The country layer is drawn with `fill` as a presentation attribute, which any
+   CSS rule outranks — so this reduces it to an outline pass without touching the
+   render code, and the sanctions tint the same attribute carries still reads at
+   this opacity instead of being erased by `fill: none`. */
+.map-base.over-imagery .country {
+  fill-opacity: 0.12;
+  stroke-opacity: 0.55;
+}
+
+/* Imagery already carries the coastline, so the chart furniture recedes to a
+   faint instrument grid rather than competing with the photograph. */
+.map-base.over-imagery .graticule,
+.map-base.over-imagery .grid-line {
+  opacity: 0.18;
+}
+
 .map-controls {
   position: absolute;
   top: 10px;

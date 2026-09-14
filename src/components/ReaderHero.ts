@@ -90,12 +90,12 @@ export class ReaderHero {
     this.storyCta = h('a', {
       className: 'reader-hero__cta reader-hero__cta--primary',
       href: '#',
-    }, 'Read story') as HTMLAnchorElement;
+    }, 'Read the record') as HTMLAnchorElement;
     this.storyCta.hidden = true;
 
     this.framingCta = h(
       'button',
-      { className: 'reader-hero__cta reader-hero__cta--ghost', type: 'button' },
+      { className: 'reader-hero__cta reader-hero__cta--ghost reader-hero__cta--framing', type: 'button' },
       'How outlets frame this',
     ) as HTMLButtonElement;
 
@@ -106,7 +106,7 @@ export class ReaderHero {
         type: 'button',
         'aria-expanded': 'false',
       },
-      'Show map',
+      'See the map',
     ) as HTMLButtonElement;
 
     const actions = h(
@@ -159,7 +159,7 @@ export class ReaderHero {
 
   /** Keep CTA label / aria in sync with map peek expand state. */
   setMapExpanded(expanded: boolean): void {
-    this.mapCta.textContent = expanded ? 'Hide map' : 'Show map';
+    this.mapCta.textContent = expanded ? 'Hide map' : 'See the map';
     this.mapCta.setAttribute('aria-expanded', expanded ? 'true' : 'false');
   }
 
@@ -293,7 +293,7 @@ export class ReaderHero {
       this.storyCta.href = safeUrl;
       this.storyCta.target = '_blank';
       this.storyCta.rel = 'noopener noreferrer';
-      this.storyCta.textContent = 'Read story';
+      this.storyCta.textContent = 'Read the record';
     } else {
       this.storyCta.hidden = true;
     }

@@ -1124,27 +1124,22 @@ function createMissionHarness(options: { mobile?: boolean; storage?: MemoryStora
 }
 
 describe('mission preset shell integration', () => {
-  it('rechecks mission prompt eligibility before the idle auto-open fires', async () => {
-    // The mission prompt is an analyst-mode affordance: everyday reader mode
-    // suppresses it outright, so opt this harness into analyst to exercise the
-    // scheduling path at all.
+  it('does not auto-open the mission picker on first paint', async () => {
+    // First paint is the record, not a workspace modal. Mission is opt-in
+    // from the header control / More menu in every mode.
     const storage = new MemoryStorage();
     storage.setItem(READER_MODE_KEY, 'analyst');
     const { manager } = createMissionHarness({ storage });
     const opened: Array<{ anchor: unknown; mobile: unknown }> = [];
 
-    manager.setupMissionPresets();
     manager.openMissionPresetPopover = (anchor: unknown, mobile: unknown) => {
       opened.push({ anchor, mobile });
     };
+    manager.setupMissionPresets();
 
     const tasks = (globalThis as { __missionAfterPaintTasks?: Array<() => void> }).__missionAfterPaintTasks ?? [];
-    assert.equal(tasks.length, 1, 'desktop startup should schedule one mission prompt idle task');
-
-    saveMissionPreset('supply-chain-risk');
-    tasks[0]!();
-
-    assert.deepEqual(opened, [], 'stored mission state should cancel the delayed auto-open');
+    assert.equal(tasks.length, 0, 'startup must not schedule a mission prompt idle task');
+    assert.deepEqual(opened, [], 'mission popover must not open itself');
   });
 
   it('applies a preset through the real manager path and resets state, storage, layers, map view, and URL to defaults', async () => {

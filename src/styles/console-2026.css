@@ -120,6 +120,7 @@
      Red is material, not a button colour. */
   --accent: #eef0f3;
   --accent-ink: #0a0b0d;
+  --wm-accent-hover: #ffffff;
 
   --overlay-subtle: rgb(255 255 255 / 3%);
   --overlay-light: rgb(255 255 255 / 5%);
@@ -192,6 +193,7 @@
   --text-ghost: #c2c7cf;
   --accent: #12151a;
   --accent-ink: #ffffff;
+  --wm-accent-hover: #12151a;
   --overlay-subtle: rgb(15 20 30 / 3%);
   --overlay-light: rgb(15 20 30 / 5%);
   --overlay-medium: rgb(15 20 30 / 8%);
@@ -285,7 +287,7 @@ table {
 .mobile-menu-title {
   color: var(--text);
   font-weight: 650;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -409,7 +411,7 @@ body,
 .panel[data-deferred-panel]::before,
 .panel.panel-deferred-shell::before {
   animation: none;
-  rotate: 34deg;
+  rotate: 38deg;
   opacity: calc(var(--wm-beam-op) * 0.5);
 }
 
@@ -421,11 +423,6 @@ body,
   padding: 7px 11px;
   background: transparent;
   border-bottom: 1px solid var(--wm-hairline);
-}
-
-.panel-header-error {
-  background: color-mix(in srgb, var(--semantic-critical) 12%, transparent);
-  border-bottom-color: color-mix(in srgb, var(--semantic-critical) 45%, transparent);
 }
 
 .panel-count,
@@ -561,7 +558,7 @@ textarea {
 }
 
 .btn-primary:not(:disabled):hover {
-  background: #ffffff;
+  background: var(--wm-accent-hover);
 }
 
 .btn-secondary {
@@ -604,7 +601,7 @@ textarea {
 .cc-refresh-btn:hover,
 .cc-ai-btn:hover,
 .cw-cta:hover {
-  background: #ffffff;
+  background: var(--wm-accent-hover);
 }
 
 .cc-nci-ai-btn {

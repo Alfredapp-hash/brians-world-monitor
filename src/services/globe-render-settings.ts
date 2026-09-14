@@ -16,7 +16,12 @@ export const GLOBE_RENDER_SCALE_OPTIONS: {
   { value: 'auto', labelKey: 'components.insights.globeRenderScaleOptions.auto', fallbackLabel: 'Auto (device)' },
   { value: '1', labelKey: 'components.insights.globeRenderScaleOptions.1', fallbackLabel: 'Eco (1x)' },
   { value: '1.5', labelKey: 'components.insights.globeRenderScaleOptions.1_5', fallbackLabel: 'Sharp (1.5x)' },
-  { value: '2', labelKey: 'components.insights.globeRenderScaleOptions.2', fallbackLabel: '4K (2x)', disabled: true },
+  // Re-enabled with the satellite drape: at 1.5x ceiling, real imagery tiles
+  // were being downsampled below the resolution they were fetched at, which is
+  // the one case where the extra GPU cost buys visible detail rather than just
+  // smoother marker edges. 3x stays off — it is a 9x fill-rate multiplier that
+  // no display this app targets can show.
+  { value: '2', labelKey: 'components.insights.globeRenderScaleOptions.2', fallbackLabel: '4K (2x)' },
   { value: '3', labelKey: 'components.insights.globeRenderScaleOptions.3', fallbackLabel: 'Insane (3x)', disabled: true },
 ];
 
@@ -51,12 +56,23 @@ export function subscribeGlobeRenderScaleChange(cb: (scale: GlobeRenderScale) =>
   return () => window.removeEventListener(EVENT_NAME, handler);
 }
 
+/**
+ * Ceiling on the globe's render scale.
+ *
+ * Raised from 1.5 to 2 alongside the satellite drape: the imagery tiles arrive
+ * at native resolution and were being resampled down before they ever reached
+ * the screen, which is what made a real photograph of Earth look soft. 2 is the
+ * device pixel ratio of every retina display this app runs on, so it is "match
+ * the panel", not "supersample beyond it".
+ */
+const MAX_GLOBE_PIXEL_RATIO = 2;
+
 export function resolveGlobePixelRatio(scale: GlobeRenderScale): number {
   const dpr = (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1;
-  if (scale === 'auto') return Math.min(1.5, Math.max(1, dpr));
+  if (scale === 'auto') return Math.min(MAX_GLOBE_PIXEL_RATIO, Math.max(1, dpr));
   const num = Number(scale);
   if (!Number.isFinite(num) || num <= 0) return 1;
-  return Math.min(1.5, Math.max(1, num));
+  return Math.min(MAX_GLOBE_PIXEL_RATIO, Math.max(1, num));
 }
 
 export interface GlobePerformanceProfile {

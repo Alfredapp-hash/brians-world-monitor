@@ -68,7 +68,6 @@ import {
   applyReaderAnalystOpenToDocument,
   applyReaderModeToDocument,
   getReaderMode,
-  isEverydayReaderMode,
   isReaderAnalystOpen,
   setReaderAnalystOpen,
   setReaderMode,
@@ -115,7 +114,6 @@ import { t } from '@/services/i18n';
 import { TvModeController } from '@/services/tv-mode';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
-import { scheduleAfterFirstPaint } from '@/utils/after-paint';
 import { escapeHtml } from '@/utils/sanitize';
 import { buildEmbedIframeSnippet, buildEmbedMapUrl, type EmbedVariant } from '@/embed/embed-url';
 import { createSettingsButton } from '@/components/settings-button';
@@ -880,24 +878,10 @@ export class EventHandlerManager implements AppModule {
       this.openMissionPresetPopover(document.getElementById('hamburgerBtn'), true);
     });
 
-    const shouldPrompt =
-      !this.ctx.isMobile &&
-      !window.location.search &&
-      !loadStoredMissionPreset() &&
-      !isMissionPresetPromptDismissed() &&
-      !isEverydayReaderMode();
-    if (shouldPrompt) {
-      // Defer the onboarding auto-open to browser idle after first paint so it
-      // never competes with load or first-interaction work. This replaced a
-      // fixed 700ms timeout that forced layout reads (getBoundingClientRect +
-      // offsetHeight) on the post-load path. Re-check state at fire time since
-      // the idle wait can outlast an early user choice.
-      scheduleAfterFirstPaint(() => {
-        if (this.ctx.isDestroyed) return;
-        if (loadStoredMissionPreset() || isMissionPresetPromptDismissed() || isEverydayReaderMode()) return;
-        this.openMissionPresetPopover(document.getElementById('missionPresetBtn'), false);
-      });
-    }
+    // Mission is opt-in. Auto-opening the picker on first paint made Analyst
+    // look crashed-into a workspace modal (see .brand-shots/01-firstpaint.png).
+    // Everyday was already gated; Analyst now matches. Users open Mission
+    // from the header control or More menu.
   }
 
   private setupReaderMode(): void {

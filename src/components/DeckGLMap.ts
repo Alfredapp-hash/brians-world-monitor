@@ -9,8 +9,9 @@ import { GeoJsonLayer, ScatterplotLayer, PathLayer, IconLayer, TextLayer, Polygo
 import maplibregl from 'maplibre-gl';
 import type { StyleSpecification } from 'maplibre-gl';
 import { BRAND } from '@/config/brand';
-import { FALLBACK_DARK_STYLE, FALLBACK_LIGHT_STYLE, getMapProvider, getMapTheme, getTerrainMode, setTerrainMode, isLightMapTheme } from '@/config/basemap';
-import { getStyleForProvider, applyTerrainToMap, TERRAIN_ATTRIBUTION_HTML } from '@/config/basemap-styles';
+import { FALLBACK_DARK_STYLE, FALLBACK_LIGHT_STYLE, getMapProvider, getMapTheme, getTerrainMode, setTerrainMode, isLightMapTheme, isSatelliteProvider } from '@/config/basemap';
+import { getStyleForProvider, getFallbackStyleForProvider, applyTerrainToMap, TERRAIN_ATTRIBUTION_HTML } from '@/config/basemap-styles';
+import { getSatelliteSource } from '@/config/satellite-imagery';
 import Supercluster from 'supercluster';
 import type {
   MapLayers,
@@ -999,6 +1000,15 @@ export class DeckGLMap {
   private applyTerrainIfEnabled(): void {
     const map = this.maplibreMap;
     if (!map) return;
+    // Satellite imagery already IS the physical geography — real relief, real
+    // rivers, real coastlines, photographed. Layering a synthetic hillshade and
+    // recoloured vector waterways over a photograph only muddies it, and the
+    // waterway/label boosts target vector source-layers a raster style does not
+    // have. Terrain stays a vector-basemap treatment.
+    if (isSatelliteProvider(getMapProvider())) {
+      this.updateTerrainAttribution(false);
+      return;
+    }
     if (getTerrainMode() !== 'terrain') {
       this.updateTerrainAttribution(false);
       return;
@@ -1014,6 +1024,32 @@ export class DeckGLMap {
     } catch (err) {
       console.warn('[DeckGLMap] terrain apply deferred:', (err as Error)?.message);
       map.once('style.load', () => this.applyTerrainIfEnabled());
+    }
+  }
+
+  /**
+   * Put the active imagery provider's required credit in the attribution line.
+   *
+   * MapLibre's own attribution control is disabled on this map
+   * (`attributionControl: false`) and the element is written directly, so a
+   * raster source's `attribution` field would otherwise never be shown — and
+   * satellite imagery is precisely the case where the credit is a licence
+   * condition rather than a courtesy. Written as its own span so the terrain
+   * credit and the base credit can be added and removed independently.
+   */
+  private applyImageryAttribution(): void {
+    const attr = this.container.querySelector('.map-attribution');
+    if (!attr) return;
+    const existing = attr.querySelector('.imagery-attrib');
+    if (!isSatelliteProvider(getMapProvider())) {
+      existing?.remove();
+      return;
+    }
+    const span = existing instanceof HTMLElement ? existing : document.createElement('span');
+    span.className = 'imagery-attrib';
+    setTrustedHtml(span, trustedHtml(getSatelliteSource().attribution, 'static imagery attribution'));
+    if (!existing) {
+      attr.replaceChildren(span);
     }
   }
 
@@ -1053,6 +1089,13 @@ export class DeckGLMap {
 
   private syncTerrainButton(): void {
     if (!this.terrainToggleBtn) return;
+    // Under satellite imagery the terrain toggle has nothing to toggle (see
+    // applyTerrainIfEnabled), so it goes rather than sitting there lying.
+    if (isSatelliteProvider(getMapProvider())) {
+      this.terrainToggleBtn.hidden = true;
+      return;
+    }
+    this.terrainToggleBtn.hidden = false;
     const on = getTerrainMode() === 'terrain';
     this.terrainToggleBtn.textContent = on ? 'TERRAIN' : 'FLAT';
     this.terrainToggleBtn.classList.toggle('active', on);
@@ -1116,6 +1159,7 @@ export class DeckGLMap {
       const attr = this.container.querySelector('.map-attribution');
       if (attr) setTrustedHtml(attr, trustedHtml('© <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>', "legacy direct innerHTML migration"));
     }
+    this.applyImageryAttribution();
 
     const basemapEl = document.getElementById('deckgl-basemap');
     if (!basemapEl) return;
@@ -1146,10 +1190,11 @@ export class DeckGLMap {
     const recreateWithFallback = () => {
       if (this.usedFallbackStyle) return;
       this.usedFallbackStyle = true;
-      const fallback = isLightMapTheme(initialMapTheme) ? FALLBACK_LIGHT_STYLE : FALLBACK_DARK_STYLE;
-      console.warn(`[DeckGLMap] Primary basemap failed, recreating with fallback: ${fallback}`);
+      const fallbackProvider = getMapProvider();
+      const fallback = getFallbackStyleForProvider(fallbackProvider, initialMapTheme);
+      console.warn('[DeckGLMap] Primary basemap failed, recreating with fallback', typeof fallback === 'string' ? fallback : 'open-data satellite imagery');
       const attr = this.container.querySelector('.map-attribution');
-      if (attr) setTrustedHtml(attr, trustedHtml('© <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>', "legacy direct innerHTML migration"));
+      if (attr && typeof fallback === 'string') setTrustedHtml(attr, trustedHtml('© <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>', "legacy direct innerHTML migration"));
       this.detachMapLibreInteractionHandlers();
       this.maplibreMap?.remove();
       const fallbackEl = document.getElementById('deckgl-basemap');
@@ -1176,6 +1221,7 @@ export class DeckGLMap {
         this.attachMapLibreInteractionHandlers();
         localizeMapLabels(this.maplibreMap);
         this.applyTerrainIfEnabled();
+        this.applyImageryAttribution();
         this.initDeck();
         this.loadCountryBoundaries();
         this.fetchServerBases();
@@ -1186,6 +1232,8 @@ export class DeckGLMap {
     this.maplibreMap.on('load', () => {
       localizeMapLabels(this.maplibreMap);
       this.applyTerrainIfEnabled();
+      this.applyImageryAttribution();
+      this.syncTerrainButton();
       this.initDeck();
       this.loadCountryBoundaries();
       this.fetchServerBases();
@@ -1371,7 +1419,7 @@ export class DeckGLMap {
     console.warn('[DeckGLMap] Map provider changed repeatedly during startup; using latest provider state');
     return {
       mapTheme,
-      style: provider === 'carto'
+      style: (provider === 'carto' || provider === 'satellite')
         ? await getStyleForProvider(provider, mapTheme)
         : (isLightMapTheme(mapTheme) ? FALLBACK_LIGHT_STYLE : FALLBACK_DARK_STYLE),
     };
@@ -7776,7 +7824,7 @@ export class DeckGLMap {
     const style = isHappyVariant
       ? (getCurrentTheme() === 'light' ? HAPPY_LIGHT_STYLE : HAPPY_DARK_STYLE)
       : (this.usedFallbackStyle && provider === 'auto')
-        ? (isLightMapTheme(mapTheme) ? FALLBACK_LIGHT_STYLE : FALLBACK_DARK_STYLE)
+        ? getFallbackStyleForProvider(provider, mapTheme)
         : await getStyleForProvider(provider, mapTheme);
     if (this.maplibreMap !== map || seq !== this.basemapSwitchSeq) return;
     if (this.countryPulseRaf) { cancelAnimationFrame(this.countryPulseRaf); this.countryPulseRaf = null; }
@@ -7785,6 +7833,7 @@ export class DeckGLMap {
     map.once('style.load', () => {
       localizeMapLabels(this.maplibreMap);
       this.applyTerrainIfEnabled();
+      this.applyImageryAttribution();
       this.loadCountryBoundaries();
       if (this.radarActive) this.applyRadarLayer();
       const paintTheme = isLightMapTheme(mapTheme) ? 'light' as const : 'dark' as const;
@@ -7841,14 +7890,15 @@ export class DeckGLMap {
   private switchToFallbackStyle(mapTheme: string): void {
     if (this.usedFallbackStyle || !this.maplibreMap) return;
     this.usedFallbackStyle = true;
-    const fallback = isLightMapTheme(mapTheme) ? FALLBACK_LIGHT_STYLE : FALLBACK_DARK_STYLE;
-    console.warn(`[DeckGLMap] Basemap tiles failed, falling back to OpenFreeMap: ${fallback}`);
+    const fallback = getFallbackStyleForProvider(getMapProvider(), mapTheme);
+    console.warn('[DeckGLMap] Basemap tiles failed, falling back to', typeof fallback === 'string' ? fallback : 'open-data satellite imagery');
     if (this.countryPulseRaf) { cancelAnimationFrame(this.countryPulseRaf); this.countryPulseRaf = null; }
     this.countryGeoJsonLoaded = false;
     this.maplibreMap.setStyle(fallback, { diff: false });
     this.maplibreMap.once('style.load', () => {
       localizeMapLabels(this.maplibreMap);
       this.applyTerrainIfEnabled();
+      this.applyImageryAttribution();
       this.loadCountryBoundaries();
       if (this.radarActive) this.applyRadarLayer();
       const paintTheme = isLightMapTheme(mapTheme) ? 'light' as const : 'dark' as const;

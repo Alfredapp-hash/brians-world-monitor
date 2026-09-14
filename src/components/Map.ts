@@ -1,6 +1,8 @@
 // NOTE (Workstream 2 / terrain basemap): this D3/SVG renderer is the mobile /
-// no-WebGL fallback and draws vector topology only — raster hillshade (the
-// jsam-terrain-mode preference handled in DeckGLMap) does not apply here.
+// no-WebGL fallback. Raster hillshade (the jsam-terrain-mode preference handled
+// in DeckGLMap) does not apply here, but the shared satellite-imagery policy
+// does: see renderSatelliteBackdrop() for the equirectangular Earth it drapes
+// under the vector topology.
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { escapeHtml } from '@/utils/sanitize';
@@ -58,6 +60,15 @@ import {
 } from '@/services/hotspot-escalation';
 import { getCachedCountryScoreValue } from '@/services/cached-risk-scores';
 import { getAlertsNearLocation } from '@/services/geo-convergence';
+import { isSatelliteImageryActive } from '@/config/satellite-imagery';
+
+/**
+ * The one satellite frame this renderer draws.
+ *
+ * NASA Blue Marble, already shipped for the globe and already equirectangular,
+ * so it costs no new asset and aligns to `geoEquirectangular` without resampling.
+ */
+const SVG_SATELLITE_BACKDROP_URL = '/textures/earth-blue-marble.jpg';
 import { getCountryAtCoordinates, getCountryBbox } from '@/services/country-geometry';
 import type { CountryClickPayload } from './DeckGLMap';
 import { t } from '@/services/i18n';
@@ -1291,18 +1302,26 @@ export class MapComponent {
         .attr('height', height * 3)
         .attr('fill', getCSSColor('--map-bg'));
 
-      // Grid
-      this.renderGrid(this.baseLayerGroup, width, height);
-
       // Setup projection for base elements
       const baseProjection = this.getProjection(width, height);
       const basePath = d3.geoPath().projection(baseProjection);
+
+      // Satellite Earth under everything else, when imagery is the chosen
+      // basemap. Placed before the grid/graticule so both read as instrument
+      // overlay on a photograph rather than as a chart the photo sits on.
+      const imageryDrawn = this.renderSatelliteBackdrop(this.baseLayerGroup, baseProjection);
+
+      // Grid
+      this.renderGrid(this.baseLayerGroup, width, height);
 
       // Graticule
       this.renderGraticule(this.baseLayerGroup, basePath);
 
       // Countries
       this.renderCountries(this.baseLayerGroup, basePath);
+      // Over imagery the country fills would hide the land they outline, so the
+      // group drops to borders only.
+      this.baseLayerGroup.classed('over-imagery', imageryDrawn);
       this.baseRendered = true;
     }
 
@@ -1438,6 +1457,52 @@ export class MapComponent {
       .scale(scale)
       .center([0, LAT_CENTER])
       .translate([width / 2, height / 2]);
+  }
+
+  /**
+   * Drape a real satellite Earth under the SVG map.
+   *
+   * WHY THIS WORKS HERE. `getProjection()` is a plain `geoEquirectangular`, and
+   * an equirectangular satellite image is that projection's own raster form —
+   * so the whole texture can be placed with two corner projections and no
+   * per-pixel work. That is the only reason this renderer, which has no tile
+   * engine and no WebGL, can show photography at all.
+   *
+   * WHY NOT TILES. This is the mobile / WebGL-failure fallback; the reason a
+   * reader is on it is that the device could not run deck.gl or globe.gl. A tile
+   * pyramid of DOM `<image>` nodes is exactly the wrong thing to hand that
+   * device. One 4096×2048 Blue Marble frame is a fixed, cacheable cost, so this
+   * surface gets a genuine photograph of Earth at continental scale and stops
+   * there — the two GPU renderers are what go to city scale.
+   *
+   * Returns whether imagery was actually drawn, so the caller can restyle the
+   * country layer for whichever base it ended up on.
+   */
+  private renderSatelliteBackdrop(
+    group: d3.Selection<SVGGElement, unknown, null, undefined>,
+    projection: d3.GeoProjection,
+  ): boolean {
+    if (!isSatelliteImageryActive()) return false;
+    // Corners of the full graticule, in this projection's own pixel space.
+    const topLeft = projection([-180, 90]);
+    const bottomRight = projection([180, -90]);
+    if (!topLeft || !bottomRight) return false;
+    const w = bottomRight[0] - topLeft[0];
+    const h = bottomRight[1] - topLeft[1];
+    if (!(w > 0) || !(h > 0)) return false;
+
+    group
+      .append('image')
+      .attr('class', 'map-satellite-backdrop')
+      .attr('href', SVG_SATELLITE_BACKDROP_URL)
+      .attr('x', topLeft[0])
+      .attr('y', topLeft[1])
+      .attr('width', w)
+      .attr('height', h)
+      // The frame is a whole-Earth photo being fitted to a cropped latitude
+      // range, so it must stretch to the box rather than preserve its own ratio.
+      .attr('preserveAspectRatio', 'none');
+    return true;
   }
 
   private renderGraticule(

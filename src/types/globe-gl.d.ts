@@ -7,7 +7,9 @@ declare module 'globe.gl' {
   export interface GlobeInstance {
     pointOfView(pov?: { lat?: number; lng?: number; altitude?: number }, transitionMs?: number): { lat: number; lng: number; altitude: number };
     toGlobeCoords(x: number, y: number): { lat: number; lng: number } | null;
-    globeImageUrl(url: string): GlobeInstance;
+    // `null` clears the albedo — used when the satellite tile engine is draping
+    // imagery and the textured sphere is hidden behind it.
+    globeImageUrl(url: string | null): GlobeInstance;
     htmlElementsData(data: unknown[]): GlobeInstance;
     scene(): any;
     controls(): any;

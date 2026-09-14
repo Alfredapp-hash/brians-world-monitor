@@ -27,6 +27,7 @@ import { BRAND as BRAND_COLORS, STATUS, SEVERITY, SEVERITY_RAMP, CATEGORY, NEUTR
 import { t } from '@/services/i18n';
 import { SITE_VARIANT } from '@/config/variant';
 import { getGlobeRenderScale, resolveGlobePixelRatio, resolvePerformanceProfile, subscribeGlobeRenderScaleChange, getGlobeTexture, setGlobeTexture, GLOBE_TEXTURE_URLS, GLOBE_TEXTURE_OPTIONS, subscribeGlobeTextureChange, getGlobeVisualPreset, subscribeGlobeVisualPresetChange, getGlobeAutoRotate, setGlobeAutoRotate, type GlobeRenderScale, type GlobePerformanceProfile, type GlobeVisualPreset, type GlobeTexture } from '@/services/globe-render-settings';
+import { buildGlobeTileUrlFn, getGlobeDrapeMaxLevel, getSatelliteSource, isSatelliteImageryActive, setBasemapImagery } from '@/config/satellite-imagery';
 import {
   getLayerExplanation,
   getLayersForVariant,
@@ -514,7 +515,10 @@ export class GlobeMap {
   private extrasAnimFrameId: number | null = null;
   // GLOBE · WS: shared light rig (both presets) + surface-detail textures
   private sunLight: any = null;
+  private ambientLight: any = null;
   private lightRigHandler: (() => void) | null = null;
+  /** True while real imagery tiles are draped on the sphere (see applySatelliteDrape). */
+  private satelliteDrapeActive = false;
   private waterSpecTex: any = null;
   private waterRoughTex: any = null;
   private waterTexPromise: Promise<{ spec: any; rough: any } | null> | null = null;
@@ -738,9 +742,15 @@ export class GlobeMap {
     // jsam-terrain-mode preference in here would fight that dedicated texture
     // picker, so the globe intentionally keeps its own setting; the flat-map
     // hillshade/waterways treatment (DeckGLMap) is the terrain deliverable.
+    // Satellite drape is the default surface (see satellite-imagery.ts). The
+    // static equirectangular textures stay as the alternative for readers who
+    // want the art-directed Earth, and as the offline/no-network surface.
+    this.satelliteDrapeActive = isSatelliteImageryActive();
     const initialTexture = getGlobeTexture();
     globe
-      .globeImageUrl(GLOBE_TEXTURE_URLS[initialTexture])
+      // Skipped entirely while draping: the tile engine hides the textured
+      // sphere, so loading a 700KB albedo for an invisible mesh is pure cost.
+      .globeImageUrl(this.satelliteDrapeActive ? null : GLOBE_TEXTURE_URLS[initialTexture])
       // Starfield backdrop — the shipped 4096×2048 night-sky.png (previously
       // loaded by nobody: backgroundImageUrl('') left it dead weight).
       .backgroundImageUrl(NIGHT_SKY_URL)
@@ -749,6 +759,8 @@ export class GlobeMap {
       .width(initW)
       .height(initH)
       .pathTransitionDuration(0);
+
+    if (this.satelliteDrapeActive) this.applySatelliteDrape(globe);
 
     // Orbit controls — match Sentinel's settings
     const controls = globe.controls() as GlobeControlsLike;
@@ -815,6 +827,9 @@ export class GlobeMap {
     // the new one has actually been applied (three-globe loads async).
     this.unsubscribeGlobeTexture = subscribeGlobeTextureChange((texture) => {
       if (!this.globe) return;
+      // A texture change while draping would fetch an albedo for a hidden mesh.
+      // The preference is still recorded, and takes effect when drape goes off.
+      if (this.satelliteDrapeActive) { this.syncQuickControls(); return; }
       const mat = this.globe.globeMaterial() as any;
       const oldMap = mat?.map ?? null;
       this.globe.globeImageUrl(GLOBE_TEXTURE_URLS[texture]);
@@ -2080,6 +2095,7 @@ export class GlobeMap {
     el.className = 'globe-quick-controls';
     setTrustedHtml(el, trustedHtml(`
       <span class="globe-quality-badge" title="Render quality — change in Settings"></span>
+      <button type="button" class="map-btn globe-qc-btn globe-qc-sat" title="Toggle satellite imagery" aria-pressed="false">&#128752;</button>
       <button type="button" class="map-btn globe-qc-btn globe-qc-texture" title="Cycle globe texture">&#127757;</button>
       <button type="button" class="map-btn globe-qc-btn globe-qc-rotate" title="Toggle auto-rotate" aria-pressed="false">&#10227;</button>
     `, "GLOBE WS quick controls"));
@@ -2089,6 +2105,9 @@ export class GlobeMap {
 
     el.querySelector('.globe-qc-rotate')?.addEventListener('click', () => {
       this.setAutoRotateEnabled(!this.autoRotateEnabled);
+    });
+    el.querySelector('.globe-qc-sat')?.addEventListener('click', () => {
+      this.toggleSatelliteDrape();
     });
     el.querySelector('.globe-qc-texture')?.addEventListener('click', () => {
       this.cycleGlobeTexture();
@@ -2141,6 +2160,17 @@ export class GlobeMap {
       rotateBtn.setAttribute('aria-pressed', String(this.autoRotateEnabled));
       rotateBtn.setAttribute('title', this.autoRotateEnabled ? 'Auto-rotate: on' : 'Auto-rotate: off');
     }
+    const satBtn = this.quickControlsEl.querySelector('.globe-qc-sat');
+    if (satBtn) {
+      satBtn.classList.toggle('active', this.satelliteDrapeActive);
+      satBtn.setAttribute('aria-pressed', String(this.satelliteDrapeActive));
+      satBtn.setAttribute('title', this.satelliteDrapeActive
+        ? `Satellite imagery: on (${getSatelliteSource().label})`
+        : 'Satellite imagery: off — showing globe texture');
+    }
+    // The texture picker only means anything when a texture is what is showing.
+    const texBtn = this.quickControlsEl.querySelector('.globe-qc-texture');
+    if (texBtn instanceof HTMLElement) texBtn.hidden = this.satelliteDrapeActive;
     if (this.qualityBadgeEl) {
       const scale = getGlobeRenderScale();
       this.qualityBadgeEl.textContent = scale === 'auto' ? 'AUTO' : `${scale}×`;
@@ -3795,8 +3825,13 @@ export class GlobeMap {
       if (!this.globe || this.destroyed) return;
       const ambient = new THREE.AmbientLight(0xffffff, 2.4);
       const sun = new THREE.DirectionalLight(0xfff1de, 1.8);
+      this.ambientLight = ambient;
       this.sunLight = sun;
       (this.globe as any).lights([ambient, sun]);
+      // The rig's default exposure is tuned for the dark topo texture; satellite
+      // tiles need it pulled back. initLightRig is async, so the drape may have
+      // been applied before these lights existed.
+      this.applyDrapeLighting();
 
       const dir = new THREE.Vector3();
       const up = new THREE.Vector3(0, 1, 0);
@@ -3815,6 +3850,95 @@ export class GlobeMap {
       this.lightRigHandler = update;
       this.controls?.addEventListener('change', update);
     } catch { /* cosmetic — ignore */ }
+  }
+
+  // ─── Satellite drape (real imagery tiles on the sphere) ──────────────────
+
+  /**
+   * Drape live satellite imagery on the globe instead of a single flat texture.
+   *
+   * WHY. A 4096×2048 equirectangular texture is ~10km per pixel at the equator:
+   * it reads as a planet from orbit and as a smear the moment anyone zooms to a
+   * country. three-globe ships a slippy-map tile engine (`globeTileEngineUrl`),
+   * which loads the SAME XYZ imagery the flat map uses, projects it onto the
+   * sphere, and swaps levels as the camera descends — so the globe now sharpens
+   * continuously from whole-Earth down to city blocks. globe.gl already calls
+   * `setPointOfView` every frame, which is what drives the engine's LOD; no
+   * render loop of our own is needed.
+   *
+   * THE TRADE. Setting a tile-engine URL makes three-globe hide the textured
+   * sphere (`globeObj.visible = false`) and render tiles in its place, so the
+   * bump/roughness/emissive finish built for that sphere becomes inert while
+   * draping — hence the guards in `refreshMaterialFinish`, `setSurfaceDetail`
+   * and `applyEnhancedVisuals`. Real photography at every scale is worth more
+   * than a synthetic relief pass over a 10km-per-pixel texture. Everything that
+   * is NOT the sphere — atmosphere, glow shells, starfield, markers, arcs —
+   * lives in the scene independently and is unaffected.
+   *
+   * The level cap comes from the shared policy rather than the source's own
+   * ceiling: see `getGlobeDrapeMaxLevel`.
+   */
+  private applySatelliteDrape(globe: GlobeInstance): void {
+    const source = getSatelliteSource();
+    const g = globe as unknown as {
+      globeTileEngineUrl: (fn: (x: number, y: number, level: number) => string) => unknown;
+      globeTileEngineMaxLevel: (level: number) => unknown;
+    };
+    g.globeTileEngineUrl(buildGlobeTileUrlFn(source));
+    g.globeTileEngineMaxLevel(getGlobeDrapeMaxLevel(source));
+    this.satelliteDrapeActive = true;
+    this.applyDrapeLighting();
+  }
+
+  /** Tear the drape down and hand the sphere back its texture. */
+  private removeSatelliteDrape(): void {
+    if (!this.globe) return;
+    const g = this.globe as unknown as {
+      globeTileEngineUrl: (fn: unknown) => unknown;
+      globeTileEngineClearCache?: () => unknown;
+    };
+    g.globeTileEngineUrl(undefined);
+    g.globeTileEngineClearCache?.();
+    this.satelliteDrapeActive = false;
+    this.globe.globeImageUrl(GLOBE_TEXTURE_URLS[getGlobeTexture()]);
+    this.applyDrapeLighting();
+    // The sphere is visible again, so the relief/water finish it was built for
+    // is worth restoring.
+    this.setSurfaceDetail(!resolvePerformanceProfile(getGlobeRenderScale()).disableSurfaceDetail);
+    this.refreshMaterialFinish();
+  }
+
+  /**
+   * Re-balance the light rig for whichever surface is showing.
+   *
+   * The rig was tuned against a dark, desaturated topo texture and runs hot
+   * (ambient 2.4) to lift it. Satellite tiles are already correctly exposed
+   * photographs on an unlit-leaning Lambert material, so the same rig blows
+   * their highlights to white and the coastlines disappear. Draping therefore
+   * gets a near-neutral exposure with just enough directional light left to
+   * keep the terminator readable as a curved planet.
+   */
+  private applyDrapeLighting(): void {
+    const ambient = this.ambientLight;
+    const sun = this.sunLight;
+    if (ambient) ambient.intensity = this.satelliteDrapeActive ? 1.05 : 2.4;
+    if (sun) sun.intensity = this.satelliteDrapeActive ? 0.55 : 1.8;
+  }
+
+  /** Flip between satellite drape and the static textures, and persist it. */
+  private toggleSatelliteDrape(): void {
+    if (!this.globe) return;
+    if (this.satelliteDrapeActive) {
+      setBasemapImagery('vector');
+      this.removeSatelliteDrape();
+      this.showTextureToast(GLOBE_TEXTURE_OPTIONS.find(o => o.value === getGlobeTexture())?.label ?? 'Texture');
+    } else {
+      setBasemapImagery('satellite');
+      this.applySatelliteDrape(this.globe);
+      this.showTextureToast(getSatelliteSource().label);
+    }
+    this.syncQuickControls();
+    this.wakeGlobe();
   }
 
   /**
@@ -3864,6 +3988,9 @@ export class GlobeMap {
    * uses. Safe to call repeatedly (preset switches, eco↔full transitions).
    */
   private async refreshMaterialFinish(): Promise<void> {
+    // Draping hides the sphere this finish paints, and the water map is a
+    // ~420KB fetch — skip it rather than decorate an invisible mesh.
+    if (this.satelliteDrapeActive) return;
     if (!this.globe || this.destroyed || !this.surfaceDetailOn) return;
     const water = await this.ensureWaterTextures();
     if (!this.globe || this.destroyed || !this.surfaceDetailOn) return;
@@ -3884,6 +4011,7 @@ export class GlobeMap {
 
   /** Eco render scale skips bump + water maps entirely (perf guardrail). */
   private setSurfaceDetail(enabled: boolean): void {
+    if (this.satelliteDrapeActive) return;
     if (!this.globe || this.surfaceDetailOn === enabled) return;
     this.surfaceDetailOn = enabled;
     if (enabled) {
@@ -3923,7 +4051,10 @@ export class GlobeMap {
       if (!this.globe || this.destroyed || epoch !== this.enhancedEpoch) return;
       const scene = this.globe.scene();
 
-      const oldMat = this.globe.globeMaterial();
+      // The Cosmos preset's atmosphere shells, fill light and starfield all
+      // still apply while draping; only the sphere-material upgrade below is
+      // skipped, because the sphere it upgrades is hidden behind the tiles.
+      const oldMat = this.satelliteDrapeActive ? null : this.globe.globeMaterial();
       if (oldMat) {
         const stdMat = new THREE.MeshStandardMaterial({
           color: 0xffffff, roughness: 1.0, metalness: 0.05,
@@ -4185,6 +4316,18 @@ export class GlobeMap {
       this.lightRigHandler = null;
     }
     this.sunLight = null;
+    this.ambientLight = null;
+    // Every draped tile is a live GPU texture. globe.gl's _destructor empties
+    // the tile-engine object, but clearing the cache first releases the tile
+    // textures deterministically instead of leaving them to the next GC — a
+    // renderer switch (2D ↔ 3D) can otherwise strand a whole level of imagery.
+    if (this.satelliteDrapeActive) {
+      try {
+        (this.globe as unknown as { globeTileEngineClearCache?: () => void } | null)
+          ?.globeTileEngineClearCache?.();
+      } catch { /* teardown must not throw */ }
+      this.satelliteDrapeActive = false;
+    }
     if (this.texToastTimer) { clearTimeout(this.texToastTimer); this.texToastTimer = null; }
     this.quickControlsEl?.remove();
     this.quickControlsEl = null;

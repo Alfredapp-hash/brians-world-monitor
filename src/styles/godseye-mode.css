@@ -105,9 +105,14 @@ html[data-stage-mode='godseye'] .main-content::after {
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  /* Eased back for the satellite drape. These stops were set against a dark
+     4096x2048 topo texture, where a heavy falloff cost nothing; over real
+     imagery the same numbers grey out the coastlines the drape exists to show.
+     The centre now stays clear well past halfway, and the top scrim keeps only
+     the contrast the HUD titlecard actually needs to stay legible. */
   background:
-    radial-gradient(130% 110% at 50% 48%, transparent 38%, rgb(2 5 9 / 62%) 100%),
-    linear-gradient(to bottom, rgb(2 5 9 / 55%) 0%, transparent 22%);
+    radial-gradient(130% 110% at 50% 48%, transparent 52%, rgb(2 5 9 / 55%) 100%),
+    linear-gradient(to bottom, rgb(2 5 9 / 45%) 0%, transparent 20%);
 }
 
 @media (prefers-contrast: more) {
@@ -505,6 +510,7 @@ html[data-stage-mode='godseye'] .godseye-hud.is-live {
 
 .godseye-hud__title {
   margin: 0;
+  font-family: var(--font-ui);
   font-size: clamp(0.95rem, 1.7vw, 1.3rem);
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -614,16 +620,18 @@ html[data-stage-mode='godseye'] .godseye-hud.is-live {
  */
 .godseye-enter-btn {
   appearance: none;
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 24px;
+  height: 2rem;
+  min-height: 2rem;
   padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 1px solid var(--wm-hairline, var(--border));
+  border-radius: 0 var(--wm-radius-control, 8px) var(--wm-radius-control, 8px) 0;
   background: var(--overlay-subtle);
   color: var(--text-dim);
-  font-family: inherit;
+  font-family: var(--font-ui, inherit);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.8px;
@@ -634,13 +642,20 @@ html[data-stage-mode='godseye'] .godseye-hud.is-live {
 }
 
 .godseye-enter-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--wm-hairline-strong);
+  color: var(--text);
+  background: var(--surface-hover);
 }
 
 .godseye-enter-btn:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--wm-red-dim);
   outline-offset: 2px;
+}
+
+.godseye-enter-btn::before {
+  content: '';
+  position: absolute;
+  inset: -10px -6px;
 }
 
 /* A meridian ring — a globe read at 10px, where a wireframe would turn to mud. */
@@ -762,6 +777,10 @@ html[data-stage-mode='godseye'] .godseye-hud.is-live {
   .godseye-hud:not(.is-live) .godseye-hud__corner--tl,
   .godseye-hud:not(.is-live) .godseye-hud__corner--bl,
   .godseye-hud:not(.is-live) .godseye-hud__corner--br {
+    translate: none;
+  }
+
+  html[data-stage-mode='godseye'].ge-rail-hidden .panels-grid {
     translate: none;
   }
 

@@ -12,11 +12,19 @@ import {
   hasPMTilesUrl,
   isLightMapTheme,
   asPMTilesTheme,
+  asSatelliteTheme,
   FALLBACK_DARK_STYLE,
   FALLBACK_LIGHT_STYLE,
   type PMTilesTheme,
   type MapProvider,
+  type SatelliteTheme,
 } from '@/config/basemap';
+import {
+  ESRI_REFERENCE_TILES,
+  getOpenDataSatelliteSource,
+  getSatelliteSource,
+  type SatelliteSource,
+} from '@/config/satellite-imagery';
 
 let registered = false;
 let registerPromise: Promise<void> | null = null;
@@ -54,6 +62,71 @@ export async function buildPMTilesStyle(flavor: PMTilesTheme): Promise<StyleSpec
       },
     },
     layers: layers('basemap', namedFlavor(flavor), { lang: 'en' }) as StyleSpecification['layers'],
+  };
+}
+
+// ── Satellite imagery styles ────────────────────────────────────────────────
+
+/**
+ * Build a MapLibre style whose base is a photograph of Earth.
+ *
+ * Two raster layers rather than raster-imagery-plus-vector-labels: the
+ * boundaries/places overlay is served as tiles by the same provider, and a
+ * raster overlay survives the `setStyle(diff:false)` reloads that
+ * `switchBasemap()` / the tile-failure paths already perform. Grafting label
+ * layers off a second vector style would have to be re-grafted after each of
+ * those reloads, in the one code path where a mistake shows up as a blank map.
+ *
+ * `background` is painted the deep ocean blue rather than left transparent so
+ * the frame reads as sea while tiles stream in, instead of flashing the
+ * dashboard's charcoal through the map.
+ */
+export function buildSatelliteStyle(
+  theme: SatelliteTheme,
+  source: SatelliteSource = getSatelliteSource(),
+): StyleSpecification {
+  const withLabels = theme !== 'imagery';
+  const sources: StyleSpecification['sources'] = {
+    'satellite-imagery': {
+      type: 'raster',
+      tiles: [...source.tiles],
+      tileSize: source.tileSize,
+      maxzoom: source.maxZoom,
+      attribution: source.attribution,
+    },
+  };
+  const layers: StyleSpecification['layers'] = [
+    { id: 'background', type: 'background', paint: { 'background-color': '#06131f' } },
+    { id: 'satellite-imagery', type: 'raster', source: 'satellite-imagery', paint: { 'raster-opacity': 1 } },
+  ];
+
+  // The reference overlay is Esri-served, so it only rides along when the
+  // imagery is Esri's too — pairing it with NASA or Mapbox imagery would mix
+  // two providers' geometry and two attribution obligations in one frame.
+  if (withLabels && source.id === 'esri') {
+    sources['satellite-reference'] = {
+      type: 'raster',
+      tiles: [ESRI_REFERENCE_TILES],
+      tileSize: 256,
+      maxzoom: source.maxZoom,
+    };
+    layers.push({
+      id: 'satellite-reference',
+      type: 'raster',
+      source: 'satellite-reference',
+      paint: {
+        // Full-strength labels fight the app's own markers; held back just far
+        // enough that place names read as annotation on the photograph.
+        'raster-opacity': 0.85,
+      },
+    });
+  }
+
+  return {
+    version: 8,
+    glyphs: 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
+    sources,
+    layers,
   };
 }
 
@@ -219,6 +292,8 @@ async function tryBuildRegisteredPMTilesStyle(flavor: PMTilesTheme): Promise<Sty
 export async function getStyleForProvider(provider: MapProvider, mapTheme: string): Promise<StyleSpecification | string> {
   const lightFallback = isLightMapTheme(mapTheme);
   switch (provider) {
+    case 'satellite':
+      return buildSatelliteStyle(asSatelliteTheme(mapTheme));
     case 'pmtiles': {
       const style = await tryBuildRegisteredPMTilesStyle(asPMTilesTheme(mapTheme));
       if (style) return style;
@@ -233,4 +308,24 @@ export async function getStyleForProvider(provider: MapProvider, mapTheme: strin
       return pmtiles ?? (lightFallback ? FALLBACK_LIGHT_STYLE : FALLBACK_DARK_STYLE);
     }
   }
+}
+
+/**
+ * Where a renderer goes when its basemap tiles fail to load.
+ *
+ * A satellite map retreats to OPEN-DATA SATELLITE, not to the vector fallback.
+ * The old single fallback (`OpenFreeMap dark`) meant one flaky CDN response
+ * silently converted the product's Earth into a charcoal vector map for the
+ * rest of the session, with no signal that anything had happened — the exact
+ * "muddy dark rectangle" this pass exists to remove. Non-satellite providers
+ * keep the vector fallback they always had.
+ */
+export function getFallbackStyleForProvider(
+  provider: MapProvider,
+  mapTheme: string,
+): StyleSpecification | string {
+  if (provider === 'satellite') {
+    return buildSatelliteStyle(asSatelliteTheme(mapTheme), getOpenDataSatelliteSource());
+  }
+  return isLightMapTheme(mapTheme) ? FALLBACK_LIGHT_STYLE : FALLBACK_DARK_STYLE;
 }

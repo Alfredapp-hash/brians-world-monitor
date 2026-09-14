@@ -21,6 +21,8 @@ export const BRAND = {
   about: '/about.html',
   /** Public NCI methodology explainer. */
   methodology: '/methodology.html',
+  /** Public OSINT tools directory. */
+  osint4all: '/osint4all.html',
   /** Upstream project this fork is based on (credit + AGPL lineage). */
   upstream: 'https://github.com/koala73/worldmonitor',
 } as const;
