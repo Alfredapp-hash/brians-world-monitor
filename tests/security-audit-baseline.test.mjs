@@ -110,6 +110,14 @@ describe('security audit baseline', () => {
     assert.notEqual(viteEsbuild.version, rootEsbuild.version);
   });
 
+  it('keeps the root brace-expansion audit fix at a non-vulnerable version', () => {
+    const packageJson = readRepoJson('package.json');
+    const lockfile = readRepoJson('package-lock.json');
+
+    assert.equal(packageJson.overrides?.['brace-expansion'], '^5.0.8');
+    assert.equal(lockfile.packages['node_modules/brace-expansion']?.version, '5.0.8');
+  });
+
   it('flags baseline entries that no longer match any current advisory', () => {
     // Report carries the two pro-test advisories that ARE present in the current
     // audit (the clerk advisory + shell-quote); only GHSA-qjx8, which no longer
