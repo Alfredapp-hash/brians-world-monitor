@@ -30,15 +30,27 @@ function readRepoJson(relativePath) {
 }
 
 describe('security audit baseline', () => {
-  it('allows currently baselined high advisories', () => {
-    const report = auditReportWith({
-      name: '@clerk/clerk-js',
-      severity: 'high',
-      title: 'known clerk advisory',
-      url: 'https://github.com/advisories/GHSA-w24r-5266-9c3c',
-    });
+  it('does not baseline any production advisory', () => {
+    for (const ids of Object.values(BASELINE_ADVISORIES_BY_LOCKFILE)) {
+      assert.deepEqual(ids, []);
+    }
 
-    assert.deepEqual(collectUnbaselinedFindings(report, 'pro-test/package-lock.json'), []);
+    const report = auditReportWith({
+      name: 'braces',
+      severity: 'high',
+      title: 'braces has no patched release',
+      url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm',
+    });
+    const finding = {
+      id: 'GHSA-vfj7-8cjw-p6xm',
+      name: 'braces',
+      severity: 'high',
+      title: 'braces has no patched release',
+      url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm',
+    };
+
+    assert.deepEqual(collectUnbaselinedFindings(report, 'package-lock.json'), [finding]);
+    assert.deepEqual(collectUnbaselinedFindings(report, 'pro-test/package-lock.json'), [finding]);
   });
 
   it('ignores moderate production advisories for the high-severity PR gate', () => {
@@ -111,48 +123,31 @@ describe('security audit baseline', () => {
   });
 
   it('flags baseline entries that no longer match any current advisory', () => {
-    // Report carries the two pro-test advisories that ARE present in the current
-    // audit (the clerk advisory + shell-quote); only GHSA-qjx8, which no longer
-    // matches anything, must be flagged stale.
-    const report = {
+    const present = {
       vulnerabilities: {
-        '@clerk/clerk-js': {
-          name: '@clerk/clerk-js',
+        braces: {
+          name: 'braces',
           severity: 'high',
           via: [{
-            name: '@clerk/clerk-js',
+            name: 'braces',
             severity: 'high',
-            title: 'known clerk advisory',
-            url: 'https://github.com/advisories/GHSA-w24r-5266-9c3c',
-          }],
-        },
-        'shell-quote': {
-          name: 'shell-quote',
-          severity: 'high',
-          via: [{
-            name: 'shell-quote',
-            severity: 'high',
-            title: 'shell-quote DoS',
-            url: 'https://github.com/advisories/GHSA-395f-4hp3-45gv',
-          }],
-        },
-        'sharp': {
-          name: 'sharp',
-          severity: 'high',
-          via: [{
-            name: 'sharp',
-            severity: 'high',
-            title: 'sharp inherited vulnerabilities in libvips',
-            url: 'https://github.com/advisories/GHSA-f88m-g3jw-g9cj',
+            title: 'braces has no patched release',
+            url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm',
           }],
         },
       },
     };
+    const absent = auditReportWith({
+      name: 'unrelated',
+      severity: 'high',
+      title: 'unrelated advisory',
+      url: 'https://github.com/advisories/GHSA-1111-2222-3333',
+    });
 
-    // The still-present ids are not reported as stale; GHSA-qjx8 (absent) is.
-    assert.deepEqual(collectStaleBaselineEntries(report, 'pro-test/package-lock.json'), ['GHSA-qjx8-664m-686j']);
-    // Root's baselined sharp advisory is present in the report, so nothing is stale.
-    assert.deepEqual(collectStaleBaselineEntries(report, 'package-lock.json'), []);
+    assert.deepEqual(collectStaleBaselineEntries(present, 'package-lock.json'), []);
+    assert.deepEqual(collectStaleBaselineEntries(present, 'pro-test/package-lock.json'), []);
+    assert.deepEqual(collectStaleBaselineEntries(absent, 'package-lock.json'), []);
+    assert.deepEqual(collectStaleBaselineEntries(absent, 'scripts/package-lock.json'), []);
   });
 
   it('treats a symlinked entry path as direct invocation (no silent fail-open)', () => {
