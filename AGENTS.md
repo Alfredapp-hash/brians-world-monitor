@@ -4,7 +4,7 @@ Agent entry point for The Public Dispatch, this fork of World Monitor. Read this
 
 ## What This Project Is
 
-The Public Dispatch (owner: Brian; repo `Alfredapp-hash/brians-world-monitor`) is a real-time global intelligence dashboard. TypeScript SPA (Vite + Preact) with 164 top-level TypeScript component files, 80+ Vercel Edge API endpoint entries in `api/` (Edge-shaped source; this fork's web host is Netlify, not Vercel), a Tauri desktop app with Node.js sidecar, and a Railway relay service in the upstream tree (no Railway URL is documented for this fork). Aggregates geopolitics, military, finance, climate, cyber, maritime, and aviation data across 35 freshness-tracked source groups.
+The Public Dispatch (owner: Brian; repo `Alfredapp-hash/brians-world-monitor`) is a real-time global intelligence dashboard. TypeScript SPA (Vite + Preact) with 166 top-level TypeScript component files, 80+ Vercel Edge API endpoint entries in `api/` (Edge-shaped source; this fork's web host is Netlify, not Vercel), a Tauri desktop app with Node.js sidecar, and a Railway relay service in the upstream tree (no Railway URL is documented for this fork). Aggregates geopolitics, military, finance, climate, cyber, maritime, and aviation data across 35 freshness-tracked source groups.
 
 Coverage Compare (`src/components/CoverageComparePanel.ts`) and local Ollama are first-class on this fork. Setup is in [BRIANS_SETUP.md](BRIANS_SETUP.md).
 
@@ -36,9 +36,9 @@ Upstream World Monitor (Vercel, the Cloudflare worker for `api.worldmonitor.app`
 ├── src/                    # Browser SPA (TypeScript, class-based components)
 │   ├── app/                # App orchestration (data-loader, refresh-scheduler, panel-layout)
 │   ├── bootstrap/          # Startup/recovery (chunk reload, deferred Sentry, SW update)
-│   ├── components/         # 164 top-level TypeScript component files
+│   ├── components/         # 166 top-level TypeScript component files
 │   ├── config/             # Variant configs, panel/layer definitions, market symbols
-│   ├── services/           # Business logic (203 service modules and domain directories)
+│   ├── services/           # Business logic (211 service modules and domain directories)
 │   ├── shared/             # Cross-cutting helpers (premium paths, registries, staleness)
 │   ├── embed/              # Embeddable widget loader
 │   ├── styles/             # Global CSS (layers, themes, panel styles)
