@@ -94,7 +94,7 @@ const TIER_COLORS = [0x2ecc71, 0xf1c40f, 0xe67e22, 0xe74c3c, 0x9b1d1d];
 /** Pure: build the Discord webhook payload for one story. */
 export function buildAlertPayload(story: AlertStory): object {
   const kind = story.talkingPoint
-    ? '⚠ TALKING POINT — synchronized phrasing detected'
+    ? '⚠ Shared phrasing — overlap across outlets, not proof of coordination'
     : story.recurring
       ? '↻ RECURRING NARRATIVE'
       : '📊 High manipulation indicators';
@@ -216,7 +216,7 @@ export function buildDigestPayload(input: DigestInput, now: number = Date.now())
       color: 0xf0a832,
       fields: [
         { name: 'Headlines analyzed', value: String(input.headlineCount), inline: true },
-        { name: 'Talking-point alerts', value: String(input.alerts), inline: true },
+        { name: 'Shared phrasing', value: String(input.alerts), inline: true },
         { name: 'Avg / Peak NCI', value: `${input.avgNci} / ${input.peakNci}`, inline: true },
       ],
       footer: { text: `NCI measures indicators, not proof · ${BRAND.name}` },
@@ -260,7 +260,7 @@ export async function sendTestAlert(webhookUrl: string): Promise<boolean> {
         username: BRAND.name,
         embeds: [{
           title: '✅ Webhook connected',
-          description: 'Coverage Compare alerts will post here: talking-point detections, recurring narratives, and high-NCI stories.',
+          description: 'Coverage Compare alerts will post here: shared-phrasing detections, recurring narratives, and high-NCI stories.',
           color: 0xf0a832,
         }],
       }),
