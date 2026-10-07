@@ -55,7 +55,9 @@ describe('discord-alerts', () => {
       flags: ['⚠ TALKING POINT — synchronized phrasing'],
     })) as { username: string; embeds: Array<{ title: string; fields: Array<{ name: string; value: string }> }> };
     assert.equal(payload.username, 'The Public Dispatch');
-    assert.ok(payload.embeds[0]!.title.includes('TALKING POINT'));
+    assert.match(payload.embeds[0]!.title, /Shared phrasing/i);
+    assert.match(payload.embeds[0]!.title, /not proof/i);
+    assert.equal(/\btalking point\b/i.test(payload.embeds[0]!.title), false);
     const phraseField = payload.embeds[0]!.fields.find(f => f.name === 'Synchronized phrasing');
     assert.ok(phraseField!.value.includes('unprecedented security threat'));
   });

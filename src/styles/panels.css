@@ -3483,6 +3483,7 @@ a.hub-top-story {
 .cc-modal-item:last-child { border-bottom: none; }
 .cc-modal-item-head { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; font-size: 10.5px; margin-bottom: 3px; }
 .cc-modal-time { color: var(--text-dim, #a9a49b); font-variant-numeric: tabular-nums; }
+.cc-modal-time-undated { font-style: italic; opacity: 0.85; }
 .cc-modal-item .cc-headline { font-size: 12px; line-height: 1.45; display: block; }
 .cc-expand-btn {
   background: transparent; border: 1px solid var(--border, #333); color: var(--text-dim, #a9a49b);

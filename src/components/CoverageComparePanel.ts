@@ -25,9 +25,10 @@ import { clusterNews } from '@/services/clustering';
 import type { ClusteredEvent } from '@/types';
 import { getSourceType, getSourcePropagandaRisk } from '@/config/feeds';
 import { tokenize } from '@/utils/analysis-constants';
+import { effectivePubDateMs } from '@/services/feed-date';
 import { getRuntimeConfigSnapshot } from '@/services/runtime-config';
 import { generateSummary } from '@/services/summarization';
-import { analyzeTalkingPoints, type TalkingPointAnalysis, type TitleForAnalysis } from '@/utils/talking-points';
+import { analyzeTalkingPoints, phraseKindLabel, phraseKindTitle, type PhraseHit, type TalkingPointAnalysis, type TitleForAnalysis } from '@/utils/talking-points';
 import {
   heuristicNciScore, buildNciPrompt, parseAiNciResponse, mergeNci, finalizeNci,
   applyManualScores, saveManualScore, buildNciReport,
@@ -150,11 +151,18 @@ function compareCluster(cluster: ClusteredEvent, allNews?: NewsItem[]): Compared
   const tp = analyzeTalkingPoints(tpTitles);
 
   const flags: string[] = [];
-  if (tp.talkingPointAlert) flags.push('⚠ TALKING POINT — synchronized phrasing');
-  const coordinated = tp.phrases.filter(p => p.kind === 'coordinated');
-  if (!tp.talkingPointAlert && coordinated.length > 0) flags.push('Shared phrasing (non-wire)');
-  if (tp.phrases.some(p => p.kind === 'syndication')) flags.push('Wire copy detected');
-  if (tp.loadedTerms.length > 0) flags.push(`Loaded language (${tp.loadedTerms.length})`);
+  const nonWire = tp.phrases.filter(p => p.kind === 'coordinated');
+  if (tp.talkingPointAlert && nonWire[0]) {
+    flags.push(`Shared phrasing — ${outletList(nonWire[0].sources)}`);
+  } else if (nonWire[0]) {
+    flags.push(`Non-wire overlap — ${outletList(nonWire[0].sources)}`);
+  }
+  const wirePhrase = tp.phrases.find(p => p.kind === 'syndication');
+  if (wirePhrase) flags.push(`Wire copy — ${outletList(wirePhrase.sources)}`);
+  if (tp.loadedTerms.length > 0) {
+    const loadedOutlets = [...new Set(tp.loadedTerms.flatMap(l => l.sources))];
+    flags.push(`Loaded language — ${outletList(loadedOutlets)}`);
+  }
   if (groups.local.length > 0) flags.push(`Local coverage (${groups.local.length})`);
   if (groups.state.length > 0 && groups.mainstream.length > 0) flags.push('State vs mainstream framing');
   if (groups.state.length > 0 && groups.mainstream.length === 0 && groups.independent.length === 0) {
@@ -173,7 +181,12 @@ function compareCluster(cluster: ClusteredEvent, allNews?: NewsItem[]): Compared
   // NCI Engineered Reality heuristic scoring, with any saved manual overrides.
   const nci = applyManualScores(
     heuristicNciScore({
-      titles: items.map(i => ({ source: i.source, title: i.title, pubDate: i.pubDate })),
+      titles: items.map(i => ({
+        source: i.source,
+        title: i.title,
+        pubDate: i.pubDate,
+        pubDateMissing: i.pubDateMissing,
+      })),
       tp,
     }),
     key,
@@ -205,16 +218,16 @@ function buildComparePrompt(cc: ComparedCluster): string {
     'Below are headlines about the same story from different types of news sources.',
     'Your job is to filter signal from spin. Answer concisely in markdown with these sections:',
     '1. **Verifiable core** — facts all source groups report the same way (the part most likely true).',
-    '2. **Talking points** — repeated phrasing/framing that reads like a distributed message rather than independent reporting. Distinguish wire-service copy (normal) from suspicious synchronization. Say who benefits from each talking point.',
+    '2. **Shared phrasing** — repeated wording across outlets. Distinguish wire-service copy (normal) from non-wire overlap. Phrase overlap is not proof of coordination. Name the outlets. Say who benefits from each repeated phrase.',
     '3. **Differences** — where framing, emphasis, or claimed facts differ between groups (mainstream vs independent vs state vs local).',
     '4. **Unique claims** — anything only one outlet reports (flag as unverified).',
     '5. **BS meter** — a 1–10 rating of how much of this coverage is spin vs substance, with one sentence of justification.',
     '',
   ];
   if (cc.tp.phrases.length > 0) {
-    lines.push('Automated phrase analysis already detected these shared phrases (verify and interpret them):');
+    lines.push('Automated phrase analysis already detected these shared phrases (phrase overlap is not proof of coordination):');
     for (const p of cc.tp.phrases.slice(0, 6)) {
-      lines.push(`- "${p.phrase}" used by ${p.sources.join(', ')} (${p.kind}${p.loaded ? ', loaded language' : ''})`);
+      lines.push(`- "${p.phrase}" used by ${p.sources.join(', ')} (${phraseKindLabel(p.kind)}${p.loaded ? ', loaded language' : ''})`);
     }
     lines.push('');
   }
@@ -242,6 +255,23 @@ function hashString(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
   return h;
+}
+
+/** Short outlet list for chips. Names the outlets instead of a coordination verdict. */
+function outletList(sources: string[], max = 4): string {
+  const shown = sources.slice(0, max);
+  const extra = sources.length - shown.length;
+  return extra > 0 ? `${shown.join(', ')} +${extra}` : shown.join(', ');
+}
+
+/** Phrase chip: origin class is a signal, never a collusion verdict. */
+function phraseChip(p: PhraseHit, extra: HTMLElement[] = []): HTMLElement {
+  return h('div', { className: `cc-phrase${p.kind === 'coordinated' ? ' cc-phrase-coord' : ''}` },
+    h('span', { className: 'cc-phrase-kind', title: phraseKindTitle(p.kind) }, phraseKindLabel(p.kind)),
+    h('span', { className: 'cc-phrase-text' }, `“${p.phrase}”`),
+    h('span', { className: 'cc-phrase-sources' }, p.sources.join(' · ')),
+    ...extra,
+  );
 }
 
 /** Only http(s) links are safe to render as anchors (blocks javascript:/data:). */
@@ -348,7 +378,7 @@ export class CoverageComparePanel extends Panel {
       title: everyday ? 'How outlets frame this' : 'Coverage Compare',
       infoTooltip: everyday
         ? 'See which outlet types covered a story, which stayed quiet, and how framing differs — plain language first. Deeper scoring stays optional.'
-        : 'Filters spin from signal: clusters the same story across mainstream, independent, state, and local sources; detects synchronized talking points (identical phrasing across outlets), separates normal wire-copy from coordinated messaging, flags loaded language, and scores narrative sync. AI Compare uses your local Ollama when configured.',
+        : 'Filters spin from signal: clusters the same story across mainstream, independent, state, and local sources; flags shared phrasing, wire copy, and loaded language, and names the outlets. Phrase overlap is not proof of coordination. AI Compare uses your local Ollama when configured.',
     });
     this.getLatestNews = getLatestNews;
 
@@ -432,7 +462,7 @@ export class CoverageComparePanel extends Panel {
     // Spelled-out labels (design review P3 — "TP"/"NCI" acronyms were opaque).
     replaceChildren(this.statsEl,
       stat('Stories', String(stories)),
-      stat('Talking-point alerts', String(alerts), alerts > 0 ? 'cc-stat-alert' : ''),
+      stat('Shared phrasing', String(alerts), alerts > 0 ? 'cc-stat-alert' : ''),
       stat('Recurring narratives', String(recurring), recurring > 0 ? 'cc-stat-alert' : ''),
       stat('Coverage asymmetry', String(asymmetries), asymmetries > 0 ? 'cc-stat-warn' : ''),
       stat('Avg manipulation', String(avgNci), avgNci >= 41 ? 'cc-stat-warn' : ''),
@@ -493,9 +523,9 @@ export class CoverageComparePanel extends Panel {
       .map(cls => h('div', { className: 'cc-modal-col' },
         h('div', { className: `cc-group-label cc-group-${cls}` }, `${CLASS_LABELS[cls]} (${cc.groups[cls].length})`),
         ...cc.groups[cls].map(g => {
-          const time = g.item.pubDate
-            ? h('span', { className: 'cc-modal-time' }, new Date(g.item.pubDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
-            : null;
+          const time = g.item.pubDateMissing || effectivePubDateMs(g.item) <= 0
+            ? h('span', { className: 'cc-modal-time cc-modal-time-undated' }, 'undated')
+            : h('span', { className: 'cc-modal-time' }, new Date(g.item.pubDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
           return h('div', { className: 'cc-modal-item' },
             h('div', { className: 'cc-modal-item-head' },
               h('span', { className: 'cc-source' }, g.item.source),
@@ -509,12 +539,7 @@ export class CoverageComparePanel extends Panel {
         }),
       ));
 
-    const phrases = cc.tp.phrases.slice(0, 6).map(p =>
-      h('div', { className: `cc-phrase${p.kind === 'coordinated' ? ' cc-phrase-coord' : ''}` },
-        h('span', { className: 'cc-phrase-kind' }, p.kind === 'coordinated' ? '⚠ coordinated' : 'wire copy'),
-        h('span', { className: 'cc-phrase-text' }, `“${p.phrase}”`),
-        h('span', { className: 'cc-phrase-sources' }, p.sources.join(' · ')),
-      ));
+    const phrases = cc.tp.phrases.slice(0, 6).map(p => phraseChip(p));
 
     overlay.append(h('div', { className: 'cc-modal' },
       h('div', { className: 'cc-modal-header' },
@@ -590,7 +615,7 @@ export class CoverageComparePanel extends Panel {
 
     const panel = h('div', { className: 'cc-alerts-config' },
       h('div', { className: 'cc-alerts-row' },
-        h('label', { className: 'cc-alerts-label', htmlFor: 'cc-alerts-toggle' }, toggle, ' Post alerts to Discord (talking points, recurring narratives, NCI ≥ 61)'),
+        h('label', { className: 'cc-alerts-label', htmlFor: 'cc-alerts-toggle' }, toggle, ' Post alerts to Discord (shared phrasing, recurring narratives, NCI ≥ 61)'),
       ),
       h('div', { className: 'cc-alerts-row' }, input, saveBtn, testBtn),
       status,
@@ -691,7 +716,7 @@ export class CoverageComparePanel extends Panel {
 
       if (clusters.length === 0) {
         // Distinct from the "not loaded yet" case — this is a healthy result.
-        this.statusEl.textContent = '✓ No coordinated multi-source stories in the current window — nothing flagged.';
+        this.statusEl.textContent = '✓ No multi-source stories in the current window — nothing flagged.';
         return;
       }
 
@@ -753,7 +778,7 @@ export class CoverageComparePanel extends Panel {
         this.statusEl.textContent =
           (this.live ? '⦿ LIVE — synced with news feed refresh · ' : '')
           + `${news.length} headlines analyzed`
-          + (alerts ? ` · ⚠ ${alerts} talking-point alert${alerts > 1 ? 's' : ''}` : ' · no synchronized talking points detected')
+          + (alerts ? ` · ⚠ ${alerts} shared-phrasing alert${alerts > 1 ? 's' : ''}` : ' · no shared phrasing detected')
           + ` · updated ${updatedAt}`;
       }
       this.nciUpdaters.clear();
@@ -794,7 +819,7 @@ export class CoverageComparePanel extends Panel {
     // (Tier 3) — no signal is dropped, only demoted.
     interface FlagSpec { text: string; className: string; title?: string; severity: 0 | 1 | 2; talkingPoint?: boolean }
     const flagSpecs: FlagSpec[] = cc.flags.map(f => {
-      const alert = f.includes('TALKING POINT');
+      const alert = f.startsWith('Shared phrasing');
       const warn = !alert && (f.includes('State') || f.includes('No independent') || f.includes('divergent') || f.includes('Loaded'));
       return {
         text: f,
@@ -828,7 +853,7 @@ export class CoverageComparePanel extends Panel {
         text: `↻ RECURRING ${n.age}`,
         className: 'cc-flag cc-flag-alert',
         severity: 2,
-        title: `"${n.phrase}" observed in ${n.record.runs} analysis runs over ${n.age} by: ${n.record.sources.join(', ')}. Persistent synchronized phrasing is the signature of a pushed narrative.`,
+        title: `"${n.phrase}" observed in ${n.record.runs} analysis runs over ${n.age} by: ${n.record.sources.join(', ')}. Persistent shared phrasing is a signal to inspect, not proof of coordination.`,
       });
     }
 
@@ -846,9 +871,14 @@ export class CoverageComparePanel extends Panel {
       }
     }
 
-    // Freshness: any item published in the last 30 minutes → LIVE.
+    // Freshness: a dated item published in the last 30 minutes → LIVE.
+    // Undated items synthesize pubDate as now and must never light the badge.
     const now = Date.now();
-    const isLive = cc.items.some(i => i.item.pubDate && now - i.item.pubDate.getTime() < 30 * 60_000);
+    const isLive = cc.items.some(i => {
+      const ms = effectivePubDateMs(i.item);
+      return ms > 0 && now - ms < 30 * 60_000;
+    });
+    const undatedCount = cc.items.filter(i => effectivePubDateMs(i.item) <= 0).length;
 
     // Narrative sync meter (full chip lives in the Tier 3 signal row;
     // Tier 2 compresses it to a word).
@@ -856,17 +886,12 @@ export class CoverageComparePanel extends Panel {
     const syncClass = sync >= 60 ? 'cc-sync-high' : sync >= 30 ? 'cc-sync-mid' : 'cc-sync-low';
     const syncMeter = h('span', {
       className: `cc-sync ${syncClass}`,
-      title: 'Narrative sync: how much of this coverage shares identical phrasing across distinct outlets. High + non-wire = likely talking point.',
+      title: 'Narrative sync: how much of this coverage shares identical phrasing across distinct outlets. High overlap on non-wire copy is a signal to inspect, not proof of coordination.',
     }, `sync ${sync}%`);
 
     // Shared-phrase evidence chips.
     const phraseEls = cc.tp.phrases.slice(0, 4).map(p =>
-      h('div', { className: `cc-phrase${p.kind === 'coordinated' ? ' cc-phrase-coord' : ''}` },
-        h('span', { className: 'cc-phrase-kind' }, p.kind === 'coordinated' ? '⚠ coordinated' : 'wire copy'),
-        h('span', { className: 'cc-phrase-text' }, `“${p.phrase}”`),
-        h('span', { className: 'cc-phrase-sources' }, p.sources.join(' · ')),
-        ...(p.loaded ? [h('span', { className: 'cc-flag cc-flag-warn' }, 'loaded')] : []),
-      ));
+      phraseChip(p, p.loaded ? [h('span', { className: 'cc-flag cc-flag-warn' }, 'loaded language')] : []));
 
     const loadedEl = cc.tp.loadedTerms.length
       ? h('div', { className: 'cc-loaded' },
@@ -920,6 +945,7 @@ export class CoverageComparePanel extends Panel {
     const signalRow = h('div', { className: 'cc-flag-row' },
       syncMeter,
       ...(isLive ? [h('span', { className: 'cc-flag cc-flag-live', title: 'New reporting within the last 30 minutes' }, '⦿ LIVE')] : []),
+      ...(undatedCount > 0 ? [h('span', { className: 'cc-flag', title: 'Headlines with no publication date are not marked LIVE and do not count as inside a timing window.' }, `${undatedCount} undated`)] : []),
       ...(trendChip ? [trendChip] : []),
       ...flagSpecs.map(mkFlag),
     );
@@ -945,6 +971,7 @@ export class CoverageComparePanel extends Panel {
     if (isLive) {
       metaChildren.push(' · ', h('span', { className: 'cc-meta-dot cc-meta-dot-live' }), '⦿ live');
     }
+    if (undatedCount > 0) metaChildren.push(' · ', `${undatedCount} undated`);
     const metaLine = h('div', { className: 'cc-meta' }, ...metaChildren);
 
     const everyday = isEverydayReaderMode();
@@ -1042,7 +1069,7 @@ export class CoverageComparePanel extends Panel {
         ...(lastAiSummary ? [h('div', { className: 'cc-nci-summary' }, lastAiSummary)] : []),
         h('div', { className: 'cc-nci-table' }, ...rows),
         h('div', { className: 'cc-nci-disclaimer' },
-          'The NCI scale measures indicators of coordinated manipulation — it does not by itself prove an influence campaign exists. Click any score to override it with your own judgment (saved locally).'),
+          'The NCI scale measures indicators, not proof of an influence campaign. Click any score to override it with your own judgment (saved locally).'),
       );
     };
 

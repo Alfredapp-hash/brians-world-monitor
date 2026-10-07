@@ -3,7 +3,7 @@
  *
  * Builds a concise, credible tweet from a story's Coverage Compare analysis
  * and opens the X web intent. Keeps within 280 chars, leads with the signal
- * (talking point / NCI), names the outlet count, and attributes the handle.
+ * (shared phrasing / NCI), names the outlet count, and attributes the handle.
  */
 
 export interface ShareStory {
@@ -27,7 +27,7 @@ function truncate(s: string, n: number): string {
 /** Pure: compose the tweet text (no URL — X appends the share url separately). */
 export function buildTweetText(story: ShareStory): string {
   const lead = story.talkingPoint
-    ? '⚠ SYNCHRONIZED TALKING POINT'
+    ? '⚠ SHARED PHRASING'
     : story.recurring
       ? '↻ RECURRING NARRATIVE'
       : `📊 Manipulation indicators high (NCI ${story.nci}/100)`;
