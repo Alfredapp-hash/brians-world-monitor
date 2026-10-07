@@ -1,0 +1,8 @@
+{
+  "name": "@solana-mobile/wallet-adapter-mobile",
+  "version": "2.2.9",
+  "private": true,
+  "description": "Empty stand-in. This app does not use Solana wallet sign-in, so the React Native peer of the real adapter is not installed.",
+  "main": "index.js",
+  "type": "module"
+}

@@ -14,15 +14,9 @@ const SEVERITY_RANK = new Map([
 ]);
 
 export const BASELINE_ADVISORIES_BY_LOCKFILE = {
-  // GHSA-vfj7-8cjw-p6xm (braces) has no patched release. npm's latest publish
-  // is 3.0.3, which the advisory records as the last affected version. It is
-  // installed because micromatch is part of the Clerk Solana wallet adapter's
-  // React Native toolchain (the same toolchain is in pro-test). Remove this
-  // entry when a fixed braces release is published. Keeping it requires
-  // product-owner sign-off.
-  'package-lock.json': ['GHSA-vfj7-8cjw-p6xm'],
+  'package-lock.json': [],
   'consumer-prices-core/package-lock.json': [],
-  'pro-test/package-lock.json': ['GHSA-vfj7-8cjw-p6xm'],
+  'pro-test/package-lock.json': [],
   'scripts/package-lock.json': [],
   'docker/runtime-package-lock.json': [],
 };

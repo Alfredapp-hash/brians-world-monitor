@@ -30,16 +30,27 @@ function readRepoJson(relativePath) {
 }
 
 describe('security audit baseline', () => {
-  it('allows currently baselined high advisories', () => {
+  it('does not baseline any production advisory', () => {
+    for (const ids of Object.values(BASELINE_ADVISORIES_BY_LOCKFILE)) {
+      assert.deepEqual(ids, []);
+    }
+
     const report = auditReportWith({
       name: 'braces',
       severity: 'high',
       title: 'braces has no patched release',
       url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm',
     });
+    const finding = {
+      id: 'GHSA-vfj7-8cjw-p6xm',
+      name: 'braces',
+      severity: 'high',
+      title: 'braces has no patched release',
+      url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm',
+    };
 
-    assert.deepEqual(collectUnbaselinedFindings(report, 'package-lock.json'), []);
-    assert.deepEqual(collectUnbaselinedFindings(report, 'pro-test/package-lock.json'), []);
+    assert.deepEqual(collectUnbaselinedFindings(report, 'package-lock.json'), [finding]);
+    assert.deepEqual(collectUnbaselinedFindings(report, 'pro-test/package-lock.json'), [finding]);
   });
 
   it('ignores moderate production advisories for the high-severity PR gate', () => {
@@ -135,7 +146,7 @@ describe('security audit baseline', () => {
 
     assert.deepEqual(collectStaleBaselineEntries(present, 'package-lock.json'), []);
     assert.deepEqual(collectStaleBaselineEntries(present, 'pro-test/package-lock.json'), []);
-    assert.deepEqual(collectStaleBaselineEntries(absent, 'package-lock.json'), ['GHSA-vfj7-8cjw-p6xm']);
+    assert.deepEqual(collectStaleBaselineEntries(absent, 'package-lock.json'), []);
     assert.deepEqual(collectStaleBaselineEntries(absent, 'scripts/package-lock.json'), []);
   });
 
