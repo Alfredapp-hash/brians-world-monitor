@@ -6556,6 +6556,8 @@ function startChokepointFlowsSeedLoop() {
 // ─────────────────────────────────────────────────────────────
 const PIZZINT_SEED_INTERVAL_MS = 10 * 60 * 1000; // 10 min
 const PIZZINT_SEED_TTL = 1800; // 30 min (3× interval)
+// Must match shared/pizzint-seed-keys.js (PIZZINT_SEED_KEY / PIZZINT_SEED_META_KEY).
+// This file is CJS and cannot import that ESM module; tests/pizzint-seed-key-parity.test.mts pins the strings.
 const PIZZINT_REDIS_KEY = 'intelligence:pizzint:seed:v1';
 const PIZZINT_API = 'https://www.pizzint.watch/api/dashboard-data';
 const GDELT_BATCH_API = 'https://www.pizzint.watch/api/gdelt/batch';

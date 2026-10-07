@@ -6,7 +6,7 @@
  * Seedable (fixed/predictable inputs):
  * - listAcledEvents (all countries, last 30 days)
  * - getHumanitarianSummary (top conflict countries)
- * - getPizzintStatus (base + gdelt variants)
+ * - getPizzintStatus (canonical intelligence:pizzint:seed:v1; tension pairs included when GDELT succeeds)
  *
  * NOT seeded (inherently on-demand, user-specific):
  * - classifyEvent: per-headline LLM classification (sha256 cache key)
@@ -17,9 +17,12 @@
  */
 
 import { loadEnvFile, CHROME_UA, runSeed, writeExtraKeyWithMeta, sleep, loadSharedConfig, readSeedSnapshot } from './_seed-utils.mjs';
+import { PIZZINT_SEED_KEY, PIZZINT_SEED_META_KEY } from '../shared/pizzint-seed-keys.js';
 import { fetchGdeltJson } from './_gdelt-fetch.mjs';
 import { buildGdeltConflictUrl, mapGdeltArticlesToEvents, GDELT_COUNTRY_NAMES } from './_conflict-gdelt.mjs';
 import { fetchGdeltBulkConflictEvents, GDELT_ROLLING_WINDOW_MS, mergeGdeltBulkRollingWindow } from './_conflict-gdelt-bulk.mjs';
+
+export { PIZZINT_SEED_KEY, PIZZINT_SEED_META_KEY };
 
 loadEnvFile(import.meta.url);
 
@@ -47,7 +50,14 @@ const ACLED_RESOLUTION_MAX_PAGES = 20;
 const ACLED_PAGE_DELAY_MS = 250;
 const HAPI_CACHE_KEY_PREFIX = 'conflict:humanitarian:v1';
 const HAPI_TTL = 21600;
-const PIZZINT_TTL = 600;
+// Data TTL for the PizzINT extra key. This fork's seed-data.yml cron is
+// `0 6,18 * * *` (12h). 3× that interval matches the headroom convention
+// used for ACLED_TTL (a TTL equal to the refresh interval drops the panel
+// on one skipped run). It also exceeds /api/health pizzint maxStaleMin
+// (30), so a late seed is STALE_SEED while the payload is still served.
+// When ais-relay is up it refreshes the same canonical key every 10 min
+// and replaces this TTL with its own 30 min TTL.
+export const PIZZINT_TTL = 12 * 60 * 60 * 3;
 
 export const CONFLICT_COUNTRIES = [
   'AF', 'SY', 'UA', 'SD', 'SS', 'SO', 'CD', 'MM', 'YE', 'ET',
@@ -494,6 +504,27 @@ async function fetchGdeltTensions() {
   });
 }
 
+/**
+ * Publish the canonical PizzINT seed the status handler, bootstrap, and
+ * /api/health already read. One payload carries the indicator and, when
+ * the GDELT batch succeeded, tension pairs. seed-meta is the health
+ * registry key, not the version-stripped default (`seed-meta:intelligence:pizzint:seed`).
+ * Legacy `intel:pizzint:v1:*` keys are not written; the handler still
+ * reads them for one release.
+ */
+export async function publishPizzintSeed(pizzint, tensionPairs) {
+  if (!pizzint) return false;
+  const pairs = Array.isArray(tensionPairs) ? tensionPairs : [];
+  await writeExtraKeyWithMeta(
+    PIZZINT_SEED_KEY,
+    { pizzint, tensionPairs: pairs },
+    PIZZINT_TTL,
+    pizzint.locationsMonitored ?? 0,
+    PIZZINT_SEED_META_KEY,
+  );
+  return true;
+}
+
 // ─── Main ───
 
 // runSeed invokes this as `fetchFn()` with no arguments, so the injected dep is for tests
@@ -542,8 +573,7 @@ export async function fetchAll({ fetchGdeltFallback = fetchGdeltConflictEvents }
       acResolution.events.length,
     );
   }
-  if (pi) await writeExtraKeyWithMeta('intel:pizzint:v1:base', { pizzint: pi, tensionPairs: [] }, PIZZINT_TTL, pi.locationsMonitored ?? 0);
-  if (pi && gd) await writeExtraKeyWithMeta('intel:pizzint:v1:gdelt', { pizzint: pi, tensionPairs: gd }, PIZZINT_TTL, gd.length ?? 0);
+  if (pi) await publishPizzintSeed(pi, gd);
 
   if (!ac) {
     // ACLED credentials are optional. When NONE are configured (fetchAcledEvents
