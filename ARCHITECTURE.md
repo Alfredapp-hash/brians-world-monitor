@@ -6,11 +6,37 @@
 
 > **Design philosophy**: For the "why" behind architectural decisions, intelligence tradecraft, and algorithmic choices, see [Design Philosophy](docs/architecture.mdx).
 
+## This fork: The Public Dispatch
+
+This file's later sections describe **upstream World Monitor**. This repository is Brian's fork. The production name is **The Public Dispatch**, served from Netlify at <https://thepublicdispatch.com>. Agent entry rules are in [AGENTS.md](AGENTS.md). Operator setup, Coverage Compare, and Ollama are in [BRIANS_SETUP.md](BRIANS_SETUP.md).
+
+| Piece | What is true on this fork |
+| --- | --- |
+| Web host | Netlify. Build and redirects: `netlify.toml`. Functions: `netlify/functions/`. |
+| Functions on `main` | Only `health.js`, `bootstrap.js`, and `wm-session.js` (`/api/health`, `/api/bootstrap`, `/api/wm-session`), via `netlify/lib/invoke-edge-handler.js`. |
+| `/api/*` redirect | `netlify.toml` lines 21–24, status 200, not `force = true`. The three functions are not shadowed. Every other `/api/*` path 200-rewrites to `https://brians-world-monitor.vercel.app`, which is a **retired** host (402 `DEPLOYMENT_DISABLED`). |
+| More functions | Draft PR #29 (`cursor/netlify-boot-rpcs-d827`) adds same-origin boot RPC wrappers. It is not merged. |
+| Smoke origin | <https://thepublicdispatch.com> |
+| Ollama | First-class. Coverage Compare calls local Ollama from the browser. |
+| Railway / Cloudflare | Upstream only. No Railway URL is documented for this fork. `workers/` is the upstream CORS worker for `api.worldmonitor.app`. |
+
+**Do not redeploy `main`, and do not change the `/api/*` proxy, until the Netlify production SHA is confirmed and same-origin functions serve each path.**
+
+**Known gap:** that production SHA is unconfirmed. The live site appears to run code that is not in git (`/desk-favico` icons and a postal-code location gate are absent). An Oct 7 2026 audit saw `GET https://thepublicdispatch.com/api/seismology/v1/list-earthquakes` return 200 from Netlify, which the committed `main` tree does not explain.
+
+**Seed Freshness Monitor** skips the scheduled freshness check unless Deploy Gate status `gate` is `success`. A green run while that gate is red, pending, or missing does not mean seeds are fresh.
+
+---
+
+## Upstream World Monitor
+
+The sections below are upstream World Monitor architecture. Keep them: `api/`, `server/`, `docker/`, `workers/`, and the CI workflows still follow that shape. They are not The Public Dispatch production topology.
+
 World Monitor is a real-time global intelligence dashboard built as a TypeScript single-page application. It aggregates data from dozens of external sources covering geopolitics, military activity, financial markets, cyber threats, climate events, maritime tracking, and aviation into a unified operational picture rendered through an interactive map and a grid of specialized panels.
 
 ---
 
-## 1. System Overview
+## 1. System Overview (upstream)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -53,7 +79,9 @@ World Monitor is a real-time global intelligence dashboard built as a TypeScript
 
 ---
 
-## 2. Deployment Topology
+## 2. Deployment Topology (upstream World Monitor)
+
+This table is upstream. This fork's production host is Netlify; see [This fork: The Public Dispatch](#this-fork-the-public-dispatch).
 
 | Service | Platform | Role |
 |---------|----------|------|
@@ -368,7 +396,7 @@ Runs before every `git push`:
 | `feed-validation.yml` | PR (feed changes), daily cron | RSS feed reachability and validation |
 | `mcp-live-smoke.yml` | 6-hourly cron, push to main (smoke paths), manual | Anonymous strict-client walk of the production MCP surface on apex + www (capability walk, auth wall, OAuth endpoint routing — #4937/#4938 regression net) |
 | `security-audit.yml` | PR, push to main, daily cron, manual | Production dependency audits for every tracked `package-lock.json` workspace, failing on unbaselined high/critical advisories |
-| `seed-freshness-monitor.yml` | 15-minute cron, manual | Checks production seed metadata freshness after a green main gate and fails on stale seed sources |
+| `seed-freshness-monitor.yml` | 15-minute cron, manual | Scheduled run skips the freshness check unless Deploy Gate status `gate` is `success`. A green workflow while that gate is red, pending, or missing does not mean seeds are fresh. Manual `workflow_dispatch` still runs the check |
 | `seed-data.yml` | Scheduled cron, manual | Runs the data seeders that publish datasets to Upstash Redis for the live dashboard |
 | `contributor-trust.yml` | PR | Gates untrusted first-time-contributor runs |
 | `deploy-gate.yml` | After Test/Typecheck/Security Audit complete | Aggregates required smoke-gate statuses onto the head SHA for branch protection |
@@ -390,7 +418,9 @@ Runs before every `git push`:
 
 ```
 .
-├── api/                    Vercel Edge Functions (self-contained JS)
+├── netlify.toml            This fork: Netlify build, redirects, function directory
+├── netlify/                This fork: functions/ (health, bootstrap, wm-session) and lib/
+├── api/                    Edge-shaped handlers (self-contained JS; upstream called these Vercel Edge Functions)
 │   ├── _*.js               Shared helpers (CORS, rate-limit, API key, relay, Sentry, session)
 │   └── <domain>/           Domain endpoints (aviation/, climate/, conflict/, ...)
 ├── cli/                    Official `worldmonitor` npm CLI (zero-dep ESM, MCP-first; published via cli-v* tag)
@@ -398,7 +428,7 @@ Runs before every `git push`:
 ├── convex/                 Convex backend (contact form, waitlist)
 ├── data/                   Static data (telegram channels, OREF threat translations, gamma irradiators)
 ├── deploy/                 Deployment configs (nginx)
-├── docker/                 Dockerfile + nginx config for Railway
+├── docker/                 Upstream Dockerfile + nginx config for Railway (no URL documented for this fork)
 ├── docs/                   Mintlify documentation site
 ├── e2e/                    Playwright E2E specs
 ├── pro-test/               Standalone Pro QA app (separate package)
@@ -431,5 +461,5 @@ Runs before every `git push`:
 ├── src-tauri/              Tauri desktop shell (Rust)
 │   └── sidecar/            Node.js sidecar API server
 ├── tests/                  Unit/integration tests (node:test)
-└── workers/                Cloudflare Workers (edge CORS preflight for api.worldmonitor.app)
+└── workers/                Upstream Cloudflare Workers (CORS preflight for api.worldmonitor.app; not this fork's host)
 ```
