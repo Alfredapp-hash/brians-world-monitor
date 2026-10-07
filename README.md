@@ -10,7 +10,9 @@ the coverage looks.
 [![X: @JSAsmonitor](https://img.shields.io/badge/X-@JSAsmonitor-000000?style=flat&logo=x&logoColor=white)](https://x.com/JSAsmonitor)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=flat&logo=discord&logoColor=white)](https://discord.gg/BCHZDq8Xt)
 
-**Live:** <https://brians-world-monitor.vercel.app>
+**Live:** <https://thepublicdispatch.com>
+
+`https://brians-world-monitor.vercel.app` is retired (402 `DEPLOYMENT_DISABLED` for `/` and `/api/*`). Do not use it.
 
 ---
 
@@ -25,7 +27,7 @@ What sets JSA's Monitor apart from a normal news dashboard:
 - **NCI "Engineered Reality" scoring** — every story cluster gets a
   Narrative Coherence Index score estimating how organic vs. engineered the
   coverage pattern looks. The scoring rubric is public: see
-  [/methodology.html](https://brians-world-monitor.vercel.app/methodology.html).
+  [/methodology.html](https://thepublicdispatch.com/methodology.html).
 - **Local AI via Ollama** — summaries and analysis can run entirely on your
   own machine. No cloud API keys required.
 
@@ -74,8 +76,8 @@ read at runtime. See `.github/workflows/seed-data.yml` and
 
 ## Links
 
-- **About:** [/about.html](https://brians-world-monitor.vercel.app/about.html)
-- **NCI methodology:** [/methodology.html](https://brians-world-monitor.vercel.app/methodology.html)
+- **About:** [/about.html](https://thepublicdispatch.com/about.html)
+- **NCI methodology:** [/methodology.html](https://thepublicdispatch.com/methodology.html)
 - **X (Twitter):** [@JSAsmonitor](https://x.com/JSAsmonitor)
 - **Discord:** <https://discord.gg/BCHZDq8Xt>
 
