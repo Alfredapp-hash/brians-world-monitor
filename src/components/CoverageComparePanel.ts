@@ -25,6 +25,7 @@ import { clusterNews } from '@/services/clustering';
 import type { ClusteredEvent } from '@/types';
 import { getSourceType, getSourcePropagandaRisk } from '@/config/feeds';
 import { tokenize } from '@/utils/analysis-constants';
+import { effectivePubDateMs } from '@/services/feed-date';
 import { getRuntimeConfigSnapshot } from '@/services/runtime-config';
 import { generateSummary } from '@/services/summarization';
 import { analyzeTalkingPoints, phraseKindLabel, phraseKindTitle, type PhraseHit, type TalkingPointAnalysis, type TitleForAnalysis } from '@/utils/talking-points';
@@ -180,7 +181,12 @@ function compareCluster(cluster: ClusteredEvent, allNews?: NewsItem[]): Compared
   // NCI Engineered Reality heuristic scoring, with any saved manual overrides.
   const nci = applyManualScores(
     heuristicNciScore({
-      titles: items.map(i => ({ source: i.source, title: i.title, pubDate: i.pubDate })),
+      titles: items.map(i => ({
+        source: i.source,
+        title: i.title,
+        pubDate: i.pubDate,
+        pubDateMissing: i.pubDateMissing,
+      })),
       tp,
     }),
     key,
@@ -517,9 +523,9 @@ export class CoverageComparePanel extends Panel {
       .map(cls => h('div', { className: 'cc-modal-col' },
         h('div', { className: `cc-group-label cc-group-${cls}` }, `${CLASS_LABELS[cls]} (${cc.groups[cls].length})`),
         ...cc.groups[cls].map(g => {
-          const time = g.item.pubDate
-            ? h('span', { className: 'cc-modal-time' }, new Date(g.item.pubDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
-            : null;
+          const time = g.item.pubDateMissing || effectivePubDateMs(g.item) <= 0
+            ? h('span', { className: 'cc-modal-time cc-modal-time-undated' }, 'undated')
+            : h('span', { className: 'cc-modal-time' }, new Date(g.item.pubDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
           return h('div', { className: 'cc-modal-item' },
             h('div', { className: 'cc-modal-item-head' },
               h('span', { className: 'cc-source' }, g.item.source),
@@ -865,9 +871,14 @@ export class CoverageComparePanel extends Panel {
       }
     }
 
-    // Freshness: any item published in the last 30 minutes → LIVE.
+    // Freshness: a dated item published in the last 30 minutes → LIVE.
+    // Undated items synthesize pubDate as now and must never light the badge.
     const now = Date.now();
-    const isLive = cc.items.some(i => i.item.pubDate && now - i.item.pubDate.getTime() < 30 * 60_000);
+    const isLive = cc.items.some(i => {
+      const ms = effectivePubDateMs(i.item);
+      return ms > 0 && now - ms < 30 * 60_000;
+    });
+    const undatedCount = cc.items.filter(i => effectivePubDateMs(i.item) <= 0).length;
 
     // Narrative sync meter (full chip lives in the Tier 3 signal row;
     // Tier 2 compresses it to a word).
@@ -934,6 +945,7 @@ export class CoverageComparePanel extends Panel {
     const signalRow = h('div', { className: 'cc-flag-row' },
       syncMeter,
       ...(isLive ? [h('span', { className: 'cc-flag cc-flag-live', title: 'New reporting within the last 30 minutes' }, '⦿ LIVE')] : []),
+      ...(undatedCount > 0 ? [h('span', { className: 'cc-flag', title: 'Headlines with no publication date are not marked LIVE and do not count as inside a timing window.' }, `${undatedCount} undated`)] : []),
       ...(trendChip ? [trendChip] : []),
       ...flagSpecs.map(mkFlag),
     );
@@ -959,6 +971,7 @@ export class CoverageComparePanel extends Panel {
     if (isLive) {
       metaChildren.push(' · ', h('span', { className: 'cc-meta-dot cc-meta-dot-live' }), '⦿ live');
     }
+    if (undatedCount > 0) metaChildren.push(' · ', `${undatedCount} undated`);
     const metaLine = h('div', { className: 'cc-meta' }, ...metaChildren);
 
     const everyday = isEverydayReaderMode();

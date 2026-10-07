@@ -1,5 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   heuristicNciScore, tierFor, scaleScore, buildNciPrompt, buildNciReport,
   parseAiNciResponse, mergeNci, NCI_INDICATORS, NCI_TIERS,
@@ -133,5 +136,65 @@ describe('nci-score', () => {
     assert.equal(/\(\s*coordinated\s*\)/i.test(report), false);
     assert.match(report, /shared phrasing/);
     assert.match(report, /not proof/i);
+  });
+});
+
+describe('nci-score undated burst timing', () => {
+  const now = Date.now();
+  const dated = (source: string, title: string, offsetMin: number) => ({
+    source,
+    title,
+    pubDate: new Date(now - offsetMin * 60_000),
+    pubDateMissing: false,
+    isWire: false,
+    isState: false,
+  });
+  const undated = (source: string, title: string) => ({
+    source,
+    title,
+    // Synthesized "now" stamp — the bug treated this as a real publish time.
+    pubDate: new Date(now),
+    pubDateMissing: true,
+    isWire: false,
+    isState: false,
+  });
+
+  it('does not score a burst from 2 dated headlines and 3 with no pubDate', () => {
+    const titles = [
+      dated('Outlet A', 'Parliament passes annual budget after committee review', 10),
+      dated('Outlet B', 'Lawmakers finish the annual spending bill this afternoon', 20),
+      undated('Outlet C', 'Budget vote concludes with bipartisan support in chamber'),
+      undated('Outlet D', 'Annual budget approved with amendments to transit funding'),
+      undated('Outlet E', 'Committee review ends as the spending package advances'),
+    ];
+    const result = heuristicNciScore({ titles, tp: analyzeTalkingPoints(titles) });
+    const timing = result.scores.get(1)!;
+    assert.equal(timing.evidence, 'Insufficient timing spread to assess.');
+    assert.equal(timing.score, 1);
+  });
+
+  it('uses the full cluster as the burst denominator and leaves undated items outside the window', () => {
+    const titles = [
+      dated('Outlet A', 'Quiet local story about a bridge repair downtown', 4),
+      dated('Outlet B', 'City crews finish overnight repairs on the main bridge', 6),
+      dated('Outlet C', 'Bridge reopens after overnight maintenance work ends', 8),
+      undated('Outlet D', 'Regional paper covers the same bridge repair without a date'),
+      undated('Outlet E', 'Another undated brief on the overnight bridge work'),
+    ];
+    const result = heuristicNciScore({ titles, tp: analyzeTalkingPoints(titles) });
+    const timing = result.scores.get(1)!;
+    // 3 dated inside 2 hours / 5 headlines = 60%, not 3/3 or 5/5.
+    assert.equal(timing.evidence, '60% of items published within a 2-hour window');
+  });
+
+  it('does not mark undated Coverage Compare items LIVE', () => {
+    const panel = readFileSync(
+      resolve(dirname(fileURLToPath(import.meta.url)), '../src/components/CoverageComparePanel.ts'),
+      'utf8',
+    );
+    assert.match(panel, /effectivePubDateMs\(i\.item\)/);
+    assert.equal(/\.pubDate\.getTime\s*\(/.test(panel), false);
+    assert.match(panel, /\$\{undatedCount\} undated/);
+    assert.match(panel, /pubDateMissing/);
   });
 });

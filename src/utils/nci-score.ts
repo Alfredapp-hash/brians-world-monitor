@@ -16,6 +16,7 @@
  *
  * Pure functions, no DOM.
  */
+import { effectivePubDateMs } from '../services/feed-date';
 import { normalizeTitle, LOADED_TERMS, phraseKindLabel, type TalkingPointAnalysis } from './talking-points';
 
 export type IndicatorSource = 'auto' | 'ai' | 'default' | 'manual';
@@ -146,7 +147,7 @@ export function scaleScore(fraction: number): 1 | 2 | 3 | 4 | 5 {
 }
 
 export interface NciClusterInput {
-  titles: Array<{ source: string; title: string; pubDate?: Date }>;
+  titles: Array<{ source: string; title: string; pubDate?: Date; pubDateMissing?: boolean }>;
   tp: TalkingPointAnalysis;
 }
 
@@ -187,18 +188,31 @@ function evidenceFor(hit: LexiconHit): string {
   return `${Math.round(hit.fraction * 100)}% of headlines: ${hit.matched.slice(0, 5).join(', ')}`;
 }
 
-/** Max items published within any rolling 2-hour window, as a fraction of all items. */
+/**
+ * Largest share of the full cluster published inside any rolling 2-hour
+ * window. Undated items (no pubDate, `pubDateMissing`, or an effective
+ * stamp of 0) stay in the denominator and never count as inside the window.
+ * Fewer than 3 dated items returns 0 so indicator 1 keeps the
+ * insufficient-evidence string instead of scoring a burst off a short list.
+ */
 function burstFraction(titles: NciClusterInput['titles']): number {
-  const times = titles.map(t => t.pubDate?.getTime()).filter((n): n is number => Number.isFinite(n)).sort((a, b) => a - b);
-  if (times.length < 3) return 0;
+  if (titles.length === 0) return 0;
   const WINDOW = 2 * 60 * 60 * 1000;
+  const times: number[] = [];
+  for (const t of titles) {
+    if (t.pubDate == null || t.pubDateMissing === true) continue;
+    const ms = effectivePubDateMs({ pubDate: t.pubDate, pubDateMissing: t.pubDateMissing });
+    if (ms > 0) times.push(ms);
+  }
+  if (times.length < 3) return 0;
+  times.sort((a, b) => a - b);
   let best = 0;
   for (let i = 0; i < times.length; i++) {
     let j = i;
     while (j < times.length && times[j]! - times[i]! <= WINDOW) j++;
     best = Math.max(best, j - i);
   }
-  return best / times.length;
+  return best / titles.length;
 }
 
 export function heuristicNciScore(input: NciClusterInput): NciResult {
