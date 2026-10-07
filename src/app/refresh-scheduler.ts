@@ -1,5 +1,6 @@
 import type { AppContext, AppModule } from '@/app/app-context';
 import { isOperatorLiveTickPanel, OPERATOR_REFRESH_ON_LOAD_ONLY } from '@/config/panels';
+import { isBootRefreshSatisfied } from '@/services/page-load-once';
 import { startSmartPollLoop, VisibilityHub, type SmartPollLoopHandle } from '@/services/runtime';
 
 export interface RefreshRegistration {
@@ -53,6 +54,12 @@ export class RefreshScheduler implements AppModule {
     this.refreshRunners.get(name)?.loop.stop();
 
     const oneShot = OPERATOR_REFRESH_ON_LOAD_ONLY && !isOperatorLiveTickPanel(name);
+    // Boot already read this source. A one-shot immediate run would be a second
+    // request in the same page load. Telegram keeps its interval.
+    if (oneShot && isBootRefreshSatisfied(name)) {
+      this.refreshRunners.delete(name);
+      return;
+    }
     const loop = startSmartPollLoop(async () => {
       if (this.ctx.inFlight.has(name)) return;
 

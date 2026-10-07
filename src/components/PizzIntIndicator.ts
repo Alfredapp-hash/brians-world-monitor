@@ -158,6 +158,24 @@ export class PizzIntIndicator {
     return this.element;
   }
 
+  public showNoData(message: string): void {
+    this.status = null;
+    this.tensions = [];
+    this.show();
+    const defconEl = this.element.querySelector('.pizzint-defcon');
+    const scoreEl = this.element.querySelector('.pizzint-score');
+    const labelEl = this.element.querySelector('.pizzint-defcon-label');
+    const locationsEl = this.element.querySelector('.pizzint-locations');
+    const toggle = this.element.querySelector('.pizzint-toggle') as HTMLElement | null;
+    const listEl = this.element.querySelector('.pizzint-tensions-list');
+    if (defconEl) defconEl.textContent = '--';
+    if (scoreEl) scoreEl.textContent = '--';
+    if (labelEl) labelEl.textContent = message;
+    if (toggle) toggle.title = message;
+    if (locationsEl) replaceChildren(locationsEl);
+    if (listEl) replaceChildren(listEl);
+  }
+
   public hide(): void {
     this.element.style.display = 'none';
   }

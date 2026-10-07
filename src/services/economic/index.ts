@@ -18,6 +18,7 @@ import { getHydratedData } from '@/services/bootstrap';
 import { toApiUrl } from '@/services/runtime';
 import { hasPremiumAccess } from '@/services/panel-gating';
 import { EconomicServiceClient } from '@/services/generated-rpc-clients';
+import { oncePerPageLoad } from '@/services/page-load-once';
 
 // ---- Client + Circuit Breakers ----
 
@@ -127,7 +128,11 @@ function roundValue(value: number, precision: number): number {
   return Number(value.toFixed(precision));
 }
 
-export async function fetchFredData(): Promise<FredSeries[]> {
+export function fetchFredData(): Promise<FredSeries[]> {
+  return oncePerPageLoad('economic:get-fred-series-batch:macro-panel', () => loadFredMacroPanel());
+}
+
+async function loadFredMacroPanel(): Promise<FredSeries[]> {
   if (!isFeatureAvailable('economicFred')) return [];
 
   const resp = await fredBatchBreaker.execute(async () => {

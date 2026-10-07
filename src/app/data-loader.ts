@@ -107,6 +107,9 @@ import { isDesktopRuntime, toApiUrl } from '@/services/runtime';
 import { getAiFlowSettings } from '@/services/ai-flow-settings';
 import { t, getCurrentLanguage } from '@/services/i18n';
 import { getHydratedData } from '@/services/bootstrap';
+import { oncePerPageLoad, markBootRefreshSatisfied } from '@/services/page-load-once';
+import { fetchEarningsCalendar } from '@/services/earnings-calendar';
+import { fetchFearGreedIndex, readFearGreedHydration } from '@/services/fear-greed';
 import { publicRpcFetch } from '@/services/public-rpc-fetch';
 import type { ListFeedDigestResponse } from '@/generated/client/worldmonitor/news/v1/service_client';
 import type { GetSectorSummaryResponse, ListMarketQuotesResponse, ListCommodityQuotesResponse } from '@/generated/client/worldmonitor/market/v1/service_client';
@@ -409,6 +412,8 @@ export class DataLoaderManager implements AppModule {
   private readonly perFeedFallbackIntelFeedLimit = 6;
   private readonly perFeedFallbackBatchSize = 2;
   private lastGoodDigest: ListFeedDigestResponse | null = null;
+  private dailyBriefOnce: Promise<void> | null = null;
+  private marketImplicationsOnce: Promise<void> | null = null;
 
   constructor(ctx: AppContext, callbacks: DataLoaderCallbacks) {
     this.ctx = ctx;
@@ -477,7 +482,7 @@ export class DataLoaderManager implements AppModule {
       void this.loadDailyMarketBrief(true);
     });
     this.marketImplicationsFrameworkUnsubscribe = subscribeFrameworkChange('market-implications', () => {
-      void this.loadMarketImplications();
+      void this.loadMarketImplications(true);
     });
   }
 
@@ -612,7 +617,14 @@ export class DataLoaderManager implements AppModule {
     if (replayed > 0) this.refreshCiiAndBrief();
   }
 
-  private async tryFetchDigest(): Promise<ListFeedDigestResponse | null> {
+  private tryFetchDigest(): Promise<ListFeedDigestResponse | null> {
+    return oncePerPageLoad(
+      `news:list-feed-digest:${SITE_VARIANT}:${getCurrentLanguage()}`,
+      () => this.fetchDigestNetwork(),
+    );
+  }
+
+  private async fetchDigestNetwork(): Promise<ListFeedDigestResponse | null> {
     const now = Date.now();
 
     if (this.digestBreaker.state === 'open') {
@@ -1486,6 +1498,7 @@ export class DataLoaderManager implements AppModule {
   }
 
   async loadNews(): Promise<void> {
+    markBootRefreshSatisfied('news');
     // Reset happy variant accumulator for fresh pipeline run
     if (SITE_VARIANT === 'happy') {
       this.ctx.happyAllItems = [];
@@ -2031,6 +2044,15 @@ export class DataLoaderManager implements AppModule {
   }
 
   async loadDailyMarketBrief(force = false): Promise<void> {
+    markBootRefreshSatisfied('daily-market-brief');
+    if (force) this.dailyBriefOnce = null;
+    if (this.dailyBriefOnce) return this.dailyBriefOnce;
+    const run = this.runDailyMarketBrief(force);
+    this.dailyBriefOnce = run;
+    return run;
+  }
+
+  private async runDailyMarketBrief(force = false): Promise<void> {
     if (!hasPremiumAccess()) return;
     if (this.ctx.isDestroyed || this.ctx.inFlight.has('dailyMarketBrief')) return;
 
@@ -2165,9 +2187,11 @@ export class DataLoaderManager implements AppModule {
 
   private async _collectRegimeContext(): Promise<RegimeMacroContext | undefined> {
     try {
-      const hydrated = getHydratedData('fearGreedIndex') as Record<string, unknown> | undefined;
-      if (hydrated && !hydrated.unavailable && Number(hydrated.compositeScore) > 0) {
-        const comp = hydrated.composite as Record<string, unknown> | undefined;
+      const hydrated = readFearGreedHydration() ?? undefined;
+      const seedComposite = hydrated?.composite as Record<string, unknown> | undefined;
+      const seedScore = Number(seedComposite?.score ?? hydrated?.compositeScore ?? 0);
+      if (hydrated && !hydrated.unavailable && seedScore > 0) {
+        const comp = seedComposite;
         const cats = (hydrated.categories ?? {}) as Record<string, Record<string, unknown>>;
         const hdr = (hydrated.headerMetrics ?? {}) as Record<string, Record<string, unknown> | null>;
         return {
@@ -2183,10 +2207,7 @@ export class DataLoaderManager implements AppModule {
           sentiment: cats.sentiment ? { score: Number(cats.sentiment.score ?? 0) } : undefined,
         };
       }
-      const { MarketServiceClient } = await import('@/generated/client/worldmonitor/market/v1/service_client');
-      const { getRpcBaseUrl } = await import('@/services/rpc-client');
-      const client = new MarketServiceClient(getRpcBaseUrl(), { fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args) });
-      const resp = await client.getFearGreedIndex({});
+      const resp = await fetchFearGreedIndex();
       if (resp.unavailable || resp.compositeScore <= 0) return undefined;
       return {
         compositeScore: resp.compositeScore,
@@ -2200,12 +2221,20 @@ export class DataLoaderManager implements AppModule {
         momentum: resp.momentum ? { score: resp.momentum.score } : undefined,
         sentiment: resp.sentiment ? { score: resp.sentiment.score } : undefined,
       };
-    } catch {
+    } catch (error) {
+      console.error('[DailyBrief] Regime context failed:', error);
       return undefined;
     }
   }
 
-  private async _collectYieldCurveContext(): Promise<YieldCurveContext | undefined> {
+  private _collectYieldCurveContext(): Promise<YieldCurveContext | undefined> {
+    return oncePerPageLoad(
+      'economic:get-fred-series-batch:DGS2,DGS10,DGS30:1',
+      () => this.fetchYieldCurveContext(),
+    );
+  }
+
+  private async fetchYieldCurveContext(): Promise<YieldCurveContext | undefined> {
     try {
       const { EconomicServiceClient } = await import('@/generated/client/worldmonitor/economic/v1/service_client');
       const { getRpcBaseUrl } = await import('@/services/rpc-client');
@@ -2222,7 +2251,8 @@ export class DataLoaderManager implements AppModule {
       if (!rate10y) return undefined;
       const spread2s10s = rate2y > 0 ? Math.round((rate10y - rate2y) * 100) : 0;
       return { inverted: spread2s10s < 0, spread2s10s, rate2y, rate10y, rate30y };
-    } catch {
+    } catch (error) {
+      console.error('[DailyBrief] Yield curve context failed:', error);
       return undefined;
     }
   }
@@ -2255,42 +2285,47 @@ export class DataLoaderManager implements AppModule {
    * undefined — the brief simply omits the earnings block. */
   private async _collectEarningsContext(): Promise<import('@/services/daily-market-brief').EarningsBriefContext | undefined> {
     try {
-      const { MarketServiceClient } = await import('@/generated/client/worldmonitor/market/v1/service_client');
-      const { getRpcBaseUrl } = await import('@/services/rpc-client');
-      const client = new MarketServiceClient(getRpcBaseUrl(), { fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args) });
       const today = new Date();
       const past = new Date(today.getTime() - 7 * 86400_000);
       const future = new Date(today.getTime() + 14 * 86400_000);
-      const resp = await client.listEarningsCalendar({
-        fromDate: past.toISOString().slice(0, 10),
-        toDate: future.toISOString().slice(0, 10),
-      });
+      const resp = await fetchEarningsCalendar(
+        past.toISOString().slice(0, 10),
+        future.toISOString().slice(0, 10),
+      );
       const earnings = resp.earnings ?? [];
       if (resp.unavailable || earnings.length === 0) return undefined;
       const { buildEarningsBriefContext } = await import('@/services/daily-market-brief');
       return buildEarningsBriefContext(earnings, today.toISOString().slice(0, 10));
-    } catch {
+    } catch (error) {
+      console.error('[DailyBrief] Earnings context failed:', error);
       return undefined;
     }
   }
 
-  async loadMarketImplications(): Promise<void> {
+  async loadMarketImplications(force = false): Promise<void> {
+    markBootRefreshSatisfied('market-implications');
+    if (force) this.marketImplicationsOnce = null;
+    if (this.marketImplicationsOnce) return this.marketImplicationsOnce;
+    const run = this.runMarketImplications(force);
+    this.marketImplicationsOnce = run;
+    return run;
+  }
+
+  private async runMarketImplications(force = false): Promise<void> {
     if (!hasPremiumAccess()) return;
     if (this.ctx.isDestroyed || this.ctx.inFlight.has('marketImplications')) return;
     this.ctx.inFlight.add('marketImplications');
     try {
-      const data = await fetchMarketImplications(getActiveFrameworkForPanel('market-implications')?.id ?? '');
-      if (!data) {
-        this.callPanel('market-implications', 'showUnavailable');
-        return;
-      }
-      if (data.degraded || data.cards.length === 0) {
-        this.callPanel('market-implications', 'showUnavailable');
+      const data = await fetchMarketImplications(getActiveFrameworkForPanel('market-implications')?.id ?? '', force);
+      if (!data || data.degraded || data.cards.length === 0) {
+        this.callPanel('market-implications', 'showUnavailable', data?.emptyReason || undefined);
         return;
       }
       this.callPanel('market-implications', 'renderImplications', data, 'live');
-    } catch {
-      this.callPanel('market-implications', 'showUnavailable');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[MarketImplications] load failed:', error);
+      this.callPanel('market-implications', 'showUnavailable', message);
     } finally {
       this.ctx.inFlight.delete('marketImplications');
     }
@@ -3229,6 +3264,7 @@ export class DataLoaderManager implements AppModule {
   }
 
   async loadFredData(): Promise<void> {
+    markBootRefreshSatisfied('fred');
     const economicPanel = this.ctx.panels['economic'] as EconomicPanel;
     const cbInfo = getCircuitBreakerCooldownInfo('FRED Batch');
     if (cbInfo.onCooldown) {
@@ -3689,16 +3725,19 @@ export class DataLoaderManager implements AppModule {
   }
 
   async loadPizzInt(): Promise<void> {
+    markBootRefreshSatisfied('pizzint');
     try {
       const [status, tensions] = await Promise.all([
         fetchPizzIntStatus(),
         fetchGdeltTensions()
       ]);
 
-      if (status.locationsMonitored === 0) {
-        this.ctx.pizzintIndicator?.hide();
-        this.ctx.statusPanel?.updateApi('PizzINT', { status: 'error' });
-        dataFreshness.recordError('pizzint', 'No monitored locations returned');
+      if (status.unavailableReason || status.locationsMonitored === 0) {
+        const message = status.unavailableReason || 'No PizzINT data';
+        this.ctx.pizzintIndicator?.showNoData(message);
+        this.ctx.pizzintIndicator?.updateTensions(tensions);
+        this.ctx.statusPanel?.updateApi('PizzINT', { status: 'error', errorMessage: message });
+        dataFreshness.recordError('pizzint', message);
         return;
       }
 
@@ -3708,10 +3747,11 @@ export class DataLoaderManager implements AppModule {
       this.ctx.statusPanel?.updateApi('PizzINT', { status: 'ok' });
       dataFreshness.recordUpdate('pizzint', Math.max(status.locationsMonitored, tensions.length));
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       console.error('[App] PizzINT load failed:', error);
-      this.ctx.pizzintIndicator?.hide();
-      this.ctx.statusPanel?.updateApi('PizzINT', { status: 'error' });
-      dataFreshness.recordError('pizzint', String(error));
+      this.ctx.pizzintIndicator?.showNoData(message);
+      this.ctx.statusPanel?.updateApi('PizzINT', { status: 'error', errorMessage: message });
+      dataFreshness.recordError('pizzint', message);
     }
   }
 
