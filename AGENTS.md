@@ -1,10 +1,33 @@
 # AGENTS.md
 
-Agent entry point for WorldMonitor. Read this first, then follow links for depth.
+Agent entry point for The Public Dispatch, this fork of World Monitor. Read this first, then [This fork's deploy](#this-forks-deploy).
 
 ## What This Project Is
 
-Real-time global intelligence dashboard. TypeScript SPA (Vite + Preact) with 164 top-level TypeScript component files, 80+ Vercel Edge API endpoint entries, a Tauri desktop app with Node.js sidecar, and a Railway relay service. Aggregates geopolitics, military, finance, climate, cyber, maritime, and aviation data across 35 freshness-tracked source groups.
+The Public Dispatch (owner: Brian; repo `Alfredapp-hash/brians-world-monitor`) is a real-time global intelligence dashboard. TypeScript SPA (Vite + Preact) with 164 top-level TypeScript component files, 80+ Vercel Edge API endpoint entries in `api/` (Edge-shaped source; this fork's web host is Netlify, not Vercel), a Tauri desktop app with Node.js sidecar, and a Railway relay service in the upstream tree (no Railway URL is documented for this fork). Aggregates geopolitics, military, finance, climate, cyber, maritime, and aviation data across 35 freshness-tracked source groups.
+
+Coverage Compare (`src/components/CoverageComparePanel.ts`) and local Ollama are first-class on this fork. Setup is in [BRIANS_SETUP.md](BRIANS_SETUP.md).
+
+## This fork's deploy
+
+Production web is **Netlify** at <https://thepublicdispatch.com>. Start at `netlify.toml` and `netlify/functions/`. Do not treat Vercel, `api.worldmonitor.app`, or a Cloudflare worker as this site.
+
+- `netlify.toml` is the Netlify build (`npm run build`, publish `dist`), function directory, and redirect list.
+- On `main`, the only committed functions are `netlify/functions/health.js`, `bootstrap.js`, and `wm-session.js` (`/api/health`, `/api/bootstrap`, `/api/wm-session`). They call `api/*.js` through `netlify/lib/invoke-edge-handler.js`. Shared helpers stay in `netlify/lib/` so Netlify does not publish them as functions.
+- The `/api/*` redirect in `netlify.toml` (lines 21–24) is status 200 and is **not** `force = true`, so those three functions are not shadowed. Every other `/api/*` path still 200-rewrites to `https://brians-world-monitor.vercel.app`. That host is **retired** (402 `DEPLOYMENT_DISABLED` for `/` and `/api/*` in the Oct 7 2026 audit).
+- Draft PR #29 (`cursor/netlify-boot-rpcs-d827`) adds more same-origin functions, including a seismology earthquakes wrapper. It is not merged.
+
+**Do not redeploy `main`, and do not change that `/api/*` proxy, until the Netlify production SHA is confirmed and same-origin functions serve each path.**
+
+**Known gap:** that SHA is unconfirmed. The live site appears to run code that is not in git. `/desk-favico` icons and a postal-code location gate are not in this tree. The same Oct 7 2026 audit saw `GET https://thepublicdispatch.com/api/seismology/v1/list-earthquakes` return 200 from Netlify, which `main`'s three functions plus a proxy to the retired host do not explain.
+
+Smoke tests use <https://thepublicdispatch.com>. Set `SMOKE_URL` explicitly. `scripts/operator-no-llm-smoke.mjs` still defaults to the retired host when the variable is unset.
+
+**Seed Freshness Monitor** (`.github/workflows/seed-freshness-monitor.yml`) skips its freshness check on the 15-minute schedule unless the Deploy Gate commit status `gate` is `success` (`.github/workflows/deploy-gate.yml`). A green Seed Freshness Monitor run while that gate is red, pending, or missing does not mean seeds are fresh. `workflow_dispatch` still runs the check.
+
+**Ollama stays first-class.** Coverage Compare calls the operator's local Ollama from the browser (`OLLAMA_API_URL`, `POST {url}/v1/chat/completions` in `ollamaCompare`). Do not replace that path with a cloud-only provider.
+
+Upstream World Monitor (Vercel, the Cloudflare worker for `api.worldmonitor.app`, Railway) is kept in [ARCHITECTURE.md](ARCHITECTURE.md) and labeled upstream. It is not this fork's production topology.
 
 ## Repository Map
 
@@ -28,7 +51,11 @@ Real-time global intelligence dashboard. TypeScript SPA (Vite + Preact) with 164
 │   ├── generated/          # Proto-generated client/server stubs (DO NOT EDIT)
 │   ├── locales/            # i18n translation files
 │   └── App.ts              # Main application entry
-├── api/                    # Vercel Edge Functions (plain JS, self-contained)
+├── netlify.toml            # This fork: Netlify build, redirects, function directory
+├── netlify/                # This fork: same-origin functions (read this before api/)
+│   ├── functions/          # On main: health.js, bootstrap.js, wm-session.js
+│   └── lib/                # Shared helpers (not function entries)
+├── api/                    # Edge-shaped handlers (plain JS, self-contained)
 │   ├── _*.js               # Shared helpers (CORS, rate-limit, API key, relay)
 │   ├── health.js           # Health check endpoint
 │   ├── bootstrap.js        # Bulk data hydration endpoint
@@ -48,13 +75,13 @@ Real-time global intelligence dashboard. TypeScript SPA (Vite + Preact) with 164
 ├── src-tauri/              # Tauri desktop shell (Rust + Node.js sidecar)
 │   └── sidecar/            # Node.js sidecar API server
 ├── consumer-prices-core/   # Consumer-price scrapers (Playwright, per-country baskets; Railway/Docker)
-├── workers/                # Cloudflare Workers (edge CORS preflight for api.worldmonitor.app)
+├── workers/                # Upstream Cloudflare Workers (CORS preflight for api.worldmonitor.app; not this fork's host)
 ├── tests/                  # Unit/integration tests (node:test runner)
 ├── e2e/                    # Playwright E2E specs
 ├── pro-test/               # Standalone Pro QA app (separate package)
 ├── docs/                   # Mintlify documentation site
 │   └── solutions/          # Documented solutions to past problems (bugs, patterns, practices) — YAML frontmatter (module, tags, problem_type)
-├── docker/                 # Docker build for Railway services
+├── docker/                 # Upstream Docker build for Railway services (no Railway URL documented here)
 ├── deploy/                 # Deployment configs (nginx)
 └── CONCEPTS.md             # Shared domain vocabulary (entities, named processes, status concepts)
 ```
@@ -114,10 +141,11 @@ types -> config -> services -> components -> app -> App.ts
 
 ### API Layer Constraints
 
-- `api/*.js` are Vercel Edge Functions: **self-contained JS only**
+- `api/*.js` are Edge-shaped handlers (historically Vercel Edge Functions): **self-contained JS only**
 - They CANNOT import from `../src/` or `../server/` (different runtime)
 - Only same-directory `_*.js` helpers and npm packages
 - Enforced by `tests/edge-functions.test.mjs` and pre-push hook esbuild check
+- This fork's production wrappers are `netlify/functions/` (see [This fork's deploy](#this-forks-deploy)). On `main` only health, bootstrap, and wm-session are wrapped. Do not add `force = true` to the `/api/*` redirect or those functions are shadowed.
 
 ### Server Layer
 
@@ -220,10 +248,14 @@ Heavy checks (`test:data`, typechecks, edge-bundle) must run **sequentially** in
 
 ## Deployment
 
-- **Web**: Vercel (auto-deploy on push to main)
-- **Relay/Seeds**: Railway (Docker, cron services)
-- **Desktop**: Tauri builds via GitHub Actions
-- **Docs**: Mintlify (proxied through Vercel at `/docs`)
+Authoritative notes are in [This fork's deploy](#this-forks-deploy). Short form:
+
+- **Web**: Netlify at <https://thepublicdispatch.com>. Read `netlify.toml` and `netlify/functions/`. `https://brians-world-monitor.vercel.app` is **retired**.
+- **Do not redeploy `main` or edit the `/api/*` proxy** until the Netlify production SHA is confirmed and same-origin functions serve each path.
+- **Seeds**: GitHub Actions `seed-data.yml` (06:00 and 18:00 UTC) writes Upstash. A green Seed Freshness Monitor does not prove freshness while Deploy Gate status `gate` is not `success`.
+- **Desktop**: Tauri builds via GitHub Actions.
+- **Docs source**: Mintlify files live under `docs/`. `netlify.toml` does not proxy `/docs`. A Vercel `/docs` proxy is upstream-only.
+- **Upstream only**: Vercel auto-deploy, Cloudflare worker for `api.worldmonitor.app`, and Railway. See [ARCHITECTURE.md](ARCHITECTURE.md). No Railway URL is documented for this fork.
 
 ## Critical Conventions
 
