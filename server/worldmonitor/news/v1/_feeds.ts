@@ -39,7 +39,8 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
     ],
     europe: [
       { name: 'France 24', url: 'https://www.france24.com/en/rss' },
-      { name: 'EuroNews', url: 'https://www.euronews.com/rss?format=xml' },
+      // Bare /rss. ?format=xml returns HTTP 406 on several locales.
+      { name: 'EuroNews', url: 'https://www.euronews.com/rss' },
       { name: 'Le Monde', url: 'https://www.lemonde.fr/en/rss/une.xml' },
       { name: 'DW News', url: 'https://rss.dw.com/xml/rss-en-all' },
       { name: 'Tagesschau', url: 'https://www.tagesschau.de/xml/rss2/', lang: 'de' },
@@ -47,9 +48,11 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'NOS Nieuws', url: 'https://feeds.nos.nl/nosnieuwsalgemeen', lang: 'nl' },
       { name: 'SVT Nyheter', url: 'https://www.svt.se/nyheter/rss.xml', lang: 'sv' },
       // Hungarian (HU) — V4 / CEE coverage. Mirrors src/config/feeds.ts europe block.
-      { name: 'Telex', url: 'https://telex.hu/rss', lang: 'hu' },
+      // DISABLED 2026-10-07: Telex (telex.hu/rss) HTTP 403 Cloudflare challenge
+      // even with a browser user-agent. Do not delete without product-owner approval.
       { name: 'Index.hu', url: 'https://index.hu/24ora/rss', lang: 'hu' },
-      { name: 'HVG', url: 'https://hvg.hu/rss', lang: 'hu' },
+      // DISABLED 2026-10-07: HVG (hvg.hu/rss) HTTP 403 even with a browser
+      // user-agent. Do not delete without product-owner approval.
       { name: '444.hu', url: 'https://444.hu/feed', lang: 'hu' },
       { name: '24.hu', url: 'https://24.hu/feed/', lang: 'hu' },
       { name: 'Híradó', url: gnLocale('site:hirado.hu when:2d', 'hu', 'HU', 'HU:hu'), lang: 'hu' },
@@ -85,7 +88,8 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
     finance: [
       { name: 'CNBC', url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html' },
       { name: 'MarketWatch', url: gn('site:marketwatch.com markets when:1d') },
-      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex' },
+      // finance.yahoo.com/news/rssindex is HTTP 404. Official headline RSS.
+      { name: 'Yahoo Finance', url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US' },
       { name: 'Financial Times', url: 'https://www.ft.com/rss/home' },
       { name: 'Reuters Business', url: gn('site:reuters.com business markets when:1d') },
     ],
@@ -120,7 +124,8 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
     ],
     africa: [
       { name: 'BBC Africa', url: 'https://feeds.bbci.co.uk/news/world/africa/rss.xml' },
-      { name: 'News24', url: 'https://feeds.news24.com/articles/news24/TopStories/rss' },
+      // DISABLED 2026-10-07: News24 TopStories HTTP 403 Cloudflare challenge
+      // even with a browser user-agent. Do not delete without product-owner approval.
       { name: 'Africanews', url: 'https://www.africanews.com/feed/' },
       { name: 'Jeune Afrique', url: 'https://www.jeuneafrique.com/feed/', lang: 'fr' },
       { name: 'Premium Times', url: 'https://www.premiumtimesng.com/feed' },
@@ -182,13 +187,13 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'New Scientist', url: gn('site:newscientist.com when:2d') },
       { name: 'Live Science', url: 'https://www.livescience.com/feeds.xml' },
       { name: 'Scientific American', url: gn('site:scientificamerican.com when:2d') },
-      { name: 'NASA', url: 'https://www.nasa.gov/rss/dyn/breaking_news.rss' },
-      { name: 'Space.com', url: 'https://www.space.com/feeds/all' },
+      { name: 'NASA', url: 'https://www.nasa.gov/news-release/feed/' },
+      { name: 'Space.com', url: 'https://www.space.com/feeds.xml' },
       { name: 'Quanta Magazine', url: 'https://www.quantamagazine.org/feed/' },
       { name: 'Science Discoveries', url: gn('("scientific discovery" OR "new study" OR breakthrough science) when:2d') },
     ],
     archaeology: [
-      { name: 'Archaeology Magazine', url: 'https://www.archaeology.org/feed' },
+      { name: 'Archaeology Magazine', url: 'https://archaeology.org/feed/' },
       { name: 'HeritageDaily', url: 'https://www.heritagedaily.com/feed' },
       { name: 'Ancient Origins', url: 'https://www.ancient-origins.net/rss.xml' },
       { name: 'Sci.News Archaeology', url: 'https://www.sci.news/archaeology/feed' },
@@ -221,7 +226,9 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'Y Combinator Blog', url: 'https://www.ycombinator.com/blog/rss/' },
       { name: 'a16z Blog', url: 'https://www.a16z.news/feed' },
       { name: 'First Round Review', url: 'https://review.firstround.com/articles/rss' },
-      { name: 'Sequoia Blog', url: 'https://www.sequoiacap.com/feed/' },
+      // sequoiacap.com/feed 308s to framerusercontent.com. That CDN is
+      // multi-tenant and stays off the RSS allowlist. Matches the client catalog.
+      { name: 'Sequoia Blog', url: gn('site:sequoiacap.com when:7d') },
       { name: 'Stratechery', url: 'https://stratechery.com/feed/' },
     ],
     regionalStartups: [
@@ -266,7 +273,7 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
     ],
     finance: [
       { name: 'CNBC Tech', url: 'https://www.cnbc.com/id/19854910/device/rss/rss.html' },
-      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/rss/topstories' },
+      { name: 'Yahoo Finance', url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US' },
     ],
     dev: [
       { name: 'Dev.to', url: 'https://dev.to/feed' },
@@ -295,7 +302,7 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
   finance: {
     markets: [
       { name: 'CNBC', url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html' },
-      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/rss/topstories' },
+      { name: 'Yahoo Finance', url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US' },
       { name: 'Seeking Alpha', url: 'https://seekingalpha.com/market_currents.xml' },
     ],
     forex: [
@@ -467,7 +474,7 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
       { name: 'China Mineral Policy', url: gn('China "rare earth" OR "mineral export" OR "critical mineral" policy OR restriction when:7d') },
     ],
     markets: [
-      { name: 'Yahoo Finance Commodities', url: 'https://finance.yahoo.com/rss/topstories' },
+      { name: 'Yahoo Finance Commodities', url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=CL%3DF,GC%3DF,NG%3DF&region=US&lang=en-US' },
       { name: 'CNBC Markets', url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html' },
       { name: 'Seeking Alpha Metals', url: gn('site:seekingalpha.com (gold OR silver OR copper OR mining) when:2d') },
       { name: 'Commodity Futures', url: gn('(COMEX OR NYMEX OR "commodity futures" OR CME commodities) when:2d') },
@@ -475,7 +482,8 @@ export const VARIANT_FEEDS: Record<string, Record<string, ServerFeed[]>> = {
     finance: [
       { name: 'CNBC', url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html' },
       { name: 'MarketWatch', url: gn('site:marketwatch.com markets when:1d') },
-      { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex' },
+      // finance.yahoo.com/news/rssindex is HTTP 404. Official headline RSS.
+      { name: 'Yahoo Finance', url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US' },
       { name: 'Financial Times', url: 'https://www.ft.com/rss/home' },
       { name: 'Reuters Business', url: gn('site:reuters.com business markets when:1d') },
     ],

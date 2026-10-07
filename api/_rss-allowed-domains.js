@@ -339,5 +339,17 @@ export default [
   "balkaninsight.com",
   "www.war.gov",
   "www.thenationalnews.com",
-  "trumpstruth.org"
+  "trumpstruth.org",
+  "news.tuoitre.vn",
+  "phys.org",
+  "www.science.org",
+  "www.nasa.gov",
+  "www.space.com",
+  "www.quantamagazine.org",
+  "archaeology.org",
+  "www.heritagedaily.com",
+  "www.ancient-origins.net",
+  "www.sci.news",
+  "the-past.com",
+  "feeds.finance.yahoo.com"
 ];

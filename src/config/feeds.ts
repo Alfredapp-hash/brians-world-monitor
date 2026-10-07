@@ -221,14 +221,16 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     {
       name: 'EuroNews',
       url: {
-        en: rss('https://www.euronews.com/rss?format=xml'),
-        fr: rss('https://fr.euronews.com/rss?format=xml'),
-        de: rss('https://de.euronews.com/rss?format=xml'),
-        it: rss('https://it.euronews.com/rss?format=xml'),
-        es: rss('https://es.euronews.com/rss?format=xml'),
-        pt: rss('https://pt.euronews.com/rss?format=xml'),
-        ru: rss('https://ru.euronews.com/rss?format=xml'),
-        gr: rss('https://gr.euronews.com/rss?format=xml'),
+        // Bare /rss. The ?format=xml query returns HTTP 406 on de/it/es/pt/gr
+        // even with a browser user-agent; the unparameterized feed is current.
+        en: rss('https://www.euronews.com/rss'),
+        fr: rss('https://fr.euronews.com/rss'),
+        de: rss('https://de.euronews.com/rss'),
+        it: rss('https://it.euronews.com/rss'),
+        es: rss('https://es.euronews.com/rss'),
+        pt: rss('https://pt.euronews.com/rss'),
+        ru: rss('https://ru.euronews.com/rss'),
+        gr: rss('https://gr.euronews.com/rss'),
       }
     },
     {
@@ -271,9 +273,13 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     // Hungarian (HU) — V4 / CEE coverage. Locale-gated for hu users only,
     // matching the Tagesschau (de) / ANSA (it) / NOS Nieuws (nl) / SVT (sv)
     // convention. `hu` is registered as a supported locale in src/services/i18n.ts.
-    { name: 'Telex', url: rss('https://telex.hu/rss'), lang: 'hu' },
+    // DISABLED 2026-10-07: Telex (telex.hu/rss) HTTP 403 Cloudflare challenge
+    // even with a browser user-agent. Source name stays in SOURCE_TYPES.
+    // Do not delete without product-owner approval.
     { name: 'Index.hu', url: rss('https://index.hu/24ora/rss'), lang: 'hu' },
-    { name: 'HVG', url: rss('https://hvg.hu/rss'), lang: 'hu' },
+    // DISABLED 2026-10-07: HVG (hvg.hu/rss) HTTP 403 even with a browser
+    // user-agent. Source name stays in SOURCE_TYPES. Do not delete without
+    // product-owner approval.
     { name: '444.hu', url: rss('https://444.hu/feed'), lang: 'hu' },
     { name: '24.hu', url: rss('https://24.hu/feed/'), lang: 'hu' },
     { name: 'Híradó', url: rss('https://news.google.com/rss/search?q=site:hirado.hu+when:2d&hl=hu&gl=HU&ceid=HU:hu'), lang: 'hu' },
@@ -304,7 +310,9 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     { name: 'BBC Middle East', url: rss('https://feeds.bbci.co.uk/news/world/middle_east/rss.xml') },
     { name: 'Al Jazeera', url: { en: rss('https://www.aljazeera.com/xml/rss/all.xml'), ar: rss('https://www.aljazeera.net/aljazeerarss/a7c186be-1adb-4b11-a982-4783e765316e/4e17ecdc-8fb9-40de-a5d6-d00f72384a51') } },
     // AlArabiya EN blocks cloud IPs — Google News fallback; AR RSS is direct
-    { name: 'Al Arabiya', url: { en: rss('https://news.google.com/rss/search?q=site:english.alarabiya.net+when:2d&hl=en-US&gl=US&ceid=US:en'), ar: rss('https://www.alarabiya.net/tools/mrss/?cat=main') } },
+    // Arabic MRSS (alarabiya.net/tools/mrss) returns HTTP 403 even with a
+    // browser user-agent. Disabled 2026-10-07; English edition stays.
+    { name: 'Al Arabiya', url: { en: rss('https://news.google.com/rss/search?q=site:english.alarabiya.net+when:2d&hl=en-US&gl=US&ceid=US:en') } },
     // Arab News and Times of Israel removed — 403 from cloud IPs
     { name: 'Guardian ME', url: rss('https://www.theguardian.com/world/middleeast/rss') },
     { name: 'BBC Persian', url: rss('https://feeds.bbci.co.uk/persian/rss.xml') },
@@ -338,7 +346,9 @@ const FULL_FEEDS: Record<string, Feed[]> = {
   finance: [
     { name: 'CNBC', url: rss('https://www.cnbc.com/id/100003114/device/rss/rss.html') },
     { name: 'MarketWatch', url: rss('https://news.google.com/rss/search?q=site:marketwatch.com+markets+when:1d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Yahoo Finance', url: rss('https://finance.yahoo.com/news/rssindex') },
+    // finance.yahoo.com/news/rssindex and /rss/topstories are HTTP 404.
+    // Official headline RSS (S&P 500) still publishes current items.
+    { name: 'Yahoo Finance', url: rss('https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US') },
     { name: 'Financial Times', url: rss('https://www.ft.com/rss/home') },
     { name: 'Reuters Business', url: rss('https://news.google.com/rss/search?q=site:reuters.com+business+markets&hl=en-US&gl=US&ceid=US:en') },
   ],
@@ -376,8 +386,9 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     { name: 'Responsible Statecraft', url: rss('https://responsiblestatecraft.org/feed/') },
     // RUSI - Royal United Services Institute (UK defense & security)
     { name: 'RUSI', url: rss('https://news.google.com/rss/search?q=site:rusi.org+when:3d&hl=en-US&gl=US&ceid=US:en') },
-    // FPRI - Foreign Policy Research Institute (US foreign policy)
-    { name: 'FPRI', url: rss('https://www.fpri.org/feed/') },
+    // DISABLED 2026-10-07: FPRI (fpri.org/feed) HTTP 403 Cloudflare challenge
+    // even with a browser user-agent. Source name stays in SOURCE_TYPES.
+    // Do not delete without product-owner approval.
     // Jamestown Foundation - Eurasia/China/Terrorism analysis
     { name: 'Jamestown', url: rss('https://jamestown.org/feed/') },
   ],
@@ -390,7 +401,9 @@ const FULL_FEEDS: Record<string, Feed[]> = {
   africa: [
     { name: 'Africa News', url: rss('https://news.google.com/rss/search?q=(Africa+OR+Nigeria+OR+Kenya+OR+"South+Africa"+OR+Ethiopia)+when:2d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Sahel Crisis', url: rss('https://news.google.com/rss/search?q=(Sahel+OR+Mali+OR+Niger+OR+"Burkina+Faso"+OR+Wagner)+when:3d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'News24', url: rss('https://feeds.news24.com/articles/news24/TopStories/rss') },
+    // DISABLED 2026-10-07: News24 (feeds.news24.com TopStories) HTTP 403
+    // Cloudflare challenge even with a browser user-agent. Source name stays
+    // in SOURCE_TYPES. Do not delete without product-owner approval.
     { name: 'BBC Africa', url: rss('https://feeds.bbci.co.uk/news/world/africa/rss.xml') },
     { name: 'Jeune Afrique', url: rss('https://www.jeuneafrique.com/feed/'), lang: 'fr' },
     { name: 'Africanews', url: { en: rss('https://www.africanews.com/feed/rss'), fr: rss('https://fr.africanews.com/feed/rss') } },
@@ -432,7 +445,9 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     { name: 'South China Morning Post', url: railwayRss('https://www.scmp.com/rss/91/feed/') },
     { name: 'Reuters Asia', url: rss('https://news.google.com/rss/search?q=site:reuters.com+(China+OR+Japan+OR+Taiwan+OR+Korea)+when:3d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Xinhua', url: rss('https://news.google.com/rss/search?q=site:xinhuanet.com+OR+Xinhua+when:1d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Japan Today', url: rss('https://japantoday.com/feed/atom') },
+    // DISABLED 2026-10-07: Japan Today (japantoday.com/feed/atom) HTTP 403
+    // (Akamai "Access Denied") even with a browser user-agent. Source name
+    // stays in SOURCE_TYPES. Do not delete without product-owner approval.
     { name: 'Nikkei Asia', url: rss('https://news.google.com/rss/search?q=site:asia.nikkei.com+when:3d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Asahi Shimbun', url: rss('https://www.asahi.com/rss/asahi/newsheadlines.rdf'), lang: 'ja' },
     { name: 'The Hindu', url: rss('https://www.thehindu.com/news/national/feeder/default.rss'), lang: 'en' },
@@ -452,7 +467,9 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     { name: 'Thai PBS', url: rss('https://news.google.com/rss/search?q=Thai+PBS+World+news&hl=en&gl=US&ceid=US:en'), lang: 'th' },
     // Vietnam
     { name: 'VnExpress', url: rss('https://vnexpress.net/rss/tin-moi-nhat.rss'), lang: 'vi' },
-    { name: 'Tuoi Tre News', url: rss('https://tuoitrenews.vn/rss'), lang: 'vi' },
+    // tuoitrenews.vn/rss 302s to the canonical host. Fetch that URL directly
+    // so the proxy does not depend on the extra hop.
+    { name: 'Tuoi Tre News', url: rss('https://news.tuoitre.vn/rss'), lang: 'vi' },
     // Korea
     { name: 'Yonhap News', url: rss('https://www.yonhapnewstv.co.kr/browse/feed/'), lang: 'ko' },
     { name: 'Chosun Ilbo', url: rss('https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml'), lang: 'ko' },
@@ -477,13 +494,17 @@ const FULL_FEEDS: Record<string, Feed[]> = {
     { name: 'New Scientist', url: rss('https://news.google.com/rss/search?q=site:newscientist.com+when:2d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Live Science', url: rss('https://www.livescience.com/feeds.xml') },
     { name: 'Scientific American', url: rss('https://news.google.com/rss/search?q=site:scientificamerican.com+when:2d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'NASA', url: rss('https://www.nasa.gov/rss/dyn/breaking_news.rss') },
-    { name: 'Space.com', url: rss('https://www.space.com/feeds/all') },
+    // breaking_news.rss 301s to the news-release feed on the same host.
+    { name: 'NASA', url: rss('https://www.nasa.gov/news-release/feed/') },
+    // /feeds/all 301s through plaintext http://www.space.com/feeds.xml.
+    // The https canonical URL is what the homepage advertises.
+    { name: 'Space.com', url: rss('https://www.space.com/feeds.xml') },
     { name: 'Quanta Magazine', url: rss('https://www.quantamagazine.org/feed/') },
     { name: 'Science Discoveries', url: rss('https://news.google.com/rss/search?q=("scientific+discovery"+OR+"new+study"+OR+breakthrough+science)+when:2d&hl=en-US&gl=US&ceid=US:en') },
   ],
   archaeology: [
-    { name: 'Archaeology Magazine', url: rss('https://www.archaeology.org/feed') },
+    // www.archaeology.org/feed 301s to the apex feed.
+    { name: 'Archaeology Magazine', url: rss('https://archaeology.org/feed/') },
     { name: 'HeritageDaily', url: rss('https://www.heritagedaily.com/feed') },
     { name: 'Ancient Origins', url: rss('https://www.ancient-origins.net/rss.xml') },
     { name: 'Sci.News Archaeology', url: rss('https://www.sci.news/archaeology/feed') },
@@ -534,6 +555,8 @@ const TECH_FEEDS: Record<string, Feed[]> = {
   vcblogs: [
     { name: 'Y Combinator Blog', url: rss('https://www.ycombinator.com/blog/rss/') },
     { name: 'a16z Blog', url: rss('https://news.google.com/rss/search?q=site:a16z.com+OR+"Andreessen+Horowitz"+blog+when:14d&hl=en-US&gl=US&ceid=US:en') },
+    // sequoiacap.com/feed 308s to a framerusercontent.com asset. That CDN is
+    // multi-tenant, so it stays off the RSS allowlist. Google News instead.
     { name: 'Sequoia Blog', url: rss('https://news.google.com/rss/search?q=site:sequoiacap.com+when:7d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Paul Graham Essays', url: rss('https://news.google.com/rss/search?q="Paul+Graham"+essay+OR+blog+when:30d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'VC Insights', url: rss('https://news.google.com/rss/search?q=("venture+capital"+insights+OR+"VC+trends"+OR+"startup+advice")+when:7d&hl=en-US&gl=US&ceid=US:en') },
@@ -660,7 +683,8 @@ const TECH_FEEDS: Record<string, Feed[]> = {
   finance: [
     { name: 'CNBC Tech', url: rss('https://www.cnbc.com/id/19854910/device/rss/rss.html') },
     { name: 'MarketWatch Tech', url: rss('https://news.google.com/rss/search?q=site:marketwatch.com+technology+markets+when:2d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Yahoo Finance', url: rss('https://finance.yahoo.com/rss/topstories') },
+    // finance.yahoo.com/rss/topstories is HTTP 404. Official headline RSS.
+    { name: 'Yahoo Finance', url: rss('https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US') },
     { name: 'Seeking Alpha Tech', url: rss('https://seekingalpha.com/market_currents.xml') },
   ],
   hardware: [
@@ -723,7 +747,8 @@ const FINANCE_FEEDS: Record<string, Feed[]> = {
     { name: 'CNBC', url: rss('https://www.cnbc.com/id/100003114/device/rss/rss.html') },
     // Direct MarketWatch RSS returns frequent 403s from cloud IPs; use Google News fallback.
     { name: 'MarketWatch', url: rss('https://news.google.com/rss/search?q=site:marketwatch.com+markets+when:1d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Yahoo Finance', url: rss('https://finance.yahoo.com/rss/topstories') },
+    // finance.yahoo.com/rss/topstories is HTTP 404. Official headline RSS.
+    { name: 'Yahoo Finance', url: rss('https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US') },
     { name: 'Seeking Alpha', url: rss('https://seekingalpha.com/market_currents.xml') },
     { name: 'Reuters Markets', url: rss('https://news.google.com/rss/search?q=site:reuters.com+markets+stocks+when:1d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Bloomberg Markets', url: rss('https://news.google.com/rss/search?q=site:bloomberg.com+markets+when:1d&hl=en-US&gl=US&ceid=US:en') },
@@ -970,7 +995,9 @@ const COMMODITY_FEEDS: Record<string, Feed[]> = {
     { name: 'China Mineral Policy', url: rss('https://news.google.com/rss/search?q=(China+"rare+earth"+OR+"mineral+export"+OR+"critical+mineral")+policy+OR+restriction+when:7d&hl=en-US&gl=US&ceid=US:en') },
   ],
   markets: [
-    { name: 'Yahoo Finance Commodities', url: rss('https://finance.yahoo.com/rss/topstories') },
+    // finance.yahoo.com/rss/topstories is HTTP 404. Official headline RSS
+    // for crude, gold, and natural gas.
+    { name: 'Yahoo Finance Commodities', url: rss('https://feeds.finance.yahoo.com/rss/2.0/headline?s=CL%3DF,GC%3DF,NG%3DF&region=US&lang=en-US') },
     { name: 'CNBC Markets', url: rss('https://www.cnbc.com/id/100003114/device/rss/rss.html') },
     { name: 'Seeking Alpha Metals', url: rss('https://news.google.com/rss/search?q=site:seekingalpha.com+(gold+OR+silver+OR+copper+OR+mining)+when:2d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Commodity Futures', url: rss('https://news.google.com/rss/search?q=(COMEX+OR+NYMEX+OR+"commodity+futures"+OR+CME+commodities)+when:2d&hl=en-US&gl=US&ceid=US:en') },
@@ -978,7 +1005,9 @@ const COMMODITY_FEEDS: Record<string, Feed[]> = {
   finance: [
     { name: 'CNBC', url: rss('https://www.cnbc.com/id/100003114/device/rss/rss.html') },
     { name: 'MarketWatch', url: rss('https://news.google.com/rss/search?q=site:marketwatch.com+markets+when:1d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Yahoo Finance', url: rss('https://finance.yahoo.com/news/rssindex') },
+    // finance.yahoo.com/news/rssindex and /rss/topstories are HTTP 404.
+    // Official headline RSS (S&P 500) still publishes current items.
+    { name: 'Yahoo Finance', url: rss('https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US') },
     { name: 'Financial Times', url: rss('https://www.ft.com/rss/home') },
     { name: 'Reuters Business', url: rss('https://news.google.com/rss/search?q=site:reuters.com+business+markets&hl=en-US&gl=US&ceid=US:en') },
   ],
@@ -1152,7 +1181,7 @@ export const DEFAULT_ENABLED_SOURCES: Record<string, string[]> = {
   us: ['Reuters US', 'NPR News', 'PBS NewsHour', 'ABC News', 'CBS News', 'NBC News', 'Wall Street Journal', 'Politico', 'The Hill'],
   europe: ['France 24', 'EuroNews', 'Le Monde', 'DW News', 'Tagesschau', 'ANSA', 'NOS Nieuws', 'SVT Nyheter', 'Balkan Insight'],
   middleeast: ['BBC Middle East', 'Al Jazeera', 'Al Arabiya', 'Guardian ME', 'BBC Persian', 'Iran International', 'IRNA', 'Mehr News', 'Haaretz', 'Jerusalem Post', 'Ynetnews', 'Asharq News', 'The National'],
-  africa: ['BBC Africa', 'News24', 'Africanews', 'Jeune Afrique', 'Africa News', 'Premium Times', 'Channels TV', 'Sahel Crisis'],
+  africa: ['BBC Africa', 'BBC Afrique', 'Africanews', 'Jeune Afrique', 'Africa News', 'Premium Times', 'Channels TV', 'Sahel Crisis'],
   latam: ['BBC Latin America', 'Reuters LatAm', 'InSight Crime', 'Mexico News Daily', 'Clarín', 'Primicias', 'Infobae Americas', 'El Universo'],
   asia: ['BBC Asia', 'The Diplomat', 'South China Morning Post', 'Reuters Asia', 'Nikkei Asia', 'CNA', 'Asia News', 'The Hindu'],
   tech: ['Hacker News', 'Ars Technica', 'The Verge', 'MIT Tech Review'],
