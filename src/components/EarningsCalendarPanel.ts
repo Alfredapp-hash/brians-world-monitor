@@ -1,18 +1,9 @@
-import type { MarketServiceClient } from '@/generated/client/worldmonitor/market/v1/service_client';
 import { Panel } from './Panel';
 import { t, getLocale } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
+import { fetchEarningsCalendar } from '@/services/earnings-calendar';
+import { markBootRefreshSatisfied } from '@/services/page-load-once';
 import { STATUS, withAlpha } from '@/styles/tokens';
-
-let _client: MarketServiceClient | null = null;
-async function getMarketClient(): Promise<MarketServiceClient> {
-  if (!_client) {
-    const { MarketServiceClient } = await import('@/generated/client/worldmonitor/market/v1/service_client');
-    const { getRpcBaseUrl } = await import('@/services/rpc-client');
-    _client = new MarketServiceClient(getRpcBaseUrl(), { fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args) });
-  }
-  return _client;
-}
 
 interface EarningsEntry {
   symbol: string;
@@ -134,30 +125,26 @@ export class EarningsCalendarPanel extends Panel {
     super({ id: 'earnings-calendar', title: t('components.earningsCalendar.title'), showCount: false, infoTooltip: t('components.earningsCalendar.infoTooltip') });
   }
 
-  public async fetchData(): Promise<boolean> {
+  public async fetchData(force = false): Promise<boolean> {
+    markBootRefreshSatisfied('earnings-calendar');
     this.showLoading();
-    return this.refreshFromRpc();
-  }
-
-  private async refreshFromRpc(): Promise<boolean> {
     try {
-      const client = await getMarketClient();
       const today = new Date();
       const future = new Date();
       future.setDate(future.getDate() + 14);
       const fromDate = today.toISOString().slice(0, 10);
       const toDate = future.toISOString().slice(0, 10);
-      const resp = await client.listEarningsCalendar({ fromDate, toDate });
+      const resp = await fetchEarningsCalendar(fromDate, toDate, force);
 
       if (resp.unavailable || !resp.earnings?.length) {
-        if (!this._hasData) this.showError(t('components.earningsCalendar.errors.noData'), () => void this.fetchData());
+        if (!this._hasData) this.showError(t('components.earningsCalendar.errors.noData'), () => void this.fetchData(true));
         return false;
       }
 
       this.render(resp.earnings as EarningsEntry[]);
       return true;
     } catch (e) {
-      if (!this._hasData) this.showError(e instanceof Error ? e.message : t('components.earningsCalendar.errors.failedToLoad'), () => void this.fetchData());
+      if (!this._hasData) this.showError(e instanceof Error ? e.message : t('components.earningsCalendar.errors.failedToLoad'), () => void this.fetchData(true));
       return false;
     }
   }

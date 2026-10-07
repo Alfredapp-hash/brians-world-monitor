@@ -1,5 +1,6 @@
 import { toApiUrl } from '@/services/runtime';
 import { getHydratedData } from '@/services/bootstrap';
+import { oncePerPageLoad } from '@/services/page-load-once';
 
 export interface TransmissionNode {
   node: string;
@@ -64,12 +65,12 @@ export function getCachedMarketImplications(): MarketImplicationsData | null {
   return cache.get('')?.data ?? null;
 }
 
-export async function fetchMarketImplications(frameworkId = ''): Promise<MarketImplicationsData | null> {
+export async function fetchMarketImplications(frameworkId = '', force = false): Promise<MarketImplicationsData | null> {
   const now = Date.now();
   const cached = cache.get(frameworkId);
-  if (cached && !cached.data.degraded && now - cached.cachedAt < CACHE_TTL) return cached.data;
+  if (!force && cached && !cached.data.degraded && now - cached.cachedAt < CACHE_TTL) return cached.data;
 
-  if (!frameworkId) {
+  if (!force && !frameworkId) {
     const hydrated = getHydratedData('marketImplications') as { cards?: unknown[]; degraded?: boolean; emptyReason?: string; generatedAt?: string } | undefined;
     if (hydrated?.cards && Array.isArray(hydrated.cards) && hydrated.cards.length > 0 && !hydrated.degraded) {
       const data: MarketImplicationsData = {
@@ -83,16 +84,34 @@ export async function fetchMarketImplications(frameworkId = ''): Promise<MarketI
     }
   }
 
-  try {
-    const url = new URL(toApiUrl('/api/intelligence/v1/list-market-implications'));
+  return oncePerPageLoad(`intelligence:list-market-implications:${frameworkId}`, async () => {
+    const resolved = toApiUrl('/api/intelligence/v1/list-market-implications');
+    const origin = typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'http://127.0.0.1';
+    const url = resolved.startsWith('http://') || resolved.startsWith('https://')
+      ? new URL(resolved)
+      : new URL(resolved, origin);
     if (frameworkId) url.searchParams.set('frameworkId', frameworkId);
-    const resp = await fetch(url.toString(), {
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!resp.ok) return cached?.data ?? null;
+    let resp: Response;
+    try {
+      resp = await globalThis.fetch(url.toString(), {
+        signal: AbortSignal.timeout(15_000),
+      });
+    } catch (error) {
+      if (cached?.data) return cached.data;
+      throw error instanceof Error ? error : new Error('Market implications request failed');
+    }
+    if (!resp.ok) {
+      if (cached?.data) return cached.data;
+      throw new Error(`Market implications unavailable (HTTP ${resp.status})`);
+    }
 
     const raw = (await resp.json()) as { cards?: unknown[]; degraded?: boolean; emptyReason?: string; generatedAt?: string };
-    if (!Array.isArray(raw.cards)) return cached?.data ?? null;
+    if (!Array.isArray(raw.cards)) {
+      if (cached?.data) return cached.data;
+      throw new Error('Market implications unavailable (invalid payload)');
+    }
 
     const data: MarketImplicationsData = {
       cards: raw.cards.map(c => normalizeCard(c as Record<string, unknown>)),
@@ -102,7 +121,5 @@ export async function fetchMarketImplications(frameworkId = ''): Promise<MarketI
     };
     cache.set(frameworkId, { data, cachedAt: now });
     return data;
-  } catch {
-    return cached?.data ?? null;
-  }
+  }, force);
 }

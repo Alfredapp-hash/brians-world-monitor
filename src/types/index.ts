@@ -1063,6 +1063,8 @@ export interface PizzIntStatus {
   lastUpdate: Date;
   dataFreshness: PizzIntDataFreshness;
   locations: PizzIntLocation[];
+  /** Present when the response has no PizzINT payload. Not a live DEFCON reading. */
+  unavailableReason?: string;
 }
 
 // GDELT Country Tension Pairs

@@ -1,21 +1,11 @@
-import type { MarketServiceClient } from '@/generated/client/worldmonitor/market/v1/service_client';
 import type { EconomicServiceClient, GetEuFsiResponse } from '@/generated/client/worldmonitor/economic/v1/service_client';
 import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
 import { getHydratedData } from '@/services/bootstrap';
+import { fetchFearGreedIndex, readFearGreedHydration } from '@/services/fear-greed';
 import { CISS_STALE_THRESHOLD_MS } from '@/shared/ciss-staleness';
 import { STATUS, withAlpha } from '@/styles/tokens';
-
-let _marketClient: MarketServiceClient | null = null;
-async function getMarketClient(): Promise<MarketServiceClient> {
-  if (!_marketClient) {
-    const { MarketServiceClient } = await import('@/generated/client/worldmonitor/market/v1/service_client');
-    const { getRpcBaseUrl } = await import('@/services/rpc-client');
-    _marketClient = new MarketServiceClient(getRpcBaseUrl(), { fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args) });
-  }
-  return _marketClient;
-}
 
 let _economicClient: EconomicServiceClient | null = null;
 async function getEconomicClient(): Promise<EconomicServiceClient> {
@@ -93,7 +83,7 @@ export class FSIPanel extends Panel {
   public async fetchData(): Promise<boolean> {
     this.showLoading();
     try {
-      const hydrated = getHydratedData('fearGreedIndex') as Record<string, unknown> | undefined;
+      const hydrated = readFearGreedHydration() ?? undefined;
       let fsiValue = 0;
       let fsiLabel = '';
       let hygPrice = 0;
@@ -110,8 +100,7 @@ export class FSIPanel extends Panel {
       }
 
       if (fsiValue <= 0) {
-        const client = await getMarketClient();
-        const resp = await client.getFearGreedIndex({});
+        const resp = await fetchFearGreedIndex();
         if (!resp.unavailable && resp.fsiValue > 0) {
           fsiValue = resp.fsiValue;
           fsiLabel = resp.fsiLabel;

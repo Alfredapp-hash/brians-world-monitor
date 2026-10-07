@@ -1,32 +1,7 @@
 import type { PizzIntStatus, PizzIntLocation, PizzIntDefconLevel, GdeltTensionPair } from '@/types';
-import { createLazyClient, getRpcBaseUrl } from '@/services/rpc-client';
-import { createCircuitBreaker } from '@/utils';
-import { getHydratedData } from '@/services/bootstrap';
 import { t } from '@/services/i18n';
-import type { GetPizzintStatusResponse, PizzintStatus as ProtoPizzintStatus, PizzintLocation as ProtoLocation, GdeltTensionPair as ProtoTensionPair } from '@/generated/client/worldmonitor/intelligence/v1/service_client';
-import { IntelligenceServiceClient } from '@/services/generated-rpc-clients';
-
-// ---- Sebuf client ----
-
-const getClient = createLazyClient(() => new IntelligenceServiceClient(getRpcBaseUrl(), { fetch: (...args) => globalThis.fetch(...args) }));
-
-// ---- Circuit breakers ----
-
-const pizzintBreaker = createCircuitBreaker<PizzIntStatus>({
-  name: 'PizzINT',
-  maxFailures: 3,
-  cooldownMs: 5 * 60 * 1000,
-  cacheTtlMs: 30 * 60 * 1000,
-  persistCache: true,
-});
-
-const gdeltBreaker = createCircuitBreaker<GdeltTensionPair[]>({
-  name: 'GDELT Tensions',
-  maxFailures: 3,
-  cooldownMs: 5 * 60 * 1000,
-  cacheTtlMs: 15 * 60 * 1000,
-  persistCache: true,
-});
+import type { PizzintStatus as ProtoPizzintStatus, PizzintLocation as ProtoLocation, GdeltTensionPair as ProtoTensionPair } from '@/generated/client/worldmonitor/intelligence/v1/service_client';
+import { fetchPizzintShared, getPizzintBreakerStatus, PIZZINT_EMPTY_MESSAGE } from '@/services/pizzint-request';
 
 // ---- Proto → legacy adapters ----
 
@@ -94,44 +69,38 @@ function toTensionPair(proto: ProtoTensionPair): GdeltTensionPair {
   };
 }
 
-// ---- Default / fallback values ----
-
-const defaultStatus: PizzIntStatus = {
-  defconLevel: 5,
-  defconLabel: t('components.pizzint.defconLabels.5'),
-  aggregateActivity: 0,
-  activeSpikes: 0,
-  locationsMonitored: 0,
-  locationsOpen: 0,
-  lastUpdate: new Date(),
-  dataFreshness: 'stale',
-  locations: []
-};
-
-// ---- Public API ----
+function emptyStatus(reason: string): PizzIntStatus {
+  return {
+    defconLevel: 5,
+    defconLabel: t('components.pizzint.defconLabels.5'),
+    aggregateActivity: 0,
+    activeSpikes: 0,
+    locationsMonitored: 0,
+    locationsOpen: 0,
+    lastUpdate: new Date(),
+    dataFreshness: 'stale',
+    locations: [],
+    unavailableReason: reason,
+  };
+}
 
 export async function fetchPizzIntStatus(): Promise<PizzIntStatus> {
-  const hydrated = getHydratedData('pizzint') as GetPizzintStatusResponse | undefined;
-  if (hydrated?.pizzint) return toStatus(hydrated.pizzint);
-
-  return pizzintBreaker.execute(async () => {
-    const resp: GetPizzintStatusResponse = await getClient().getPizzintStatus({ includeGdelt: false });
-    if (!resp.pizzint) throw new Error('No PizzINT data');
-    return toStatus(resp.pizzint);
-  }, defaultStatus);
+  const shared = await fetchPizzintShared();
+  if (shared.kind === 'empty') return emptyStatus(shared.reason);
+  if (!shared.resp.pizzint) return emptyStatus(PIZZINT_EMPTY_MESSAGE);
+  return toStatus(shared.resp.pizzint);
 }
 
 export async function fetchGdeltTensions(): Promise<GdeltTensionPair[]> {
-  return gdeltBreaker.execute(async () => {
-    const resp: GetPizzintStatusResponse = await getClient().getPizzintStatus({ includeGdelt: true });
-    return resp.tensionPairs.map(toTensionPair);
-  }, []);
+  const shared = await fetchPizzintShared();
+  if (shared.kind === 'empty') return [];
+  return (shared.resp.tensionPairs ?? []).map(toTensionPair);
 }
 
 export function getPizzIntStatus(): string {
-  return pizzintBreaker.getStatus();
+  return getPizzintBreakerStatus();
 }
 
 export function getGdeltStatus(): string {
-  return gdeltBreaker.getStatus();
+  return getPizzintBreakerStatus();
 }

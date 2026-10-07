@@ -1,7 +1,8 @@
 import { Panel } from './Panel';
 import { t } from '@/services/i18n';
 import { escapeHtml, unsafeRawHtml } from '@/utils/sanitize';
-import { getHydratedData } from '@/services/bootstrap';
+import { fetchFearGreedIndex, readFearGreedHydration } from '@/services/fear-greed';
+import { markBootRefreshSatisfied } from '@/services/page-load-once';
 import { STATUS, withAlpha } from '@/styles/tokens';
 
 interface FearGreedData {
@@ -179,46 +180,48 @@ export class FearGreedPanel extends Panel {
     super({ id: 'fear-greed', title: t('panels.fearGreed'), showCount: false, infoTooltip: 'Composite sentiment index: 10 weighted categories (volatility, positioning, breadth, momentum, liquidity, credit, macro, cross-asset, sentiment, trend).' });
   }
 
-  public async fetchData(): Promise<boolean> {
-    const hydrated = getHydratedData('fearGreedIndex') as Record<string, unknown> | undefined;
+  public async fetchData(force = false): Promise<boolean> {
+    markBootRefreshSatisfied('fear-greed');
+    const hydrated = force ? null : readFearGreedHydration();
     const hasBootstrap = hydrated && !hydrated.unavailable;
     if (hasBootstrap) {
       const mapped = mapSeedPayload(hydrated);
+      const categories = hydrated.categories;
+      const categoriesComplete = !!categories && typeof categories === 'object' && Object.keys(categories as object).length > 0;
+      if (mapped && mapped.compositeScore > 0 && categoriesComplete) {
+        this.data = mapped;
+        this.renderPanel();
+        return true;
+      }
       if (mapped && mapped.compositeScore > 0) {
         this.data = mapped;
         this.renderPanel();
-        // Always refresh from RPC to pick up complete data (bootstrap may have partial fields)
-        void this.refreshFromRpc();
-        return true;
       }
     }
 
-    this.showLoading();
-    return this.refreshFromRpc();
+    if (!this.data) this.showLoading();
+    return this.refreshFromRpc(force);
   }
 
-  private async refreshFromRpc(): Promise<boolean> {
+  private async refreshFromRpc(force = false): Promise<boolean> {
     try {
-      const { MarketServiceClient } = await import('@/generated/client/worldmonitor/market/v1/service_client');
-      const { getRpcBaseUrl } = await import('@/services/rpc-client');
-      const client = new MarketServiceClient(getRpcBaseUrl(), { fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args) });
-      const resp = await client.getFearGreedIndex({});
+      const resp = await fetchFearGreedIndex(force);
       if (resp.unavailable) {
-        if (!this.data) this.showError(t('common.noDataShort'), () => void this.fetchData());
+        if (!this.data) this.showError(t('common.noDataShort'), () => void this.fetchData(true));
         return false;
       }
       this.data = resp as FearGreedData;
       this.renderPanel();
       return true;
     } catch (e) {
-      if (!this.data) this.showError(e instanceof Error ? e.message : t('common.failedToLoad'), () => void this.fetchData());
+      if (!this.data) this.showError(e instanceof Error ? e.message : t('common.failedToLoad'), () => void this.fetchData(true));
       return false;
     }
   }
 
   private renderPanel(): void {
     if (!this.data) {
-      this.showError(t('common.noDataShort'), () => void this.fetchData());
+      this.showError(t('common.noDataShort'), () => void this.fetchData(true));
       return;
     }
 
