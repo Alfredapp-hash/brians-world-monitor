@@ -938,6 +938,10 @@ export default defineConfig(({ mode }) => {
     html: {
       cspNonce: STATIC_SCRIPT_NONCE,
     },
+    // MapLibre 6's worker bundle fails Vite's dependency pre-bundling step.
+    optimizeDeps: {
+      exclude: ['maplibre-gl'],
+    },
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
       // Resolved + build-time validated above (devDependencies fallback +

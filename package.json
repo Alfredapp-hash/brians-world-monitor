@@ -146,9 +146,9 @@
     "@anthropic-ai/sdk": "^0.91.1",
     "@aws-sdk/client-s3": "^3.1009.0",
     "@clerk/clerk-js": "^6.13.0",
-    "@deck.gl/core": "^9.2.11",
-    "@deck.gl/layers": "^9.2.11",
-    "@deck.gl/mapbox": "^9.2.11",
+    "@deck.gl/core": "^9.4.0",
+    "@deck.gl/layers": "^9.4.0",
+    "@deck.gl/maplibre": "^9.4.0",
     "@dodopayments/convex": "^0.2.8",
     "@fontsource/nunito": "^5.2.7",
     "@fontsource/tajawal": "^5.2.7",
@@ -164,7 +164,7 @@
     "canvas-confetti": "^1.9.4",
     "convex": "^1.32.0",
     "d3": "^7.9.0",
-    "deck.gl": "^9.2.11",
+    "deck.gl": "^9.4.0",
     "dodopayments-checkout": "^1.8.0",
     "dompurify": "^3.4.11",
     "fast-xml-parser": "^5.8.0",
@@ -175,7 +175,7 @@
     "i18next-browser-languagedetector": "^8.2.1",
     "jmespath": "^0.16.0",
     "jose": "^6.2.2",
-    "maplibre-gl": "^5.16.0",
+    "maplibre-gl": "^6.13.0",
     "marked": "^17.0.3",
     "onnxruntime-web": "^1.26.0",
     "papaparse": "^5.5.3",
@@ -202,6 +202,8 @@
     "srvx": "^0.11.13",
     "protobufjs": "^7.6.2",
     "ws": "$ws",
-    "shell-quote": "^1.8.4"
+    "shell-quote": "^1.12.0",
+    "image-size": "2.0.4",
+    "sharp": "0.35.5"
   }
 }

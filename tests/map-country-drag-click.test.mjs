@@ -95,7 +95,7 @@ describe('map country drag/click guard', () => {
     assert.ok(fallbackMatch, 'DeckGLMap should keep a MapLibre fallback recreation path');
     assert.match(
       fallbackMatch[0],
-      /this\.attachMapLibreInteractionHandlers\(\);[\s\S]*localizeMapLabels\(this\.maplibreMap\);/,
+      /this\.attachMapLibreInteractionHandlers\(\);[\s\S]*this\.localizeBasemapLabels\(\);/,
       'fallback load handler must reattach country click handlers before continuing map initialization',
     );
   });
